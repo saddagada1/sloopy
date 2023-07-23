@@ -24,12 +24,12 @@ model Account {
     type              String
     provider          String
     providerAccountId String
-    refresh_token     String? // @db.Text
-    access_token      String? // @db.Text
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
     expires_at        Int?
     token_type        String?
-    scope             String?
-    id_token          String? // @db.Text
+    scope             String? @db.Text
+    id_token          String? @db.Text
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -49,6 +49,7 @@ model User {
     name          String?
     email         String?   @unique
     emailVerified DateTime?
+    isSubscribed  Boolean   @default(false)
     image         String?
     accounts      Account[]
     sessions      Session[]

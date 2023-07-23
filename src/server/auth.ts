@@ -5,7 +5,9 @@ import {
   type NextAuthOptions,
   type DefaultSession,
 } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
+import SpotifyProvider, {
+  type SpotifyProfile,
+} from "next-auth/providers/spotify";
 import { env } from "~/env.mjs";
 import { prisma } from "~/server/db";
 
@@ -30,6 +32,10 @@ declare module "next-auth" {
   // }
 }
 
+interface SpotifyExtendedProfile extends SpotifyProfile {
+  isSubscribed: boolean;
+}
+
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
@@ -47,9 +53,28 @@ export const authOptions: NextAuthOptions = {
   },
   adapter: PrismaAdapter(prisma),
   providers: [
-    DiscordProvider({
-      clientId: env.DISCORD_CLIENT_ID,
-      clientSecret: env.DISCORD_CLIENT_SECRET,
+    SpotifyProvider({
+      clientId: env.SPOTIFY_CLIENT_ID,
+      clientSecret: env.SPOTIFY_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope: `user-read-email user-read-private user-library-read user-library-modify
+             user-read-recently-played user-top-read playlist-read-private
+             playlist-read-collaborative playlist-modify-private playlist-modify-public
+             user-follow-read user-follow-modify user-read-playback-state 
+             user-modify-playback-state user-read-currently-playing`,
+        },
+      },
+      profile(profile: SpotifyExtendedProfile) {
+        console.log("profile ", profile);
+        return {
+          id: profile.id,
+          name: profile.display_name,
+          email: profile.email,
+          image: profile.images?.[0]?.url,
+          isSubscribed: profile.product === "premium" ? true : false,
+        };
+      },
     }),
     /**
      * ...add more providers here.
