@@ -19,6 +19,7 @@ import { prisma } from "~/server/db";
  */
 declare module "next-auth" {
   interface Session extends DefaultSession {
+    access_token: string;
     user: DefaultSession["user"] & {
       id: string;
       // ...other properties
@@ -43,13 +44,22 @@ interface SpotifyExtendedProfile extends SpotifyProfile {
  */
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    session: ({ session, user }) => ({
+    jwt: ({ token, account }) => {
+      if (account) {
+        token.access_token = account.access_token;
+      }
+      return token;
+    },
+    session: ({ session, token }) => ({
       ...session,
+      access_token: token.access_token,
       user: {
         ...session.user,
-        id: user.id,
       },
     }),
+  },
+  session: {
+    strategy: "jwt",
   },
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -66,7 +76,6 @@ export const authOptions: NextAuthOptions = {
         },
       },
       profile(profile: SpotifyExtendedProfile) {
-        console.log("profile ", profile);
         return {
           id: profile.id,
           name: profile.display_name,
