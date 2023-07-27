@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --pyrimar-colour: #f2f2f2;
+  --primary-colour: #f2f2f2;
   --secondary-colour: #151515;
   --accent-colour: #d1d5db;
 }

@@ -1,6 +1,10 @@
 import { Inter, Syne } from "next/font/google";
-import Navbar from "../Navbar/Navbar";
+import Navbar from "./Navbar";
 import Head from "next/head";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { useEffect } from "react";
+import { api } from "~/utils/api";
+import Loading from "./utils/Loading";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const syne = Syne({
@@ -9,6 +13,12 @@ const syne = Syne({
 });
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
+  const {
+    data: sessionData,
+    status: sessionStatus,
+    update: updateSession,
+  } = useSession();
+
   return (
     <>
       <Head>
@@ -19,7 +29,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         className={`${syne.variable} ${inter.variable} flex min-h-screen flex-col font-sans text-secondary`}
       >
         <Navbar />
-        <main className="mt-16 flex flex-1 flex-col">{children}</main>
+        <main className="mt-16 flex flex-1 flex-col">
+          {sessionStatus === "loading" ? <Loading /> : children}
+        </main>
       </div>
     </>
   );

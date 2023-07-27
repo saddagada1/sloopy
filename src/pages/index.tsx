@@ -1,7 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { type NextPage } from "next";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
+import Image from "next/image";
 import { PiSpotifyLogoFill } from "react-icons/pi";
+import { useSpotifyContext } from "~/contexts/Spotify";
 
 const Auth: React.FC = () => {
   return (
@@ -30,30 +33,82 @@ const Auth: React.FC = () => {
 };
 
 const Dashboard: React.FC = () => {
-  const { data: sessionData } = useSession();
+  const { data: session } = useSession();
+  const spotify = useSpotifyContext();
+  const {
+    data: featuredPlaylists,
+    isLoading: fetchingFeaturedPlaylists,
+    error: featuredPlaylistsError,
+  } = useQuery(
+    ["featuredPlaylists"],
+    async () => {
+      const response = await spotify?.fetchFeaturedPlaylists();
+      if (!response?.ok) {
+        throw new Error(response?.message);
+      }
+      return response;
+    },
+    {
+      enabled: !!spotify?.auth,
+    }
+  );
+  const {
+    data: recentlyPlayed,
+    isLoading: fetchingRecentlyPlayed,
+    error: recentlyPlayedError,
+  } = useQuery(
+    ["recentlyPlayed"],
+    async () => {
+      const response = await spotify?.fetchRecentlyPlayedTracks();
+      if (!response?.ok) {
+        throw new Error(response?.message);
+      }
+      return response;
+    },
+    {
+      enabled: !!spotify?.auth,
+    }
+  );
+
   return (
     <div className="px-4 pt-6" onClick={() => void signOut()}>
-      <h2 className="text-xl text-gray-400">Welcome Back</h2>
-      <h1 className="truncate text-5xl font-bold leading-tight">
-        {sessionData!.user.name}
+      <h2 className="ml-1 font-display text-xl text-gray-400">good morning</h2>
+      <h1 className="mb-4 truncate border-b border-gray-300 pb-2 text-4xl font-bold">
+        {session?.user.name}
       </h1>
-      <section className="mt-4 border-t border-secondary"></section>
+      <section className="mb-4 border-b border-gray-300 pb-20 ">
+        {featuredPlaylists?.data.playlists.items.map((playlist) => (
+          <div
+            className="relative overflow-hidden rounded-md"
+            key={playlist.id}
+          >
+            {playlist.name}
+            <Image
+              src={playlist.images[0]!.url}
+              alt={playlist.name}
+              fill
+              className="object-cover"
+            />
+          </div>
+        ))}
+      </section>
+      <section className="mb-4 border-b border-gray-300 pb-2 ">
+        {recentlyPlayed?.data.items.map((item) => (
+          <div key={item.track.id}>{item.track.name}</div>
+        ))}
+      </section>
     </div>
   );
 };
 
 const Home: NextPage = () => {
-  const { data: sessionData, status: sessionStatus } = useSession();
+  const { status: sessionStatus } = useSession();
   return (
     <>
       <Head>
         <title>Sloopy - Spotify</title>
       </Head>
-      {sessionStatus === "loading" ? null : sessionData ? (
-        <Dashboard />
-      ) : (
-        <Auth />
-      )}
+      {sessionStatus === "authenticated" ? <Dashboard /> : <Auth />}
     </>
   );
 };

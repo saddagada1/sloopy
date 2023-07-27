@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { PiListBold, PiSmileyBlankBold } from "react-icons/pi";
+import { PiList, PiSmileyBlank } from "react-icons/pi";
 import { useSession } from "next-auth/react";
+import clsx from "clsx";
 
 interface SideMenuProps {
   setVisible: Dispatch<SetStateAction<boolean>>;
@@ -42,25 +43,30 @@ const SideMenu: React.FC<SideMenuProps> = ({ setVisible }) => {
 };
 
 const Navbar: React.FC = () => {
-  const { data: sessionData } = useSession();
+  const { data: session } = useSession();
   const [showSideMenu, setShowSideMenu] = useState(false);
   return (
     <>
-      <nav className="fixed z-40 flex h-16 w-full items-center justify-center bg-primary p-4">
-        {sessionData && (
+      <nav
+        className={clsx(
+          "fixed z-40 flex h-16 w-full items-center bg-primary p-4 sm:justify-center",
+          session ? "justify-between" : "justify-end"
+        )}
+      >
+        {session && (
           <button onClick={() => setShowSideMenu(true)} className="text-3xl">
-            <PiListBold />
+            <PiList />
           </button>
         )}
         <Link
           href="/"
-          className="flex-1 text-center font-display text-3xl font-black"
+          className="font-display text-3xl font-extrabold sm:flex-1 sm:text-center sm:text-4xl"
         >
           sloopy
         </Link>
-        {sessionData && (
-          <Link href="/profile" className="text-3xl">
-            <PiSmileyBlankBold />
+        {session && (
+          <Link href="/profile" className="hidden text-3xl sm:block">
+            <PiSmileyBlank />
           </Link>
         )}
       </nav>
