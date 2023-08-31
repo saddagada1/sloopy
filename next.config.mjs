@@ -6,7 +6,7 @@ await import("./src/env.mjs");
 
 /** @type {import("next").NextConfig} */
 const config = {
-  reactStrictMode: true,
+  reactStrictMode: false,
 
   /**
    * If you have `experimental: { appDir: true }` set, then you must comment the below `i18n` config
@@ -17,6 +17,14 @@ const config = {
   i18n: {
     locales: ["en"],
     defaultLocale: "en",
+  },
+  images: {
+    domains: [
+      "lh3.googleusercontent.com",
+      "i.scdn.co",
+      "mosaic.scdn.co",
+      "images-ak.spotifycdn.com",
+    ],
   },
 };
 

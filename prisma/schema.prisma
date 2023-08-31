@@ -11,10 +11,58 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Example {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+// model Loop {
+//      id      String  @id @default(cuid())
+//      key     Int
+//      mode    Int
+//      chord   String?
+//      voicing Json?
+//      notes   String? @db.Text
+//      sloopId String
+//      sloop   Sloop   @relation(fields: [sloopId], references: [id], onDelete: Cascade)
+
+//      @@index([sloopId])
+// }
+
+model Sloop {
+    id                      String    @id @default(cuid())
+    name                    String    @db.Text
+    description             String?   @db.Text
+    trackId                 String
+    artists                 Json
+    duration                Float
+    key                     Int
+    keyConfidence           Float?
+    mode                    Int
+    modeConfidence          Float?
+    tempo                   Float
+    tempoConfidence         Float?
+    timeSignature           Int
+    timeSignatureConfidence Float?
+    loops                   Json
+    userId                  String
+    user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    createdAt               DateTime  @default(now())
+    updatedAt               DateTime  @updatedAt
+
+    @@index([userId])
+}
+
+model LinkedAccount {
+    id                String  @id @default(cuid())
+    userId            String
+    provider          String 
+    providerAccountId String
+    refresh_token     String  @db.Text
+    access_token      String  @db.Text
+    expires_at        Int
+    token_type        String
+    isPremium         Boolean 
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@unique([userId, provider])
+    @@index([userId])
 }
 
 // Necessary for Next auth
@@ -22,7 +70,7 @@ model Account {
     id                String  @id @default(cuid())
     userId            String
     type              String
-    provider          String
+    provider          String 
     providerAccountId String
     refresh_token     String? @db.Text
     access_token      String? @db.Text
@@ -34,16 +82,36 @@ model Account {
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([provider, providerAccountId])
+    @@index([userId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    isSubscribed  Boolean   @default(false)
-    image         String?
-    accounts      Account[]
+    id             String           @id @default(cuid())
+    name           String?          @db.Text
+    username       String           @unique @db.VarChar(255)
+    email          String           @unique @db.VarChar(320)
+    verified       Boolean          @default(false)
+    emailVerified  DateTime?
+    password       String?
+    image          String?          @db.Text
+    accounts       Account[]
+    sessions       Session[]
+    linkedAccounts LinkedAccount[]
+    sloops         Sloop[]
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
+
+    @@index([email])
 }
 
 model VerificationToken {
