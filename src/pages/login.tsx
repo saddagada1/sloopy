@@ -44,7 +44,7 @@ const Login: NextPage = ({}) => {
             if (response?.ok) {
               router.push("/");
             } else {
-              setErrors({ email: response?.error });
+              setErrors({ email: response!.error! });
             }
           }}
         >
