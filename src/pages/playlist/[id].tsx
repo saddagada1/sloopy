@@ -23,14 +23,14 @@ const Playlist: NextPage = ({}) => {
       if (typeof id !== "string") {
         throw new Error("404");
       }
-      const response = await spotify?.fetchPlaylist(id);
+      const response = await spotify.fetchPlaylist(id);
       if (!response?.ok) {
         throw new Error(response?.message ?? "Fatal Error");
       }
       return response.data;
     },
     {
-      enabled: !!spotify?.auth,
+      enabled: !!spotify.auth,
     }
   );
 

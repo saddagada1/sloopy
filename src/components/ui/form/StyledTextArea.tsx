@@ -17,7 +17,7 @@ const StyledTextArea: React.FC<StyledTextAreaProps> = ({
 }) => {
   return (
     <Field
-      className="mb-4 h-24 w-full resize-none rounded-md border border-gray-300 bg-gray-200 p-3 text-sm focus:outline-none sm:text-base"
+      className="mb-4 h-24 w-full resize-none rounded-md border border-gray-300 bg-gray-200 p-3 text-sm font-medium sm:text-base"
       style={style}
       id={id}
       name={name}

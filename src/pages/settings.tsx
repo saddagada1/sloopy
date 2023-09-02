@@ -54,7 +54,7 @@ const Settings: NextPage = ({}) => {
 
   useEffect(() => {
     if (params.get("code")) {
-      void spotify?.linkAccount(params);
+      void spotify.linkAccount(params);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -72,7 +72,7 @@ const Settings: NextPage = ({}) => {
       try {
         await unlinkSpotifyAccount();
         toast.remove(unlinkSpotify);
-        spotify?.setAuth(null);
+        spotify.setAuth(null);
         toast.success("Success: Unlinked Spotify Account", { duration: 4000 });
         await router.replace("/settings", undefined, { shallow: true });
         await updateSession();

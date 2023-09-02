@@ -33,8 +33,8 @@ const Create: NextPage = ({}) => {
       if (typeof id !== "string") {
         throw new Error("404");
       }
-      const trackResponse = await spotify?.fetchTrack(id);
-      const analysisResponse = await spotify?.fetchTrackAnalysis(id);
+      const trackResponse = await spotify.fetchTrack(id);
+      const analysisResponse = await spotify.fetchTrackAnalysis(id);
       if (!trackResponse?.ok) {
         throw new Error(trackResponse?.message ?? "Fatal Error");
       }
@@ -44,7 +44,7 @@ const Create: NextPage = ({}) => {
       return { track: trackResponse.data, analysis: analysisResponse.data };
     },
     {
-      enabled: !!spotify?.auth,
+      enabled: !!spotify.auth,
     }
   );
 
@@ -60,41 +60,40 @@ const Create: NextPage = ({}) => {
       <Head>
         <title>Create Sloop</title>
       </Head>
-      <div className="flex flex-col px-4 pb-12 pt-6">
+      <div className="flex w-full flex-col px-4 pb-12 pt-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
           Create
         </h2>
         <h1 className="mb-4 border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
           Sloop
         </h1>
-        <div className="flex justify-between">
-          <div className="flex flex-1">
-            <div className="relative aspect-square w-1/6 flex-shrink-0 overflow-hidden rounded-md">
-              <Image
-                src={data.track.album.images[0]!.url}
-                alt={data.track.name}
-                sizes="13vw"
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="ml-4 flex flex-col justify-between overflow-hidden">
-              <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
-                {data.track.name}
-              </h3>
-              <p className="truncate text-sm text-gray-400 sm:text-base">
-                {data.track.artists.map((artist, index) =>
-                  index === data.track.artists.length - 1
-                    ? artist.name
-                    : `${artist.name}, `
-                )}
-              </p>
-            </div>
+        <div className="flex w-full">
+          <div className="relative aspect-square w-1/6 flex-shrink-0 overflow-hidden rounded-md">
+            <Image
+              src={data.track.album.images[0]!.url}
+              alt={data.track.name}
+              sizes="13vw"
+              fill
+              className="object-cover"
+            />
           </div>
-          <button className="px-2">
+          <div className="ml-4 flex flex-1 flex-col justify-between overflow-hidden">
+            <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
+              {data.track.name}
+            </h3>
+            <p className="truncate text-sm text-gray-400 sm:text-base">
+              {data.track.artists.map((artist, index) =>
+                index === data.track.artists.length - 1
+                  ? artist.name
+                  : `${artist.name}, `
+              )}
+            </p>
+          </div>
+          <button>
             <PiXCircle className="text-3xl sm:text-4xl" />
           </button>
         </div>
+
         <Formik
           initialValues={{
             name: "",
@@ -109,17 +108,13 @@ const Create: NextPage = ({}) => {
               const response = await createSloop({
                 ...values,
                 trackId: data.track.id,
+                trackName: data.track.name,
                 artists: data.track.artists.map((artist) => artist.name),
                 duration: data.analysis.track.duration,
                 key: data.analysis.track.key,
-                keyConfidence: data.analysis.track.key_confidence,
                 mode: data.analysis.track.mode,
-                modeConfidence: data.analysis.track.mode_confidence,
                 tempo: data.analysis.track.tempo,
-                tempoConfidence: data.analysis.track.tempo_confidence,
                 timeSignature: data.analysis.track.time_signature,
-                timeSignatureConfidence:
-                  data.analysis.track.time_signature_confidence,
               });
               void router.replace(`/editor/${response.id}`);
             } catch (error) {

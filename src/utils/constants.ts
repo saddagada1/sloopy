@@ -3,6 +3,14 @@ export const secondaryColour = "#151515";
 export const accentColour = "#d1d5db";
 export const darkAccentColour = "#d1d5db80";
 
+export const timeSignature: Record<number, string> = {
+  3: "3/4",
+  4: "4/4",
+  5: "5/4",
+  6: "6/4",
+  7: "7/4",
+};
+
 export const mode: Record<number, string> = {
   0: "Minor",
   1: "Major",
@@ -21,6 +29,21 @@ export const pitchClass: Record<number, string> = {
   9: "A",
   10: "A#",
   11: "B",
+};
+
+export const pitchClassColours: Record<number, string> = {
+  0: "#ff0000",
+  1: "#ff5200",
+  2: "#ffa500",
+  3: " #ffd200",
+  4: "#ffff00",
+  5: "#66ff00",
+  6: "#33ff80",
+  7: "#00ffff",
+  8: "#0080ff",
+  9: "#0000ff",
+  10: "#8000ff",
+  11: "#ff00ff",
 };
 
 const majorDegrees = {

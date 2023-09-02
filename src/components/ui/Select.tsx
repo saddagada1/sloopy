@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PiCaretDown, PiCaretUp } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 
@@ -28,6 +28,8 @@ const Select: React.FC<SelectProps> = ({
   searchable,
 }) => {
   const [containerRef, { height }] = useElementSize();
+  const inputRef = useRef<HTMLInputElement>(null!);
+  const buttonRef = useRef<HTMLButtonElement>(null!);
   const [showDropdown, setShowDropdown] = useState(false);
   const [query, setQuery] = useState(value);
 
@@ -40,8 +42,8 @@ const Select: React.FC<SelectProps> = ({
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
       if (
-        (event.target as HTMLElement).closest("button") ??
-        (event.target as HTMLElement).closest("input")
+        (event.target as HTMLElement).isSameNode(inputRef.current) ||
+        (event.target as HTMLElement).isSameNode(buttonRef.current)
       ) {
         return;
       }
@@ -59,17 +61,19 @@ const Select: React.FC<SelectProps> = ({
   }, [showDropdown]);
 
   return (
-    <div ref={containerRef} className="relative flex">
+    <div
+      ref={containerRef}
+      className="relative flex text-sm font-medium sm:text-base"
+    >
       {searchable ? (
-        <div
-          onClick={() => {
-            setQuery(value);
-            setShowDropdown(!showDropdown);
-            onSelectFocus && onSelectFocus(!showDropdown);
-          }}
-          className="mb-4 flex w-full items-center justify-between rounded-md border border-gray-300 bg-gray-200 p-2 text-sm sm:text-base"
-        >
+        <div className="mb-4 flex w-full items-center justify-between rounded-md border border-gray-300 bg-gray-200 p-2">
           <input
+            onClick={() => {
+              setQuery(value);
+              setShowDropdown(!showDropdown);
+              onSelectFocus && onSelectFocus(!showDropdown);
+            }}
+            ref={inputRef}
             value={showDropdown ? query : value ?? "Select"}
             onChange={(e) => setQuery(e.target.value)}
             type="text"
@@ -81,11 +85,12 @@ const Select: React.FC<SelectProps> = ({
         </div>
       ) : (
         <button
-          className="mb-4 flex w-full items-center justify-between rounded-md border border-gray-300 bg-gray-200 p-2 text-sm sm:text-base"
+          className="mb-4 flex w-full items-center justify-between rounded-md border border-gray-300 bg-gray-200 p-2"
           onClick={() => {
             setShowDropdown(!showDropdown);
             onSelectFocus && onSelectFocus(!showDropdown);
           }}
+          ref={buttonRef}
         >
           <span>{value ?? "Select"}</span>
           <span className="text-sm sm:text-base">
@@ -100,7 +105,7 @@ const Select: React.FC<SelectProps> = ({
             animate={{ translateY: height, opacity: 1 }}
             exit={{ translateY: 0, opacity: 0 }}
             transition={{ type: "tween", duration: 0.2 }}
-            className="absolute z-50 flex max-h-40 w-full flex-col gap-1 overflow-scroll whitespace-nowrap rounded-md border border-gray-300 bg-primary p-1 shadow-md"
+            className="no-scrollbar absolute z-50 flex max-h-40 w-full flex-col gap-1 overflow-y-scroll whitespace-nowrap rounded-md border border-gray-300 bg-primary p-1 shadow-md"
           >
             {searchable && filteredData.length > 0 ? (
               filteredData.map((item, index) => (
@@ -117,8 +122,8 @@ const Select: React.FC<SelectProps> = ({
                     setShowDropdown(false);
                   }}
                   className={clsx(
-                    "p-2 text-sm transition-colors hover:rounded hover:border-b-0 hover:bg-gray-200 sm:text-base",
-                    index !== data.length - 1 && "border-b border-gray-300"
+                    "rounded p-2 transition-colors hover:bg-gray-200",
+                    item.label === value && "bg-gray-300"
                   )}
                 >
                   {item.label}
@@ -138,15 +143,15 @@ const Select: React.FC<SelectProps> = ({
                     setShowDropdown(false);
                   }}
                   className={clsx(
-                    "p-2 text-sm transition-colors hover:rounded hover:border-b-0 hover:bg-gray-200 sm:text-base",
-                    index !== data.length - 1 && "border-b border-gray-300"
+                    "rounded p-2 transition-colors hover:bg-gray-200",
+                    item.label === value && "bg-gray-300"
                   )}
                 >
                   {item.label}
                 </li>
               ))
             ) : (
-              <p className="rounded p-2 text-sm transition-colors hover:bg-gray-200 sm:text-base">
+              <p className="rounded p-2 transition-colors hover:bg-gray-200">
                 No Options
               </p>
             )}

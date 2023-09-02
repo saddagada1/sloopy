@@ -9,7 +9,6 @@ import {
   PiSpotifyLogo,
 } from "react-icons/pi";
 import { useSpotifyContext } from "~/contexts/Spotify";
-import { useSpotifyWebSDK } from "~/utils/hooks";
 import Image from "next/image";
 import Loading from "../utils/Loading";
 import { useElementSize } from "usehooks-ts";
@@ -18,19 +17,19 @@ import { calcVideoTimestamp, clamp } from "~/utils/calc";
 import Popover from "../ui/Popover";
 import InputSlider from "../ui/InputSlider";
 import Link from "next/link";
+import { useEditorContext } from "~/contexts/Editor";
 
 interface PlayerProps {
-  token: string;
   trackId: string;
   duration: number;
 }
 
-const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
-  const { player, isReady, error, deviceId } = useSpotifyWebSDK(token);
+const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
   const spotify = useSpotifyContext();
+  const editor = useEditorContext();
   const { mutateAsync: initializePlayback } = useMutation({
     mutationFn: async () => {
-      const playResponse = await spotify?.playTrack(deviceId, trackId);
+      const playResponse = await spotify?.playTrack(editor.deviceId, trackId);
       if (!playResponse?.ok) {
         throw new Error(playResponse?.message ?? "Fatal Error");
       }
@@ -39,7 +38,7 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
   });
   const { mutateAsync: transferPlayback } = useMutation({
     mutationFn: async () => {
-      const transferResponse = await spotify?.transferPlayback(deviceId);
+      const transferResponse = await spotify?.transferPlayback(editor.deviceId);
       if (!transferResponse?.ok) {
         throw new Error(transferResponse?.message ?? "Fatal Error");
       }
@@ -49,10 +48,8 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [volume, setVolume] = useState(0.5);
   const [showVolume, setShowVolume] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [updateTime, setUpdateTime] = useState(0);
   const [position, setPosition] = useState(0);
-  const [playbackPosition, setPlaybackPosition] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [timelineRef, { width: timelineWidth }] = useElementSize();
 
@@ -61,7 +58,7 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
       if (!isScrubbing) return;
       const seekPercentage = clamp(e.clientX, 0, timelineWidth) / timelineWidth;
       const seekPosition = duration * seekPercentage;
-      setPlaybackPosition(seekPosition);
+      editor.setPlaybackPosition(seekPosition);
     };
 
     const handleTouchScrub = (e: TouchEvent) => {
@@ -69,12 +66,13 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
       const seekPercentage =
         clamp(e.touches[0].clientX, 0, timelineWidth) / timelineWidth;
       const seekPosition = duration * seekPercentage;
-      setPlaybackPosition(seekPosition);
+      editor.setPlaybackPosition(seekPosition);
     };
 
     const handleFinishScrub = () => {
-      if (!isScrubbing || !player) return;
-      void player.seek(playbackPosition * 1000);
+      if (!isScrubbing || !editor.player) return;
+      void editor.player.seek(editor.playbackPosition * 1000);
+      editor.handlePlayingLoop(editor.playbackPosition);
       setIsScrubbing(false);
     };
 
@@ -89,21 +87,21 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
       window.removeEventListener("mouseup", handleFinishScrub);
       window.removeEventListener("touchend", handleFinishScrub);
     };
-  }, [duration, isScrubbing, playbackPosition, player, timelineWidth]);
+  }, [duration, isScrubbing, editor, timelineWidth]);
 
   useEffect(() => {
-    if (!player || deviceId === "") return;
+    if (!editor.player || editor.deviceId === "") return;
 
-    if (error) {
+    if (editor.error) {
       setIsLoading(false);
     }
 
-    player.addListener("player_state_changed", (state) => {
+    editor.player.addListener("player_state_changed", (state) => {
       if (!state) {
         return;
       }
       setTrack(state.track_window.current_track);
-      setIsPlaying(!state.paused);
+      editor.setIsPlaying(!state.paused);
       setPosition(state.position);
       setUpdateTime(performance.now());
     });
@@ -115,11 +113,18 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
     }
 
     return () => {
-      player.removeListener("player_state_changed");
+      editor.player?.removeListener("player_state_changed");
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, error, deviceId, initializePlayback, transferPlayback]);
-  //
+  }, [
+    editor.player,
+    editor.deviceId,
+    editor.error,
+    initializePlayback,
+    transferPlayback,
+  ]);
+
   useEffect(() => {
     const getPlaybackPosition = () => {
       const newPosition =
@@ -129,30 +134,40 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
 
     let interval: NodeJS.Timer;
 
-    if (isPlaying && !isScrubbing) {
+    if (editor.isPlaying && !isScrubbing) {
       interval = setInterval(() => {
-        setPlaybackPosition(getPlaybackPosition());
-      }, 10);
+        const position = getPlaybackPosition();
+        editor.setPlaybackPosition(position);
+        editor.handlePlayingLoop(position);
+      }, 1);
     }
 
     return () => {
       clearInterval(interval);
     };
-  }, [duration, isPlaying, position, updateTime, isScrubbing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    duration,
+    editor.isPlaying,
+    position,
+    updateTime,
+    isScrubbing,
+    editor.playbackPosition,
+  ]);
 
-  if (!player || !track || isLoading) {
+  if (!editor.player || !track || isLoading) {
     return (
       <div className="flex h-[68px]">
         <Loading />
       </div>
     );
   }
-  //
-  if (error) {
-    return <div className="h-[68px]">{error}</div>;
+
+  if (editor.error) {
+    return <div className="h-[68px]">{editor.error}</div>;
   }
 
-  if (!isReady) {
+  if (!editor.isReady) {
     return <div className="h-[68px]">no internet</div>;
   }
 
@@ -166,10 +181,10 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
               animate={{ translateY: "-200%", opacity: 1 }}
               exit={{ translateY: "0%", opacity: 0 }}
               transition={{ type: "tween", duration: 0.2 }}
-              className="select-none rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold sm:text-base"
+              className="select-none rounded-md border border-gray-300 bg-primary px-3 py-2 text-sm font-semibold sm:text-base"
             >
               {`${calcVideoTimestamp(
-                Math.round(playbackPosition)
+                Math.round(editor.playbackPosition)
               )} / ${calcVideoTimestamp(Math.round(duration))}`}
             </motion.div>
           </div>
@@ -182,7 +197,7 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
         <div
           style={{
             transform: `translateX(-${
-              100 - (playbackPosition / duration) * 100
+              100 - (editor.playbackPosition / duration) * 100
             }%)`,
           }}
           className="relative flex h-full items-center bg-secondary"
@@ -197,11 +212,11 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
       <div className="flex h-16 items-center gap-4 p-2 font-display">
         <button
           onClick={() => {
-            void player.togglePlay();
+            void editor.player?.togglePlay();
           }}
           className="text-3xl sm:text-4xl"
         >
-          {isPlaying ? <PiPauseFill /> : <PiPlayFill />}
+          {editor.isPlaying ? <PiPauseFill /> : <PiPlayFill />}
         </button>
         <div className="relative aspect-square h-full overflow-hidden rounded-md">
           <Image
@@ -236,18 +251,13 @@ const Player: React.FC<PlayerProps> = ({ token, trackId, duration }) => {
           )}
           <AnimatePresence>
             {showVolume && (
-              <Popover
-                setVisible={setShowVolume}
-                className="h-32"
-                x="center"
-                y="top"
-              >
+              <Popover setVisible={setShowVolume} className="h-32" y="top">
                 <InputSlider
                   vertical
                   defaultValue={volume}
                   onSlideEnd={(value) => {
                     if (value[0] === undefined) return;
-                    void player.setVolume(value[0]);
+                    void editor.player?.setVolume(value[0]);
                     setVolume(value[0]);
                   }}
                 />

@@ -23,16 +23,13 @@ const createSloopInput = z.object({
   name: z.string().max(20),
   description: z.string().max(500),
   trackId: z.string(),
+  trackName: z.string(),
   artists: z.array(z.string()),
   duration: z.number(),
   key: z.number().min(-1).max(11),
-  keyConfidence: z.number().min(0).max(1).optional(),
   mode: z.number().min(0).max(1),
-  modeConfidence: z.number().min(0).max(1).optional(),
   tempo: z.number(),
-  tempoConfidence: z.number().min(0).max(1).optional(),
   timeSignature: z.number().min(3).max(7),
-  timeSignatureConfidence: z.number().min(0).max(1).optional(),
 });
 
 export const sloopsRouter = createTRPCRouter({

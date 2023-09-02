@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 
-export const useSpotifyWebSDK = (token: string) => {
+export const useSpotifyWebSDK = (token?: string) => {
   const [player, setPlayer] = useState<Spotify.Player>();
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [deviceId, setDeviceId] = useState("");
 
   useEffect(() => {
+    if (!token) return;
+
     const player = new window.Spotify.Player({
       name: "Sloopy Spotify Player",
       getOAuthToken: (cb) => {

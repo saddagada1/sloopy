@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  PiList,
-  PiMagnifyingGlass,
-  PiSmileyBlank,
-  PiUser,
-} from "react-icons/pi";
+import { PiList } from "react-icons/pi";
 import { signOut, useSession } from "next-auth/react";
 import clsx from "clsx";
 

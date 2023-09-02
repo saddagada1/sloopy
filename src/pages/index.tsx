@@ -54,14 +54,14 @@ const Dashboard: React.FC = () => {
   } = useQuery(
     ["featuredPlaylists"],
     async () => {
-      const response = await spotify?.fetchFeaturedPlaylists();
+      const response = await spotify.fetchFeaturedPlaylists();
       if (!response?.ok) {
         throw new Error(response?.message);
       }
       return response;
     },
     {
-      enabled: !!spotify?.auth,
+      enabled: !!spotify.auth,
     }
   );
   const {
@@ -71,14 +71,14 @@ const Dashboard: React.FC = () => {
   } = useQuery(
     ["userPlaylists"],
     async () => {
-      const response = await spotify?.fetchCurrentUserPlaylists();
+      const response = await spotify.fetchCurrentUserPlaylists();
       if (!response?.ok) {
         throw new Error(response?.message);
       }
       return response;
     },
     {
-      enabled: !!spotify?.auth,
+      enabled: !!spotify.auth,
     }
   );
 
@@ -89,14 +89,14 @@ const Dashboard: React.FC = () => {
   } = useQuery(
     ["topItems", "artists"],
     async () => {
-      const response = await spotify?.fetchTopArtists();
+      const response = await spotify.fetchTopArtists();
       if (!response?.ok) {
         throw new Error(response?.message);
       }
       return response;
     },
     {
-      enabled: !!spotify?.auth,
+      enabled: !!spotify.auth,
     }
   );
 

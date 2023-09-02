@@ -31,6 +31,7 @@ const CreateLoopModal: React.FC<CreateLoopModalProps> = ({
   const [isSelecting, setIsSelecting] = useState(false);
 
   const chordsForKey = useMemo(() => {
+    setSelectedChord(pitchClass[selectedKey]!);
     return Object.keys(chords)
       .filter((key) => {
         const keyRegex = new RegExp(`^${pitchClass[selectedKey]}`);

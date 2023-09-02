@@ -27,18 +27,15 @@ generator client {
 model Sloop {
     id                      String    @id @default(cuid())
     name                    String    @db.Text
-    description             String?   @db.Text
+    description             String    @db.Text
     trackId                 String
+    trackName               String    @db.Text
     artists                 Json
     duration                Float
     key                     Int
-    keyConfidence           Float?
     mode                    Int
-    modeConfidence          Float?
     tempo                   Float
-    tempoConfidence         Float?
     timeSignature           Int
-    timeSignatureConfidence Float?
     loops                   Json
     userId                  String
     user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)

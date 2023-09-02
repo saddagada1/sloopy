@@ -19,8 +19,8 @@ const Track: NextPage = ({}) => {
       if (typeof id !== "string") {
         throw new Error("404");
       }
-      const trackResponse = await spotify?.fetchTrack(id);
-      const analysisResponse = await spotify?.fetchTrackAnalysis(id);
+      const trackResponse = await spotify.fetchTrack(id);
+      const analysisResponse = await spotify.fetchTrackAnalysis(id);
       if (!trackResponse?.ok) {
         throw new Error(trackResponse?.message ?? "Fatal Error");
       }
@@ -30,7 +30,7 @@ const Track: NextPage = ({}) => {
       return { track: trackResponse.data, analysis: analysisResponse.data };
     },
     {
-      enabled: !!spotify?.auth,
+      enabled: !!spotify.auth,
     }
   );
 

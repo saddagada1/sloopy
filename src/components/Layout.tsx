@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import Loading from "./utils/Loading";
 import { useRouter } from "next/router";
 import Script from "next/script";
+import EditorProvider from "~/contexts/Editor";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const syne = Syne({
@@ -33,7 +34,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </main>
           </>
         ) : (
-          <>{sessionStatus === "loading" ? <Loading /> : children}</>
+          <EditorProvider>
+            {sessionStatus === "loading" ? <Loading /> : children}
+          </EditorProvider>
         )}
       </div>
       <Script async src="https://sdk.scdn.co/spotify-player.js" />

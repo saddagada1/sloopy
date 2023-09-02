@@ -17,7 +17,7 @@ const StyledField: React.FC<StyledFieldProps> = ({
 }) => {
   return (
     <Field
-      className="mb-4 w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-sm sm:text-base"
+      className="mb-4 w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-sm font-medium sm:text-base"
       style={style}
       id={id}
       name={name}

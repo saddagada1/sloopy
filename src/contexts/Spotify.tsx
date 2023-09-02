@@ -73,7 +73,7 @@ interface SpotifyValues {
   ) => Promise<SpotifyResponse<undefined> | SpotifyErrorResponse>;
 }
 
-const SpotifyContext = createContext<SpotifyValues | null>(null);
+const SpotifyContext = createContext<SpotifyValues>(null!);
 
 interface QueuedRequest {
   resolve: (value: unknown) => void;

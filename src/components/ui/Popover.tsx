@@ -6,8 +6,9 @@ interface PopoverProps {
   setVisible: Dispatch<SetStateAction<boolean>>;
   children?: React.ReactNode;
   className?: string;
-  x?: "left" | "right" | "center";
+  x?: "left" | "right";
   y?: "top" | "bottom";
+  animate?: string;
 }
 
 const Popover: React.FC<PopoverProps> = ({
@@ -16,6 +17,7 @@ const Popover: React.FC<PopoverProps> = ({
   className,
   x,
   y,
+  animate,
 }) => {
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -35,14 +37,16 @@ const Popover: React.FC<PopoverProps> = ({
   return (
     <motion.div
       initial={{ translateY: "0%", opacity: 0 }}
-      animate={{ translateY: "-25%", opacity: 1 }}
+      animate={{ translateY: animate ?? "-25%", opacity: 1 }}
       exit={{ translateY: "0%", opacity: 0 }}
       transition={{ type: "tween", duration: 0.2 }}
       className={clsx(
         "absolute z-50 rounded-md border border-gray-300 bg-primary p-2",
-        x === "left" ? "right-full" : x === "right" ? "left-full" : "",
-        y === "top" ? "bottom-full" : "top-full",
-        className ?? ""
+        x === "left" && "right-full",
+        x === "right" && "left-full",
+        y === "top" && "bottom-full",
+        y === "bottom" && "top-full",
+        className
       )}
     >
       {children}
