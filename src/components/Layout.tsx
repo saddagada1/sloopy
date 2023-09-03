@@ -6,6 +6,11 @@ import Loading from "./utils/Loading";
 import { useRouter } from "next/router";
 import Script from "next/script";
 import EditorProvider from "~/contexts/Editor";
+import { useEffect, useState } from "react";
+import { api } from "~/utils/api";
+import { type UpdateSloopInput } from "~/utils/types";
+import toast from "react-hot-toast";
+import Link from "next/link";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const syne = Syne({
@@ -15,7 +20,53 @@ const syne = Syne({
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { status: sessionStatus } = useSession();
+  const [unsavedData, setUnsavedData] = useState(true);
+  const { mutateAsync: saveSloop } = api.sloops.update.useMutation();
   const router = useRouter();
+
+  useEffect(() => {
+    const handleUnsaved = async (data: UpdateSloopInput) => {
+      try {
+        await saveSloop(data);
+        localStorage.removeItem("sloop");
+        setUnsavedData(false);
+      } catch (error) {
+        toast.error(
+          (t) => (
+            <div>
+              {`You Have An Unsaved Sloop. `}
+              <Link
+                href={`/editor/${data.id}?unsaved=true`}
+                onClick={() => toast.dismiss(t.id)}
+                className="underline"
+              >
+                Click Here To Save
+              </Link>
+              {` Or Your Data Will Be Lost! `}
+              <button
+                className="underline"
+                onClick={() => {
+                  localStorage.removeItem("sloop");
+                  toast.dismiss(t.id);
+                }}
+              >
+                Click Here To Ignore.
+              </button>
+            </div>
+          ),
+          { duration: Infinity }
+        );
+        setUnsavedData(false);
+      }
+    };
+
+    const sloop = localStorage.getItem("sloop");
+    if (sloop) {
+      void handleUnsaved(JSON.parse(sloop) as UpdateSloopInput);
+    } else {
+      setUnsavedData(false);
+    }
+  }, [saveSloop]);
 
   return (
     <>
@@ -30,12 +81,20 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <>
             <Navbar />
             <main className="mt-16 flex flex-1 flex-col">
-              {sessionStatus === "loading" ? <Loading /> : children}
+              {sessionStatus === "loading" || unsavedData ? (
+                <Loading />
+              ) : (
+                children
+              )}
             </main>
           </>
         ) : (
           <EditorProvider>
-            {sessionStatus === "loading" ? <Loading /> : children}
+            {sessionStatus === "loading" || unsavedData ? (
+              <Loading />
+            ) : (
+              children
+            )}
           </EditorProvider>
         )}
       </div>

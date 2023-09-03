@@ -5,6 +5,7 @@ import React, {
   useContext,
   useState,
   type Dispatch,
+  useEffect,
 } from "react";
 import { useSpotifyWebSDK } from "~/utils/hooks";
 import { type Loop } from "~/utils/types";
@@ -16,7 +17,7 @@ interface SloopGeneralInfo {
   tempo: number;
   timeSignature: number;
   name: string;
-  description: string | null;
+  description: string;
 }
 
 interface EditorValues {
@@ -63,6 +64,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     spotify.auth?.access_token
   );
   const [duration, setDuration] = useState(0);
+  const [sloop, setSloop] = useState<Sloop>(null!);
   const [loops, setLoops] = useState<Loop[]>([]);
   const [generalInfo, setGeneralInfo] = useState<SloopGeneralInfo>(null!);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -71,8 +73,9 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [repeatPlayingLoop, setRepeatPlayingLoop] = useState<Loop | null>(null);
 
   const initialize = (sloop: Sloop) => {
+    setSloop(sloop);
     setDuration(sloop.duration);
-    //setLoops(sloop.loops as Loop[]);
+    setLoops(sloop.loops as Loop[]);
     setGeneralInfo({
       key: sloop.key,
       mode: sloop.mode,
@@ -111,6 +114,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       key: key,
       mode: mode,
       chord: chord,
+      notes: "",
     };
 
     if (loop.start <= playbackPosition && playbackPosition <= loop.end) {
@@ -208,6 +212,22 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
     setLoops(update);
   };
+
+  useEffect(() => {
+    if (!sloop) return;
+
+    const autoSave = () => {
+      const updatedSloop = {
+        ...sloop,
+        ...generalInfo,
+        loops,
+      };
+      const update = JSON.stringify(updatedSloop);
+      localStorage.setItem(`sloop`, update);
+    };
+
+    autoSave();
+  }, [generalInfo, loops, sloop]);
 
   return (
     <EditorContext.Provider

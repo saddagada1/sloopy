@@ -35,5 +35,21 @@ export interface Loop {
   key: number;
   mode: number;
   chord: string;
-  notes?: string;
+  notes: string;
+}
+
+export interface UpdateSloopInput {
+  id: string;
+  name: string;
+  description: string;
+  trackId: string;
+  trackName: string;
+  artists: string[];
+  duration: number;
+  key: number;
+  mode: number;
+  tempo: number;
+  timeSignature: number;
+  loops: Loop[];
+  isPrivate: boolean;
 }

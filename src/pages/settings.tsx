@@ -81,6 +81,8 @@ const Settings: NextPage = ({}) => {
         toast.remove(unlinkSpotify);
         if (error instanceof TRPCClientError) {
           toast.error(`Error: ${error.message}. Please Try Again`);
+        } else {
+          toast.error(`Error: Something Went Wrong. Please Try Again`);
         }
         return;
       }

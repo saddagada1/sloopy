@@ -18,6 +18,7 @@ import Popover from "../ui/Popover";
 import InputSlider from "../ui/InputSlider";
 import Link from "next/link";
 import { useEditorContext } from "~/contexts/Editor";
+import toast from "react-hot-toast";
 
 interface PlayerProps {
   trackId: string;
@@ -31,7 +32,11 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
     mutationFn: async () => {
       const playResponse = await spotify?.playTrack(editor.deviceId, trackId);
       if (!playResponse?.ok) {
-        throw new Error(playResponse?.message ?? "Fatal Error");
+        toast.error(
+          `Error: ${
+            playResponse.message ?? "Could Not Connect To Spotify"
+          }. Please Refresh`
+        );
       }
       setIsLoading(false);
     },
@@ -40,7 +45,11 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
     mutationFn: async () => {
       const transferResponse = await spotify?.transferPlayback(editor.deviceId);
       if (!transferResponse?.ok) {
-        throw new Error(transferResponse?.message ?? "Fatal Error");
+        toast.error(
+          `Error: ${
+            transferResponse.message ?? "Could Not Connect To Spotify"
+          }. Please Refresh.`
+        );
       }
     },
   });

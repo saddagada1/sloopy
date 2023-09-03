@@ -39,9 +39,14 @@ import { useEditorContext } from "~/contexts/Editor";
 import { WaveSpinner } from "react-spinners-kit";
 import clsx from "clsx";
 import EditLoopModal from "~/components/sloops/EditLoopModal";
-import { type Loop } from "~/utils/types";
+import { type UpdateSloopInput, type Loop } from "~/utils/types";
 import { useElementSize } from "usehooks-ts";
 import EditSloopModal from "~/components/sloops/EditSloopModal";
+import { useSaveBeforeRouteChange } from "~/utils/hooks";
+import toast from "react-hot-toast";
+import Modal from "~/components/ui/Modal";
+import StyledLoadingButton from "~/components/ui/form/StyledLoadingButton";
+import LoadingButton from "~/components/utils/LoadingButton";
 
 interface LoopButtonProps
   extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
@@ -96,7 +101,24 @@ const Editor: NextPage = ({}) => {
     },
     {
       refetchOnWindowFocus: false,
-      onSuccess: (data) => data && editor.initialize(data),
+      onSuccess: (data) => {
+        if (!data) return;
+        if (router.query.unsaved) {
+          const unsavedData = localStorage.getItem("sloop");
+          if (unsavedData) {
+            const unsavedSloop = JSON.parse(unsavedData) as UpdateSloopInput;
+            if (unsavedSloop.id === data.id) {
+              const sloop = {
+                ...data,
+                ...unsavedSloop,
+              };
+              editor.initialize(sloop);
+              return;
+            }
+          }
+        }
+        editor.initialize(data);
+      },
     }
   );
   const {
@@ -113,13 +135,59 @@ const Editor: NextPage = ({}) => {
   const [createLoop, setCreateLoop] = useState(false);
   const [editLoop, setEditLoop] = useState<Loop | null>(null);
   const [editSloop, setEditSloop] = useState(false);
+  const [saveSloop, setSaveSloop] = useState(false);
   const [containerRef, { width: containerWidth }] = useElementSize();
   const variantsRef = useRef<HTMLDivElement>(null!);
   const [variantsScrollIndex, setVariantsScrollIndex] = useState(0);
+  const { mutateAsync: updateSloop, isLoading: updatingSloop } =
+    api.sloops.update.useMutation();
+  const { route, setRoute, disabled, setDisabled } = useSaveBeforeRouteChange();
+
+  const handleSaveSloop = async ({
+    publish,
+    url,
+  }: {
+    publish?: boolean;
+    url: string;
+  }) => {
+    if (!data || !editor.generalInfo) return;
+    const updateProgress = toast.loading(
+      !publish ? "Saving Sloop..." : "Saving and Publishing Sloop..."
+    );
+    try {
+      await updateSloop({
+        ...data,
+        ...editor.generalInfo,
+        artists: data.artists as string[],
+        loops: editor.loops,
+        isPrivate: publish === undefined ? data.isPrivate : !publish,
+      });
+      toast.remove(updateProgress);
+      localStorage.removeItem(`sloop`);
+      toast.success("Sloop Saved!", { duration: 4000 });
+      void router.push(url);
+    } catch (error) {
+      toast.remove(updateProgress);
+      toast.error("Error: Could Not Save Sloop. Please Try Again.");
+      if (route) {
+        setRoute(null);
+      }
+      if (disabled) {
+        setDisabled(false);
+      }
+    }
+  };
 
   useEffect(() => {
     setVariantsScrollIndex(0);
-  }, [editor.playingLoop]);
+  }, [editor.playingLoop?.id]);
+
+  useEffect(() => {
+    if (!route) return;
+    void handleSaveSloop({ url: route });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route]);
 
   if (isLoading || fetchingChords || !spotify.auth) return <Loading />;
 
@@ -137,6 +205,34 @@ const Editor: NextPage = ({}) => {
             sloop={data}
             onEdit={(values) => editor.setGeneralInfo(values)}
           />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {saveSloop && (
+          <Modal setVisible={setSaveSloop}>
+            <LoadingButton
+              className="flex h-14 w-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 font-display text-base font-bold sm:text-lg"
+              loading={updatingSloop}
+              disabled={updatingSloop}
+              onClick={() => {
+                setDisabled(true);
+                void handleSaveSloop({ publish: false, url: "/profile" });
+              }}
+            >
+              Save & Exit
+            </LoadingButton>
+            <div className="mt-4 border-t border-gray-300 pt-4">
+              <StyledLoadingButton
+                label="Save & Publish"
+                loading={updatingSloop}
+                disabled={updatingSloop}
+                onClick={() => {
+                  setDisabled(true);
+                  void handleSaveSloop({ publish: true, url: "/profile" });
+                }}
+              />
+            </div>
+          </Modal>
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -170,36 +266,36 @@ const Editor: NextPage = ({}) => {
             <button onClick={() => setEditSloop(true)}>
               <PiPencilSimpleLine />
             </button>
-            <button>
+            <button onClick={() => setSaveSloop(true)}>
               <PiFloppyDiskBack />
             </button>
           </div>
         </div>
         <div className="flex border-b border-gray-300">
-          <button className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
+          <div className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
             <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Key
             </label>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${
               pitchClass[editor.generalInfo?.key ?? data.key]
             } ${mode[editor.generalInfo?.mode ?? data.mode]}`}</p>
-          </button>
-          <button className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
+          </div>
+          <div className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
             <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Tempo
             </label>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${Math.round(
               editor.generalInfo?.tempo ?? data.tempo
             )} BPM`}</p>
-          </button>
-          <button className="flex flex-1 flex-col items-start p-1">
+          </div>
+          <div className="flex flex-1 flex-col items-start p-1">
             <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Time
             </label>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${
               editor.generalInfo?.timeSignature ?? data.timeSignature
             }/4`}</p>
-          </button>
+          </div>
         </div>
         <div
           style={{ height: (containerWidth / 2) * 1.3 }}
@@ -312,7 +408,10 @@ const Editor: NextPage = ({}) => {
               )}
             </div>
           </div>
-          <div className="relative flex flex-1 flex-col items-start justify-start border-l border-gray-300 px-2 pb-2 pt-1 ">
+          <div
+            key={editor.playingLoop?.id}
+            className="relative flex flex-1 flex-col items-start justify-start border-l border-gray-300 px-2 pb-2 pt-1 "
+          >
             <div className="flex w-full items-center justify-between font-display text-gray-400">
               <label className="text-base sm:text-lg">Voicings</label>
               {editor.playingLoop && (
@@ -352,7 +451,23 @@ const Editor: NextPage = ({}) => {
           <label className="pb-1 font-display text-base text-gray-400 sm:text-lg">
             Composition / Notes
           </label>
-          <textarea className="w-full flex-1 resize-none rounded-md border border-gray-300 bg-transparent p-3 text-sm focus:outline-none sm:text-base" />
+          {editor.playingLoop && (
+            <textarea
+              value={editor.playingLoop.notes}
+              onChange={(e) =>
+                editor.setLoops(
+                  editor.loops.map((loop) => {
+                    if (loop.id === editor.playingLoop?.id) {
+                      loop.notes = e.target.value;
+                      return loop;
+                    }
+                    return loop;
+                  })
+                )
+              }
+              className="w-full flex-1 resize-none rounded-md border border-gray-300 bg-transparent p-3 text-sm focus:outline-none sm:text-base"
+            />
+          )}
         </div>
         <LoopTimeline duration={data.duration} width={containerWidth} />
         <Player trackId={data.trackId} duration={data.duration} />

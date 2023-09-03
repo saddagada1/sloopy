@@ -3,6 +3,7 @@ import { Resizable } from "re-resizable";
 import { useEffect, useRef } from "react";
 import { useEditorContext } from "~/contexts/Editor";
 import { pitchClassColours } from "~/utils/constants";
+import Loading from "../utils/Loading";
 
 interface RulerProps {
   start?: number;
@@ -69,6 +70,7 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
 
   useEffect(() => {
     const container = scrollContainerRef.current;
+    if (!container) return;
     const scrollToIndex =
       (sliderWidth / numScrollSections) *
       Math.floor(editor.playbackPosition / (duration / numScrollSections));
@@ -77,6 +79,10 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
     }
     container.scrollTo({ left: scrollToIndex });
   }, [editor.playbackPosition, duration, numScrollSections, sliderWidth]);
+
+  if (!unit || !snapTo || !sliderWidth || !numScrollSections) {
+    return <Loading />;
+  }
 
   return (
     <div

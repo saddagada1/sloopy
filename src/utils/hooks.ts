@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Router from "next/router";
 
 export const useSpotifyWebSDK = (token?: string) => {
   const [player, setPlayer] = useState<Spotify.Player>();
@@ -8,6 +9,8 @@ export const useSpotifyWebSDK = (token?: string) => {
 
   useEffect(() => {
     if (!token) return;
+
+    if (!window.Spotify) return;
 
     const player = new window.Spotify.Player({
       name: "Sloopy Spotify Player",
@@ -54,4 +57,26 @@ export const useSpotifyWebSDK = (token?: string) => {
   }, [token]);
 
   return { player, isReady, error, deviceId };
+};
+
+export const useSaveBeforeRouteChange = () => {
+  const [route, setRoute] = useState<string | null>(null);
+  const [disabled, setDisabled] = useState(false);
+
+  useEffect(() => {
+    const routeChangeStart = (url: string) => {
+      if (route) return;
+      setRoute(url);
+      throw "Aborting route change. You can safely ignore this error.";
+    };
+
+    if (disabled) return;
+    Router.events.on("routeChangeStart", routeChangeStart);
+
+    return () => {
+      Router.events.off("routeChangeStart", routeChangeStart);
+    };
+  }, [route, disabled]);
+
+  return { route, setRoute, disabled, setDisabled };
 };

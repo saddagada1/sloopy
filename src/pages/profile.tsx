@@ -8,12 +8,25 @@ import { PiGear } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import LabelValueBar from "~/components/ui/LabelValueBar";
 import { keyReference } from "~/utils/constants";
-
-import React from "react";
+import { api } from "~/utils/api";
+import Loading from "~/components/utils/Loading";
 
 const Profile: NextPage = ({}) => {
   const { data: session } = useSession();
   const [avatarContainerRef, { height }] = useElementSize();
+  const {
+    data: sloops,
+    isLoading,
+    error,
+  } = api.sloops.getUserSloops.useQuery();
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
+  if (!sloops || error) {
+    return <div>ERROR</div>;
+  }
 
   return (
     <>
@@ -66,7 +79,13 @@ const Profile: NextPage = ({}) => {
             <LabelValueBar label="followers" value="634" style="bg-gray-200" />
           </div>
         </div>
-        <div className="mt-10 w-full flex-1"></div>
+        <div className="mt-10 w-full flex-1">
+          {sloops.map((sloop, index) => (
+            <Link href={`/editor/${sloop.id}`} key={index}>
+              {`${sloop.name} is ${sloop.isPrivate ? "private" : "public"}`}
+            </Link>
+          ))}
+        </div>
       </div>
     </>
   );
