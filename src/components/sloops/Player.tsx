@@ -9,7 +9,6 @@ import {
   PiSpotifyLogo,
 } from "react-icons/pi";
 import { useSpotifyContext } from "~/contexts/Spotify";
-import Image from "next/image";
 import Loading from "../utils/Loading";
 import { useElementSize } from "usehooks-ts";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,20 +16,22 @@ import { calcVideoTimestamp, clamp } from "~/utils/calc";
 import Popover from "../ui/Popover";
 import InputSlider from "../ui/InputSlider";
 import Link from "next/link";
-import { useEditorContext } from "~/contexts/Editor";
+import { type EditorValues } from "~/contexts/Editor";
 import toast from "react-hot-toast";
+import SafeImage from "../ui/SafeImage";
+import { type PlayerValues } from "~/contexts/Player";
 
 interface PlayerProps {
   trackId: string;
   duration: number;
+  context: EditorValues | PlayerValues;
 }
 
-const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
+const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
   const spotify = useSpotifyContext();
-  const editor = useEditorContext();
   const { mutateAsync: initializePlayback } = useMutation({
     mutationFn: async () => {
-      const playResponse = await spotify?.playTrack(editor.deviceId, trackId);
+      const playResponse = await spotify?.playTrack(context.deviceId, trackId);
       if (!playResponse?.ok) {
         toast.error(
           `Error: ${
@@ -43,7 +44,9 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
   });
   const { mutateAsync: transferPlayback } = useMutation({
     mutationFn: async () => {
-      const transferResponse = await spotify?.transferPlayback(editor.deviceId);
+      const transferResponse = await spotify?.transferPlayback(
+        context.deviceId
+      );
       if (!transferResponse?.ok) {
         toast.error(
           `Error: ${
@@ -61,13 +64,14 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
   const [position, setPosition] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [timelineRef, { width: timelineWidth }] = useElementSize();
+  const [imageContainerRef, { height }] = useElementSize();
 
   useEffect(() => {
     const handleMouseScrub = (e: MouseEvent) => {
       if (!isScrubbing) return;
       const seekPercentage = clamp(e.clientX, 0, timelineWidth) / timelineWidth;
       const seekPosition = duration * seekPercentage;
-      editor.setPlaybackPosition(seekPosition);
+      context.setPlaybackPosition(seekPosition);
     };
 
     const handleTouchScrub = (e: TouchEvent) => {
@@ -75,13 +79,13 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
       const seekPercentage =
         clamp(e.touches[0].clientX, 0, timelineWidth) / timelineWidth;
       const seekPosition = duration * seekPercentage;
-      editor.setPlaybackPosition(seekPosition);
+      context.setPlaybackPosition(seekPosition);
     };
 
     const handleFinishScrub = () => {
-      if (!isScrubbing || !editor.player) return;
-      void editor.player.seek(editor.playbackPosition * 1000);
-      editor.handlePlayingLoop(editor.playbackPosition);
+      if (!isScrubbing || !context.player) return;
+      void context.player.seek(context.playbackPosition * 1000);
+      context.handlePlayingLoop(context.playbackPosition);
       setIsScrubbing(false);
     };
 
@@ -96,21 +100,21 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
       window.removeEventListener("mouseup", handleFinishScrub);
       window.removeEventListener("touchend", handleFinishScrub);
     };
-  }, [duration, isScrubbing, editor, timelineWidth]);
+  }, [duration, isScrubbing, context, timelineWidth]);
 
   useEffect(() => {
-    if (!editor.player || editor.deviceId === "") return;
+    if (!context.player || context.deviceId === "") return;
 
-    if (editor.error) {
+    if (context.error) {
       setIsLoading(false);
     }
 
-    editor.player.addListener("player_state_changed", (state) => {
+    context.player.addListener("player_state_changed", (state) => {
       if (!state) {
         return;
       }
       setTrack(state.track_window.current_track);
-      editor.setIsPlaying(!state.paused);
+      context.setIsPlaying(!state.paused);
       setPosition(state.position);
       setUpdateTime(performance.now());
     });
@@ -122,14 +126,14 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
     }
 
     return () => {
-      editor.player?.removeListener("player_state_changed");
+      context.player?.removeListener("player_state_changed");
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    editor.player,
-    editor.deviceId,
-    editor.error,
+    context.player,
+    context.deviceId,
+    context.error,
     initializePlayback,
     transferPlayback,
   ]);
@@ -143,11 +147,11 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
 
     let interval: NodeJS.Timer;
 
-    if (editor.isPlaying && !isScrubbing) {
+    if (context.isPlaying && !isScrubbing) {
       interval = setInterval(() => {
         const position = getPlaybackPosition();
-        editor.setPlaybackPosition(position);
-        editor.handlePlayingLoop(position);
+        context.setPlaybackPosition(position);
+        context.handlePlayingLoop(position);
       }, 1);
     }
 
@@ -157,14 +161,14 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     duration,
-    editor.isPlaying,
+    context.isPlaying,
     position,
     updateTime,
     isScrubbing,
-    editor.playbackPosition,
+    context.playbackPosition,
   ]);
 
-  if (!editor.player || !track || isLoading) {
+  if (!context.player || !track || isLoading) {
     return (
       <div className="flex h-[68px]">
         <Loading />
@@ -172,11 +176,11 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
     );
   }
 
-  if (editor.error) {
-    return <div className="h-[68px]">{editor.error}</div>;
+  if (context.error) {
+    return <div className="h-[68px]">{context.error}</div>;
   }
 
-  if (!editor.isReady) {
+  if (!context.isReady) {
     return <div className="h-[68px]">no internet</div>;
   }
 
@@ -193,7 +197,7 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
               className="select-none rounded-md border border-gray-300 bg-primary px-3 py-2 text-sm font-semibold sm:text-base"
             >
               {`${calcVideoTimestamp(
-                Math.round(editor.playbackPosition)
+                Math.round(context.playbackPosition)
               )} / ${calcVideoTimestamp(Math.round(duration))}`}
             </motion.div>
           </div>
@@ -206,7 +210,7 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
         <div
           style={{
             transform: `translateX(-${
-              100 - (editor.playbackPosition / duration) * 100
+              100 - (context.playbackPosition / duration) * 100
             }%)`,
           }}
           className="relative flex h-full items-center bg-secondary"
@@ -218,23 +222,24 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
           />
         </div>
       </div>
-      <div className="flex h-16 items-center gap-4 p-2 font-display">
+      <div
+        ref={imageContainerRef}
+        className="flex h-16 items-center gap-4 p-2 font-display"
+      >
         <button
           onClick={() => {
-            void editor.player?.togglePlay();
+            void context.player?.togglePlay();
           }}
           className="text-3xl sm:text-4xl"
         >
-          {editor.isPlaying ? <PiPauseFill /> : <PiPlayFill />}
+          {context.isPlaying ? <PiPauseFill /> : <PiPlayFill />}
         </button>
-        <div className="relative aspect-square h-full overflow-hidden rounded-md">
-          <Image
-            src={track.album.images[0]!.url}
-            alt={track.name}
-            fill
-            className="object-cover"
-          />
-        </div>
+        <SafeImage
+          url={track.album.images[0]?.url}
+          alt={track.name}
+          width={height * 0.75}
+          className="relative aspect-square overflow-hidden rounded"
+        />
         <div className="flex-1 overflow-hidden">
           <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
             {track.name}
@@ -266,7 +271,7 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration }) => {
                   defaultValue={volume}
                   onSlideEnd={(value) => {
                     if (value[0] === undefined) return;
-                    void editor.player?.setVolume(value[0]);
+                    void context.player?.setVolume(value[0]);
                     setVolume(value[0]);
                   }}
                 />

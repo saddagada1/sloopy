@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import type { NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { PiHeart, PiPlusCircle } from "react-icons/pi";
 import { type Track } from "spotify-types";
+import { useElementSize } from "usehooks-ts";
+import SafeImage from "~/components/ui/SafeImage";
 import Loading from "~/components/utils/Loading";
 import { useSpotifyContext } from "~/contexts/Spotify";
 
@@ -33,6 +34,7 @@ const Track: NextPage = ({}) => {
       enabled: !!spotify.auth,
     }
   );
+  const [imageContainerRef, { width }] = useElementSize();
 
   if (isLoading) {
     return <Loading />;
@@ -47,16 +49,17 @@ const Track: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {data.track.name}</title>
       </Head>
-      <div className="flex flex-col items-center px-4 pb-12 pt-6">
-        <div className="relative mb-4 aspect-square w-3/5 overflow-hidden rounded-md">
-          <Image
-            src={data.track.album.images[0]!.url}
-            alt={data.track.name}
-            fill
-            sizes="60vw"
-            className="object-cover"
-          />
-        </div>
+      <div
+        ref={imageContainerRef}
+        className="flex flex-1 flex-col items-center px-4 pb-12 pt-6"
+      >
+        <SafeImage
+          url={data.track.album.images[0]?.url}
+          alt={data.track.name}
+          width={width * 0.6}
+          className="relative mb-4 aspect-square overflow-hidden rounded-md"
+          square
+        />
         <h2 className="w-full font-display text-lg text-gray-400 sm:text-xl">
           {data.track.artists.map((artist, index) =>
             index === data.track.artists.length - 1

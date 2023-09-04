@@ -11,6 +11,7 @@ import { api } from "~/utils/api";
 import { type UpdateSloopInput } from "~/utils/types";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import PlayerProvider from "~/contexts/Player";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const syne = Syne({
@@ -77,7 +78,27 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <div
         className={`${syne.variable} ${inter.variable} flex min-h-screen flex-col font-sans text-secondary`}
       >
-        {!router.pathname.includes("editor/[id]") ? (
+        {router.pathname.includes("editor") ? (
+          <main className="flex flex-1 flex-col">
+            <EditorProvider>
+              {sessionStatus === "loading" || unsavedData ? (
+                <Loading />
+              ) : (
+                children
+              )}
+            </EditorProvider>
+          </main>
+        ) : router.pathname.includes("player") ? (
+          <main className="flex flex-1 flex-col">
+            <PlayerProvider>
+              {sessionStatus === "loading" || unsavedData ? (
+                <Loading />
+              ) : (
+                children
+              )}
+            </PlayerProvider>
+          </main>
+        ) : (
           <>
             <Navbar />
             <main className="mt-16 flex flex-1 flex-col">
@@ -88,14 +109,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               )}
             </main>
           </>
-        ) : (
-          <EditorProvider>
-            {sessionStatus === "loading" || unsavedData ? (
-              <Loading />
-            ) : (
-              children
-            )}
-          </EditorProvider>
         )}
       </div>
       <Script async src="https://sdk.scdn.co/spotify-player.js" />

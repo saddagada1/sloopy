@@ -35,6 +35,7 @@ export interface Loop {
   key: number;
   mode: number;
   chord: string;
+  voicing: number;
   notes: string;
 }
 

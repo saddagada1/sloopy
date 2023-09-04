@@ -16,6 +16,7 @@ import { PiXCircle } from "react-icons/pi";
 import { api } from "~/utils/api";
 import { TRPCClientError } from "@trpc/client";
 import toast from "react-hot-toast";
+import WithAuth from "~/components/utils/WithAuth";
 
 interface SloopValues {
   name: string;
@@ -60,7 +61,7 @@ const Create: NextPage = ({}) => {
       <Head>
         <title>Create Sloop</title>
       </Head>
-      <div className="flex w-full flex-col px-4 pb-12 pt-6">
+      <div className="flex flex-1 flex-col px-4 pb-12 pt-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
           Create
         </h2>
@@ -156,4 +157,4 @@ const Create: NextPage = ({}) => {
     </>
   );
 };
-export default Create;
+export default WithAuth(Create, { linked: true });

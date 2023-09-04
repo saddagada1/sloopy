@@ -1,6 +1,4 @@
-import LoadingButton, {
-  type LoadingButtonProps,
-} from "../../utils/LoadingButton";
+import LoadingButton, { type LoadingButtonProps } from "../LoadingButton";
 
 interface StyledLoadingButtonProps extends LoadingButtonProps {
   label: string;

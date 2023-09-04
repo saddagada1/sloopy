@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import clsx from "clsx";
 import type { NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
 import { useRouter } from "next/router";
 import { PiHeart } from "react-icons/pi";
 import { type Track } from "spotify-types";
+import { useElementSize } from "usehooks-ts";
+import SafeImage from "~/components/ui/SafeImage";
+import TrackList from "~/components/ui/TrackList";
 import Loading from "~/components/utils/Loading";
 import { useSpotifyContext } from "~/contexts/Spotify";
 
@@ -33,6 +34,7 @@ const Playlist: NextPage = ({}) => {
       enabled: !!spotify.auth,
     }
   );
+  const [imageContainerRef, { width }] = useElementSize();
 
   if (fetchingPlaylist) {
     return <Loading />;
@@ -47,16 +49,17 @@ const Playlist: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {playlist.name}</title>
       </Head>
-      <div className="flex flex-col items-center px-4 pb-4 pt-6">
-        <div className="relative mb-4 aspect-square w-3/5 overflow-hidden rounded-md">
-          <Image
-            src={playlist.images[0]!.url}
-            alt={playlist.name}
-            fill
-            sizes="60vw"
-            className="object-cover"
-          />
-        </div>
+      <div
+        ref={imageContainerRef}
+        className="flex flex-1 flex-col items-center px-4 pb-4 pt-6"
+      >
+        <SafeImage
+          url={playlist.images[0]?.url}
+          alt={playlist.name}
+          width={width * 0.6}
+          className="relative mb-4 aspect-square overflow-hidden rounded-md"
+          square
+        />
         <h2 className="w-full font-display text-lg text-gray-400 sm:text-xl">
           {playlist.owner.display_name}
         </h2>
@@ -71,44 +74,9 @@ const Playlist: NextPage = ({}) => {
             {playlist.tracks.items.length}
           </p>
         </div>
-        <ul className="w-full">
-          {playlist.tracks.items.map((item, index) => {
-            const track = item.track as Track;
-            return (
-              <li
-                key={track.id}
-                className={clsx(
-                  "flex",
-                  index !== playlist.tracks.items.length - 1 &&
-                    "mb-2 border-b border-gray-300 pb-2"
-                )}
-                onClick={() => void router.push(`/track/${track.id}`)}
-              >
-                <div className="relative aspect-square w-[13%] flex-shrink-0 overflow-hidden rounded-md">
-                  <Image
-                    src={track.album.images[0]!.url}
-                    alt={track.name}
-                    sizes="13vw"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="ml-4 flex flex-col justify-between overflow-hidden">
-                  <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
-                    {track.name}
-                  </h3>
-                  <p className="truncate text-sm text-gray-400 sm:text-base">
-                    {track.artists.map((artist, index) =>
-                      index === track.artists.length - 1
-                        ? artist.name
-                        : `${artist.name}, `
-                    )}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <TrackList
+          tracks={playlist.tracks.items.map((item) => item.track as Track)}
+        />
       </div>
     </>
   );

@@ -10,6 +10,7 @@ import React, {
 import { useSpotifyWebSDK } from "~/utils/hooks";
 import { type Loop } from "~/utils/types";
 import { useSpotifyContext } from "./Spotify";
+import { api } from "~/utils/api";
 
 interface SloopGeneralInfo {
   key: number;
@@ -20,7 +21,7 @@ interface SloopGeneralInfo {
   description: string;
 }
 
-interface EditorValues {
+export interface EditorValues {
   player: Spotify.Player | undefined;
   isReady: boolean;
   error: string | undefined;
@@ -60,6 +61,8 @@ interface EditorProviderProps {
 
 const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const spotify = useSpotifyContext();
+  const { mutateAsync: refreshSpotifyAuth } =
+    api.spotify.refreshSpotifyAuth.useMutation();
   const { player, isReady, error, deviceId } = useSpotifyWebSDK(
     spotify.auth?.access_token
   );
@@ -228,6 +231,25 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
     autoSave();
   }, [generalInfo, loops, sloop]);
+
+  useEffect(() => {
+    if (!spotify.auth) return;
+
+    const refresh = async (refresh_token: string) => {
+      const credentials = await refreshSpotifyAuth({
+        refresh_token: refresh_token,
+      });
+      console.log("refreshed spotify auth");
+      spotify.setAuth({ ...credentials, refresh_token: refresh_token });
+    };
+
+    if (spotify.auth.expires_at < Date.now() / 1000) {
+      void refresh(spotify.auth.refresh_token);
+      return;
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spotify.auth]);
 
   return (
     <EditorContext.Provider

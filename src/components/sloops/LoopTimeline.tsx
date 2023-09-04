@@ -1,9 +1,10 @@
 import clsx from "clsx";
 import { Resizable } from "re-resizable";
 import { useEffect, useRef } from "react";
-import { useEditorContext } from "~/contexts/Editor";
+import { type EditorValues } from "~/contexts/Editor";
 import { pitchClassColours } from "~/utils/constants";
 import Loading from "../utils/Loading";
+import { type PlayerValues } from "~/contexts/Player";
 
 interface RulerProps {
   start?: number;
@@ -57,10 +58,16 @@ const SliderLoopHandle: React.FC = () => {
 interface LoopTimelineProps {
   duration: number;
   width: number;
+  disabled?: boolean;
+  context: EditorValues | PlayerValues;
 }
 
-const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
-  const editor = useEditorContext();
+const LoopTimeline: React.FC<LoopTimelineProps> = ({
+  duration,
+  width,
+  disabled,
+  context,
+}) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null!);
   const unit = width / 100;
   const segmentWidth = 1;
@@ -73,12 +80,12 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
     if (!container) return;
     const scrollToIndex =
       (sliderWidth / numScrollSections) *
-      Math.floor(editor.playbackPosition / (duration / numScrollSections));
+      Math.floor(context.playbackPosition / (duration / numScrollSections));
     if (container.scrollLeft === scrollToIndex) {
       return;
     }
     container.scrollTo({ left: scrollToIndex });
-  }, [editor.playbackPosition, duration, numScrollSections, sliderWidth]);
+  }, [context.playbackPosition, duration, numScrollSections, sliderWidth]);
 
   if (!unit || !snapTo || !sliderWidth || !numScrollSections) {
     return <Loading />;
@@ -89,7 +96,7 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
       ref={scrollContainerRef}
       className={clsx(
         "no-scrollbar h-24 border-b border-gray-300",
-        !editor.isPlaying && "overflow-x-scroll"
+        !context.isPlaying && "overflow-x-scroll"
       )}
     >
       <div
@@ -102,7 +109,7 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
         <div
           style={{
             transform: `translateX(-${
-              100 - (editor.playbackPosition / duration) * 100
+              100 - (context.playbackPosition / duration) * 100
             }%)`,
           }}
           className="absolute h-full w-full bg-gray-300/50"
@@ -115,8 +122,8 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
             unit={unit}
           />
         </div>
-        <div key={editor.loops.length} className="flex flex-1">
-          {editor.loops.map((loop, index) => (
+        <div key={context.loops.length} className="flex flex-1">
+          {context.loops.map((loop, index) => (
             <Resizable
               key={loop.id}
               defaultSize={{
@@ -124,11 +131,11 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
                 height: "100%",
               }}
               bounds="parent"
-              enable={{ right: true }}
+              enable={{ right: !disabled }}
               handleComponent={{ right: <SliderLoopHandle /> }}
               handleClasses={{ right: "z-10" }}
               onResizeStop={(_event, _direction, _refToElement, delta) => {
-                const loops = editor.loops.map((lp, i) => {
+                const loops = context.loops.map((lp, i) => {
                   if (i === index) {
                     lp.end = lp.end + delta.width / snapTo;
                   } else if (i > index) {
@@ -137,8 +144,8 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({ duration, width }) => {
                   }
                   return lp;
                 });
-                editor.setLoops(loops);
-                editor.handlePlayingLoop(editor.playbackPosition);
+                context.setLoops(loops);
+                context.handlePlayingLoop(context.playbackPosition);
               }}
             >
               <div

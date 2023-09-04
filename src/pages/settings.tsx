@@ -22,6 +22,7 @@ import StyledLabel from "~/components/ui/form/StyledLabel";
 import StyledLoadingButton from "~/components/ui/form/StyledLoadingButton";
 import StyledTextArea from "~/components/ui/form/StyledTextArea";
 import StyledTitle from "~/components/ui/form/StyledTitle";
+import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { env } from "~/env.mjs";
 import { api } from "~/utils/api";
@@ -126,7 +127,7 @@ const Settings: NextPage = ({}) => {
           </Modal>
         )}
       </AnimatePresence>
-      <div className="flex flex-col px-4 pb-12 pt-6">
+      <div className="flex flex-1 flex-col px-4 pb-12 pt-6">
         <StyledTitle title="providers" />
         <div className="flex w-full gap-2">
           <button
@@ -311,4 +312,4 @@ const Settings: NextPage = ({}) => {
     </>
   );
 };
-export default Settings;
+export default WithAuth(Settings);
