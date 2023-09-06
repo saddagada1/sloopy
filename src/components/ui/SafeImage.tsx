@@ -9,6 +9,7 @@ interface SafeImageProps {
   width: number;
   className: string;
   square?: boolean;
+  colours?: string[];
 }
 
 const SafeImage: React.FC<SafeImageProps> = ({
@@ -17,6 +18,7 @@ const SafeImage: React.FC<SafeImageProps> = ({
   width,
   className,
   square,
+  colours,
 }) => {
   return (
     <div style={{ width }} className={className}>
@@ -34,10 +36,12 @@ const SafeImage: React.FC<SafeImageProps> = ({
           name={alt}
           variant="marble"
           square={square}
-          colors={[
-            pitchClassColours[rand(0, 5)]!,
-            pitchClassColours[rand(6, 11)]!,
-          ]}
+          colors={
+            colours ?? [
+              pitchClassColours[rand(0, 5)]!,
+              pitchClassColours[rand(6, 11)]!,
+            ]
+          }
         />
       )}
     </div>

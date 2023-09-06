@@ -11,7 +11,17 @@ import {
   QueryClientProvider as SpotifyClientProvider,
 } from "@tanstack/react-query";
 
-const spotifyClient = new QueryClient();
+export const spotifyClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      retry: false,
+      staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    },
+  },
+});
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,

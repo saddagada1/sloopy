@@ -117,6 +117,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       key: key,
       mode: mode,
       chord: chord,
+      voicing: 0,
       notes: "",
     };
 
@@ -188,6 +189,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           key: loop.key,
           mode: loop.mode,
           chord: loop.chord,
+          voicing: loop.voicing,
           notes: loop.notes,
           start: deletedLoop.id === 1 ? 0 : filteredLoops[index - 1]!.end,
           end: loop.end,

@@ -401,9 +401,9 @@ const Editor: NextPage = ({}) => {
                 </div>
               ) : (
                 <div className="flex w-full flex-1 items-center justify-center">
-                  <label className="w-2/3 px-1 text-center font-display text-base text-gray-200 sm:text-lg">
-                    Create A Loop To Begin
-                  </label>
+                  <p className="w-2/3 px-1 text-center font-display text-base text-gray-300 sm:text-lg">
+                    Create a loop to begin!
+                  </p>
                 </div>
               )}
             </div>
@@ -422,14 +422,18 @@ const Editor: NextPage = ({}) => {
             {editor.playingLoop && (
               <div
                 ref={variantsRef}
-                onScroll={() =>
-                  setVariantsScrollIndex(
-                    Math.round(
-                      variantsRef?.current?.scrollLeft /
-                        ((containerWidth / 2) * 0.9)
-                    )
-                  )
-                }
+                // onScroll={() =>
+                //   setVariantsScrollIndex(
+                //     Math.round(
+                //       variantsRef?.current?.scrollLeft /
+                //         ((containerWidth / 2) * 0.9)
+                //     )
+                //   )
+                // }
+
+                // onScrollEnd={(e) => {
+
+                // }}
                 className="no-scrollbar absolute flex h-full w-[90%] snap-x snap-mandatory overflow-x-scroll"
               >
                 {chords.data[editor.playingLoop.chord]?.map((chord, index) => (

@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import type { NextPage } from "next";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
-import { PiHeart } from "react-icons/pi";
+import toast from "react-hot-toast";
+import { PiArrowLeft, PiArrowRight, PiSpotifyLogo } from "react-icons/pi";
 import { type Track } from "spotify-types";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "~/components/ui/SafeImage";
@@ -13,6 +16,7 @@ import { useSpotifyContext } from "~/contexts/Spotify";
 const Playlist: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
+  const [imageContainerRef, { width }] = useElementSize();
   const {
     data: playlist,
     isLoading: fetchingPlaylist,
@@ -24,23 +28,79 @@ const Playlist: NextPage = ({}) => {
       if (typeof id !== "string") {
         throw new Error("404");
       }
-      const response = await spotify.fetchPlaylist(id);
-      if (!response?.ok) {
-        throw new Error(response?.message ?? "Fatal Error");
+      const playlist = await spotify.fetchPlaylist(id);
+      if (!playlist?.ok) {
+        toast.error("Error: Could Not Fetch Spotify Data");
+        throw new Error(
+          playlist.message ?? "Error: Could Not Fetch Spotify Data"
+        );
       }
-      return response.data;
+      return playlist.data;
     },
     {
       enabled: !!spotify.auth,
     }
   );
-  const [imageContainerRef, { width }] = useElementSize();
+  const {
+    data: playlistTracks,
+    isLoading: fetchingPlaylistTracks,
+    error: playlistTracksError,
+  } = useQuery(
+    ["playlistTracks", router.query.id, router.query.offset ?? "0"],
+    async () => {
+      const id = router.query.id;
+      if (typeof id !== "string") {
+        throw new Error("404");
+      }
+      const offset = router.query.offset;
+      if (offset && typeof offset !== "string") {
+        throw new Error("404");
+      }
+      const tracks = await spotify.fetchPlaylistTracks(
+        id,
+        offset ? parseInt(offset) : 0
+      );
+      if (!tracks.ok) {
+        toast.error("Error: Could Not Fetch Spotify Data");
+        throw new Error(
+          tracks.message ?? "Error: Could Not Fetch Spotify Data"
+        );
+      }
+      return tracks.data;
+    },
+    {
+      enabled: !!spotify.auth,
+    }
+  );
 
-  if (fetchingPlaylist) {
+  const handleNext = () => {
+    if (!playlistTracks?.next || typeof router.query.id !== "string") return;
+    void router.push(
+      `/playlist/${router.query.id}?offset=${
+        playlistTracks.offset + playlistTracks.limit
+      }`,
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const handlePrevious = () => {
+    if (!playlistTracks?.previous || typeof router.query.id !== "string")
+      return;
+    void router.push(
+      `/playlist/${router.query.id}?offset=${
+        playlistTracks.offset - playlistTracks.limit
+      }`,
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  if (fetchingPlaylist || fetchingPlaylistTracks) {
     return <Loading />;
   }
 
-  if (!playlist || playlistError) {
+  if (!playlist || playlistError || !playlistTracks || playlistTracksError) {
     return <div>ERROR</div>;
   }
 
@@ -67,16 +127,40 @@ const Playlist: NextPage = ({}) => {
           {playlist.name}
         </h1>
         <div className="mb-4 flex w-full items-end justify-between gap-4 border-b border-gray-300 pb-4">
-          <button>
-            <PiHeart className="text-3xl sm:text-4xl" />
-          </button>
+          <Link href={playlist.uri}>
+            <PiSpotifyLogo className="text-3xl sm:text-4xl" />
+          </Link>
           <p className="text-sm text-gray-400 sm:text-base">
-            {playlist.tracks.items.length}
+            {`${playlistTracks.offset + playlistTracks.items.length} / ${
+              playlistTracks.total
+            }`}
           </p>
         </div>
         <TrackList
-          tracks={playlist.tracks.items.map((item) => item.track as Track)}
+          tracks={playlistTracks.items.map((item) => item.track as Track)}
         />
+        <div className="mt-2 flex w-full items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
+          <p className="flex-1">
+            {Math.round(
+              (playlistTracks.total / playlistTracks.limit) *
+                (playlistTracks.offset / playlistTracks.total)
+            ) + 1}
+          </p>
+          <button
+            onClick={() => handlePrevious()}
+            disabled={!playlistTracks.previous}
+            className={clsx(!playlistTracks.previous && "text-gray-300")}
+          >
+            <PiArrowLeft />
+          </button>
+          <button
+            onClick={() => handleNext()}
+            disabled={!playlistTracks.next}
+            className={clsx(!playlistTracks.next && "text-gray-300")}
+          >
+            <PiArrowRight />
+          </button>
+        </div>
       </div>
     </>
   );

@@ -51,6 +51,9 @@ const Profile: NextPage = ({}) => {
             alt={`${session?.user.username}'s profile picture`}
             width={height}
             className="relative aspect-square overflow-hidden rounded-full"
+            colours={Object.keys(pitchClassColours).map(
+              (key) => pitchClassColours[parseInt(key)]!
+            )}
           />
           <div className="flex flex-1 flex-col justify-between gap-4">
             <div className="flex border-b border-gray-300 pb-4">

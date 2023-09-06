@@ -3,7 +3,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { PiHeart, PiPlusCircle } from "react-icons/pi";
+import { PiPlusCircle, PiSpotifyLogo } from "react-icons/pi";
 import { type Track } from "spotify-types";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "~/components/ui/SafeImage";
@@ -72,9 +72,9 @@ const Track: NextPage = ({}) => {
         </h1>
         <div className="mb-4 flex w-full items-end justify-between gap-4 border-b border-gray-300 pb-4">
           <div className="flex gap-4 text-3xl sm:text-4xl">
-            <button>
-              <PiHeart />
-            </button>
+            <Link href={data.track.uri}>
+              <PiSpotifyLogo />
+            </Link>
             <Link href={`/create?track_id=${data.track.id}`}>
               <PiPlusCircle />
             </Link>

@@ -22,6 +22,9 @@ const config = {
     domains: [
       "lh3.googleusercontent.com",
       "i.scdn.co",
+      "seeded-session-images.scdn.co",
+      "thisis-images.spotifycdn.com",
+      "seed-mix-image.spotifycdn.com",
       "mosaic.scdn.co",
       "images-ak.spotifycdn.com",
     ],

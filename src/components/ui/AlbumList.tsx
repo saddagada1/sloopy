@@ -1,17 +1,17 @@
 import clsx from "clsx";
-import { type SimplifiedTrack, type Track } from "spotify-types";
+import { type Album } from "spotify-types";
 import { useRouter } from "next/router";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "./SafeImage";
 
-interface TrackListProps {
-  tracks: Track[] | SimplifiedTrack[];
+interface AlbumListProps {
+  albums: Album[];
   noImages?: boolean;
   numbered?: boolean;
 }
 
-const TrackList: React.FC<TrackListProps> = ({
-  tracks,
+const AlbumList: React.FC<AlbumListProps> = ({
+  albums,
   noImages,
   numbered,
 }) => {
@@ -19,16 +19,16 @@ const TrackList: React.FC<TrackListProps> = ({
   const [imageContainerRef, { width }] = useElementSize();
   return (
     <ul ref={imageContainerRef} className="w-full">
-      {tracks.map((track, index) => {
+      {albums.map((album, index) => {
         return (
           <li
-            key={track.id}
+            key={album.id}
             className={clsx(
               "flex",
-              index !== tracks.length - 1 &&
+              index !== albums.length - 1 &&
                 "mb-2 border-b border-gray-300 pb-2"
             )}
-            onClick={() => void router.push(`/track/${track.id}`)}
+            onClick={() => void router.push(`/album/${album.id}`)}
           >
             {numbered && (
               <div
@@ -45,8 +45,8 @@ const TrackList: React.FC<TrackListProps> = ({
             )}
             {!noImages && (
               <SafeImage
-                url={"album" in track ? track.album.images[0]?.url : undefined}
-                alt={track.name}
+                url={album.images[0]?.url}
+                alt={album.name}
                 width={width * 0.13}
                 className="relative mr-4 aspect-square flex-shrink-0 overflow-hidden rounded"
                 square
@@ -57,11 +57,11 @@ const TrackList: React.FC<TrackListProps> = ({
               className="flex flex-col justify-between overflow-hidden"
             >
               <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
-                {track.name}
+                {album.name}
               </h3>
               <p className="truncate text-sm text-gray-400 sm:text-base">
-                {track.artists.map((artist, index) =>
-                  index === track.artists.length - 1
+                {album.artists.map((artist, index) =>
+                  index === album.artists.length - 1
                     ? artist.name
                     : `${artist.name}, `
                 )}
@@ -73,4 +73,4 @@ const TrackList: React.FC<TrackListProps> = ({
     </ul>
   );
 };
-export default TrackList;
+export default AlbumList;

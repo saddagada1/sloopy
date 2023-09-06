@@ -14,7 +14,6 @@ import toast from "react-hot-toast";
 import { TRPCClientError } from "@trpc/client";
 import axios, { type AxiosError, type AxiosResponse } from "axios";
 import {
-  type FeaturedPlaylists,
   type ErrorResponse,
   type Track,
   type Paging,
@@ -22,11 +21,29 @@ import {
   type Playlist as SpotifyPlaylist,
   type PlaylistTrack,
   type AudioAnalysis,
+  type SearchContent,
+  type Album as SpotifyAlbum,
+  type SimplifiedTrack,
+  type RecentlyPlayed,
+  type SavedAlbum,
 } from "spotify-types";
 import { type SpotifyErrorResponse, type SpotifyResponse } from "~/utils/types";
 
-interface Playlist extends Omit<SpotifyPlaylist, "tracks"> {
+export interface Playlist extends Omit<SpotifyPlaylist, "tracks"> {
   tracks: Paging<PlaylistTrack>;
+}
+
+interface Album extends Omit<SpotifyAlbum, "tracks"> {
+  tracks: Paging<SimplifiedTrack>;
+}
+
+interface Search extends SearchContent {
+  playlists?: Paging<SpotifyPlaylist>;
+}
+
+interface QueuedRequest {
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
 }
 
 interface SpotifyAuth {
@@ -39,27 +56,42 @@ interface SpotifyValues {
   auth: SpotifyAuth | null;
   setAuth: Dispatch<SetStateAction<SpotifyAuth | null>>;
   linkAccount: (params: ReadonlyURLSearchParams) => Promise<void>;
+  fetchRecentlyPlayedTracks: () => Promise<
+    SpotifyResponse<RecentlyPlayed> | SpotifyErrorResponse
+  >;
   fetchTopTracks: () => Promise<
     SpotifyResponse<Paging<Track>> | SpotifyErrorResponse
   >;
-  fetchSavedTracks: () => Promise<
-    SpotifyResponse<Paging<PlaylistTrack>> | SpotifyErrorResponse
-  >;
+  fetchSavedTracks: (
+    offset: number
+  ) => Promise<SpotifyResponse<Paging<PlaylistTrack>> | SpotifyErrorResponse>;
   fetchTopArtists: () => Promise<
     SpotifyResponse<Paging<Artist>> | SpotifyErrorResponse
   >;
-  fetchFeaturedPlaylists: () => Promise<
-    SpotifyResponse<FeaturedPlaylists> | SpotifyErrorResponse
+  fetchNewReleases: (
+    offset: number
+  ) => Promise<
+    SpotifyResponse<{ albums: Paging<Album> }> | SpotifyErrorResponse
   >;
-  fetchCurrentUserPlaylists: () => Promise<
-    SpotifyResponse<Paging<Playlist>> | SpotifyErrorResponse
-  >;
+  fetchCurrentUserAlbums: (
+    offset: number
+  ) => Promise<SpotifyResponse<Paging<SavedAlbum>> | SpotifyErrorResponse>;
+  fetchCurrentUserPlaylists: (
+    offset: number
+  ) => Promise<SpotifyResponse<Paging<Playlist>> | SpotifyErrorResponse>;
   fetchPlaylist: (
     id: string
   ) => Promise<SpotifyResponse<Playlist> | SpotifyErrorResponse>;
+  fetchPlaylistTracks: (
+    id: string,
+    offset: number
+  ) => Promise<SpotifyResponse<Paging<PlaylistTrack>> | SpotifyErrorResponse>;
   fetchTrack: (
     id: string
   ) => Promise<SpotifyResponse<Track> | SpotifyErrorResponse>;
+  fetchAlbum: (
+    id: string
+  ) => Promise<SpotifyResponse<Album> | SpotifyErrorResponse>;
   fetchTrackAnalysis: (
     id: string
   ) => Promise<SpotifyResponse<AudioAnalysis> | SpotifyErrorResponse>;
@@ -70,6 +102,27 @@ interface SpotifyValues {
     deviceId: string,
     trackId: string
   ) => Promise<SpotifyResponse<undefined> | SpotifyErrorResponse>;
+  search: (
+    query: string
+  ) => Promise<SpotifyResponse<Search> | SpotifyErrorResponse>;
+  fetchArtist: (
+    id: string
+  ) => Promise<SpotifyResponse<Artist> | SpotifyErrorResponse>;
+  fetchArtistAlbums: (
+    id: string
+  ) => Promise<SpotifyResponse<Paging<Album>> | SpotifyErrorResponse>;
+  fetchRelatedArtists: (id: string) => Promise<
+    | SpotifyResponse<{
+        artists: Artist[];
+      }>
+    | SpotifyErrorResponse
+  >;
+  fetchArtistTopTracks: (id: string) => Promise<
+    | SpotifyResponse<{
+        tracks: Track[];
+      }>
+    | SpotifyErrorResponse
+  >;
 }
 
 const SpotifyContext = createContext<SpotifyValues>(null!);
@@ -146,22 +199,39 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     };
   };
 
-  const fetchTopTracks = async (): Promise<
-    SpotifyResponse<Paging<Track>> | SpotifyErrorResponse
+  const fetchRecentlyPlayedTracks = async (): Promise<
+    SpotifyResponse<RecentlyPlayed> | SpotifyErrorResponse
   > => {
     try {
-      const response = await client.get<Paging<Track>>(`/me/top/tracks`);
+      const response = await client.get<RecentlyPlayed>(
+        "/me/player/recently-played?limit=50"
+      );
       return { ok: true, data: response.data };
     } catch (error) {
       return handleSpotifyError(error);
     }
   };
 
-  const fetchSavedTracks = async (): Promise<
-    SpotifyResponse<Paging<PlaylistTrack>> | SpotifyErrorResponse
+  const fetchTopTracks = async (): Promise<
+    SpotifyResponse<Paging<Track>> | SpotifyErrorResponse
   > => {
     try {
-      const response = await client.get<Paging<PlaylistTrack>>(`/me/tracks`);
+      const response = await client.get<Paging<Track>>(
+        `/me/top/tracks?limit=50`
+      );
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchSavedTracks = async (
+    offset: number
+  ): Promise<SpotifyResponse<Paging<PlaylistTrack>> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<Paging<PlaylistTrack>>(
+        `/me/tracks?limit=50&offset=${offset}`
+      );
       return { ok: true, data: response.data };
     } catch (error) {
       return handleSpotifyError(error);
@@ -172,19 +242,8 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     SpotifyResponse<Paging<Artist>> | SpotifyErrorResponse
   > => {
     try {
-      const response = await client.get<Paging<Artist>>(`/me/top/artists`);
-      return { ok: true, data: response.data };
-    } catch (error) {
-      return handleSpotifyError(error);
-    }
-  };
-
-  const fetchFeaturedPlaylists = async (): Promise<
-    SpotifyResponse<FeaturedPlaylists> | SpotifyErrorResponse
-  > => {
-    try {
-      const response = await client.get<FeaturedPlaylists>(
-        "/browse/featured-playlists?limit=15"
+      const response = await client.get<Paging<Artist>>(
+        `/me/top/artists?limit=50`
       );
       return { ok: true, data: response.data };
     } catch (error) {
@@ -192,12 +251,40 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     }
   };
 
-  const fetchCurrentUserPlaylists = async (): Promise<
-    SpotifyResponse<Paging<Playlist>> | SpotifyErrorResponse
+  const fetchNewReleases = async (
+    offset: number
+  ): Promise<
+    SpotifyResponse<{ albums: Paging<Album> }> | SpotifyErrorResponse
   > => {
     try {
+      const response = await client.get<{ albums: Paging<Album> }>(
+        `/browse/new-releases?limit=50&offset=${offset}`
+      );
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchCurrentUserPlaylists = async (
+    offset: number
+  ): Promise<SpotifyResponse<Paging<Playlist>> | SpotifyErrorResponse> => {
+    try {
       const response = await client.get<Paging<Playlist>>(
-        "https://api.spotify.com/v1/me/playlists"
+        `/me/playlists?limit=50&offset=${offset}`
+      );
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchCurrentUserAlbums = async (
+    offset: number
+  ): Promise<SpotifyResponse<Paging<SavedAlbum>> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<Paging<SavedAlbum>>(
+        `/me/albums?limit=50&offset=${offset}`
       );
       return { ok: true, data: response.data };
     } catch (error) {
@@ -209,9 +296,32 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     id: string
   ): Promise<SpotifyResponse<Playlist> | SpotifyErrorResponse> => {
     try {
-      const response = await client.get<Playlist>(
-        `https://api.spotify.com/v1/playlists/${id}`
+      const response = await client.get<Playlist>(`/playlists/${id}`);
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchPlaylistTracks = async (
+    id: string,
+    offset: number
+  ): Promise<SpotifyResponse<Paging<PlaylistTrack>> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<Paging<PlaylistTrack>>(
+        `/playlists/${id}/tracks?offset=${offset}`
       );
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchAlbum = async (
+    id: string
+  ): Promise<SpotifyResponse<Album> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<Album>(`/albums/${id}`);
       return { ok: true, data: response.data };
     } catch (error) {
       return handleSpotifyError(error);
@@ -222,9 +332,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     id: string
   ): Promise<SpotifyResponse<Track> | SpotifyErrorResponse> => {
     try {
-      const response = await client.get<Track>(
-        `https://api.spotify.com/v1/tracks/${id}`
-      );
+      const response = await client.get<Track>(`/tracks/${id}`);
       return { ok: true, data: response.data };
     } catch (error) {
       return handleSpotifyError(error);
@@ -235,9 +343,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     id: string
   ): Promise<SpotifyResponse<AudioAnalysis> | SpotifyErrorResponse> => {
     try {
-      const response = await client.get<AudioAnalysis>(
-        `https://api.spotify.com/v1/audio-analysis/${id}`
-      );
+      const response = await client.get<AudioAnalysis>(`/audio-analysis/${id}`);
       return { ok: true, data: response.data };
     } catch (error) {
       return handleSpotifyError(error);
@@ -248,7 +354,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     deviceId: string
   ): Promise<SpotifyResponse<undefined> | SpotifyErrorResponse> => {
     try {
-      await client.put(`https://api.spotify.com/v1/me/player`, {
+      await client.put(`/me/player`, {
         device_ids: [deviceId],
       });
       return { ok: true, data: undefined };
@@ -262,19 +368,98 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     trackId: string
   ): Promise<SpotifyResponse<undefined> | SpotifyErrorResponse> => {
     try {
-      await client.put(
-        `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
-        { uris: [`spotify:track:${trackId}`], position_ms: 0 }
-      );
+      await client.put(`/me/player/play?device_id=${deviceId}`, {
+        uris: [`spotify:track:${trackId}`],
+        position_ms: 0,
+      });
       return { ok: true, data: undefined };
     } catch (error) {
       return handleSpotifyError(error);
     }
   };
 
-  let isRefreshing:
-    | null
-    | (() => Promise<{ access_token: string; expires_at: number } | null>);
+  const search = async (
+    query: string
+  ): Promise<SpotifyResponse<Search> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<Search>(
+        `/search?q=${query}&type=track,album,playlist,artist&limit=50`
+      );
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchArtist = async (
+    id: string
+  ): Promise<SpotifyResponse<Artist> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<Artist>(`/artists/${id}`);
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchArtistAlbums = async (
+    id: string
+  ): Promise<SpotifyResponse<Paging<Album>> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<Paging<Album>>(
+        `/artists/${id}/albums?limit=50`
+      );
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchRelatedArtists = async (
+    id: string
+  ): Promise<SpotifyResponse<{ artists: Artist[] }> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<{ artists: Artist[] }>(
+        `/artists/${id}/related-artists`
+      );
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchArtistTopTracks = async (
+    id: string
+  ): Promise<SpotifyResponse<{ tracks: Track[] }> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<{ tracks: Track[] }>(
+        `/artists/${id}/top-tracks?market=CA`
+      );
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  let isRefreshing = false;
+  let requestQueue: QueuedRequest[] = [];
+
+  const processRequestQueue = ({
+    error,
+    token,
+  }: {
+    error: unknown;
+    token: string | null;
+  }) => {
+    requestQueue.map((request) => {
+      if (!token) {
+        request.reject(error);
+      } else {
+        request.resolve(token);
+      }
+    });
+    requestQueue = [];
+  };
 
   client.interceptors.request.use(
     async (config) => {
@@ -288,37 +473,44 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
         };
       }
       if (auth.expires_at < Date.now() / 1000) {
-        console.log("refreshing spotify auth");
-        if (!isRefreshing) {
-          isRefreshing = async () => {
-            try {
-              const credentials = await refreshSpotifyAuth({
-                refresh_token: auth.refresh_token,
-              });
-              console.log("refreshed spotify auth");
-              setAuth({ ...credentials, refresh_token: auth.refresh_token });
-              isRefreshing = null;
-              return credentials;
-            } catch (error) {
-              if (error instanceof TRPCClientError) {
-                toast.error(`Error: ${error.message}`);
-              }
-              isRefreshing = null;
-              return null;
-            }
-          };
-        } else {
-          return isRefreshing().then((credentials) => {
-            if (!credentials) {
-              controller.abort();
-              return {
-                ...config,
-                signal: controller.signal,
-              };
-            }
-            config.headers.Authorization = `Bearer ${credentials.access_token}`;
+        if (isRefreshing) {
+          try {
+            const token = await new Promise((resolve, reject) =>
+              requestQueue.push({ resolve, reject })
+            );
+            config.headers.Authorization = `Bearer ${token as string}`;
             return config;
+          } catch (error) {
+            controller.abort();
+            return {
+              ...config,
+              signal: controller.signal,
+            };
+          }
+        }
+        isRefreshing = true;
+        console.log("refreshing spotify auth");
+        try {
+          const credentials = await refreshSpotifyAuth({
+            refresh_token: auth.refresh_token,
           });
+          console.log("refreshed spotify auth");
+          setAuth({ ...credentials, refresh_token: auth.refresh_token });
+          config.headers.Authorization = `Bearer ${credentials.access_token}`;
+          processRequestQueue({ error: null, token: credentials.access_token });
+          isRefreshing = false;
+          return config;
+        } catch (error) {
+          if (error instanceof TRPCClientError) {
+            toast.error(`Error: ${error.message}`);
+          }
+          processRequestQueue({ error: error, token: null });
+          isRefreshing = false;
+          controller.abort();
+          return {
+            ...config,
+            signal: controller.signal,
+          };
         }
       }
       console.log("vaild spotify auth");
@@ -346,32 +538,40 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
           if (!auth) {
             return Promise.reject(error);
           }
-          if (!isRefreshing) {
-            isRefreshing = async () => {
-              try {
-                const credentials = await refreshSpotifyAuth({
-                  refresh_token: auth.refresh_token,
-                });
-                console.log("refreshed spotify auth");
-                setAuth({ ...credentials, refresh_token: auth.refresh_token });
-                isRefreshing = null;
-                return credentials;
-              } catch (error) {
-                if (error instanceof TRPCClientError) {
-                  toast.error(`Error: ${error.message}`);
-                }
-                isRefreshing = null;
-                return null;
-              }
-            };
-          } else {
-            return isRefreshing().then((credentials) => {
-              if (!credentials) {
-                return Promise.reject(error);
-              }
-              originalRequest.headers.Authorization = `Bearer ${credentials.access_token}`;
+          if (isRefreshing) {
+            try {
+              const token = await new Promise((resolve, reject) =>
+                requestQueue.push({ resolve, reject })
+              );
+              originalRequest.headers.Authorization = `Bearer ${
+                token as string
+              }`;
               return client(originalRequest);
+            } catch (error) {
+              return Promise.reject(error);
+            }
+          }
+          isRefreshing = true;
+          try {
+            const credentials = await refreshSpotifyAuth({
+              refresh_token: auth.refresh_token,
             });
+            console.log("refreshed spotify auth");
+            setAuth({ ...credentials, refresh_token: auth.refresh_token });
+            originalRequest.headers.Authorization = `Bearer ${credentials.access_token}`;
+            processRequestQueue({
+              error: null,
+              token: credentials.access_token,
+            });
+            isRefreshing = false;
+            return client(originalRequest);
+          } catch (error) {
+            if (error instanceof TRPCClientError) {
+              toast.error(`Error: ${error.message}`);
+            }
+            processRequestQueue({ error: error, token: null });
+            isRefreshing = false;
+            return Promise.reject(error);
           }
         }
       }
@@ -403,16 +603,25 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
         auth,
         setAuth,
         linkAccount,
+        fetchRecentlyPlayedTracks,
         fetchSavedTracks,
         fetchTopArtists,
-        fetchFeaturedPlaylists,
+        fetchNewReleases,
         fetchCurrentUserPlaylists,
+        fetchCurrentUserAlbums,
         fetchTopTracks,
         fetchPlaylist,
+        fetchPlaylistTracks,
         fetchTrack,
+        fetchAlbum,
         fetchTrackAnalysis,
         transferPlayback,
         playTrack,
+        search,
+        fetchArtist,
+        fetchArtistAlbums,
+        fetchRelatedArtists,
+        fetchArtistTopTracks,
       }}
     >
       {children}
