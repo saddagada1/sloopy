@@ -3,6 +3,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 import { PiSpotifyLogo } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "~/components/ui/SafeImage";
@@ -26,7 +27,10 @@ const Album: NextPage = ({}) => {
       }
       const response = await spotify.fetchAlbum(id);
       if (!response?.ok) {
-        throw new Error(response?.message ?? "Fatal Error");
+        toast.error("Error: Could Not Fetch Spotify Data");
+        throw new Error(
+          response.message ?? "Error: Could Not Fetch Spotify Data"
+        );
       }
       return response.data;
     },

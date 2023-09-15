@@ -2,8 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
 
@@ -12,104 +12,135 @@ generator client {
 }
 
 model Sloop {
-    id                      String    @id @default(cuid())
-    name                    String    @db.Text
-    description             String    @db.Text
-    trackId                 String
-    trackName               String    @db.Text
-    artists                 Json
-    duration                Float
-    key                     Int
-    mode                    Int
-    tempo                   Float
-    timeSignature           Int
-    loops                   Json      
-    isPrivate               Boolean   @default(true)
-    userId                  String
-    userUsername            String    @db.VarChar(255)
-    user                    User      @relation(fields: [userId, userUsername], references: [id, username], onDelete: Cascade)
-    createdAt               DateTime  @default(now())
-    updatedAt               DateTime  @updatedAt
+  id            String   @id @default(cuid())
+  name          String   @db.Text
+  description   String   @db.Text
+  trackId       String
+  trackName     String   @db.Text
+  artists       Json
+  duration      Float
+  key           Int
+  mode          Int
+  tempo         Float
+  timeSignature Int
+  loops         Json
+  isPrivate     Boolean  @default(true)
+  userId        String
+  userUsername  String   @db.VarChar(255)
+  user          User     @relation(fields: [userId, userUsername], references: [id, username], onDelete: Cascade)
+  likes         Like[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-    @@index([userId])
-    @@index([trackId])
-    @@index([userUsername])
-    @@index([userId, userUsername])
+  @@index([userId])
+  @@index([trackId])
+  @@index([userUsername])
+  @@index([userId, userUsername])
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  sloopId    String
+  userId     String
+  sloop      Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([sloopId, userId])
+  @@index([sloopId])
+  @@index([userId])
+}
+
+model Follow {
+  id         String   @id @default(cuid())
+  followedId String
+  followerId String
+  followed   User     @relation("followers", fields: [followedId], references: [id], onDelete: Cascade)
+  follower   User     @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([followedId, followerId])
+  @@index([followedId])
+  @@index([followerId])
 }
 
 model LinkedAccount {
-    id                String  @id @default(cuid())
-    userId            String
-    provider          String 
-    providerAccountId String
-    refresh_token     String  @db.Text
-    access_token      String  @db.Text
-    expires_at        Int
-    token_type        String
-    isPremium         Boolean 
-    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  refresh_token     String  @db.Text
+  access_token      String  @db.Text
+  expires_at        Int
+  token_type        String
+  isPremium         Boolean
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([provider, providerAccountId])
-    @@unique([userId, provider])
-    @@index([userId])
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@index([userId])
 }
 
 // Necessary for Next auth
 model Account {
-    id                String  @id @default(cuid())
-    userId            String
-    type              String
-    provider          String 
-    providerAccountId String
-    refresh_token     String? @db.Text
-    access_token      String? @db.Text
-    expires_at        Int?
-    token_type        String?
-    scope             String? @db.Text
-    id_token          String? @db.Text
-    session_state     String?
-    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String? @db.Text
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([provider, providerAccountId])
-    @@index([userId])
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([userId])
+  @@index([userId])
 }
 
 model User {
-    id             String           @id @default(cuid())
-    name           String?          @db.Text
-    username       String           @unique @db.VarChar(255)
-    email          String           @unique @db.VarChar(320)
-    verified       Boolean          @default(false)
-    emailVerified  DateTime?
-    password       String?
-    image          String?          @db.Text
-    accounts       Account[]
-    sessions       Session[]
-    linkedAccounts LinkedAccount[]
-    sloops         Sloop[]
-    createdAt      DateTime         @default(now())
-    updatedAt      DateTime         @updatedAt
+  id             String          @id @default(cuid())
+  name           String?         @db.Text
+  username       String          @unique @db.VarChar(255)
+  email          String          @unique @db.VarChar(320)
+  verified       Boolean         @default(false)
+  emailVerified  DateTime?
+  password       String?
+  image          String?         @db.Text
+  accounts       Account[]
+  sessions       Session[]
+  linkedAccounts LinkedAccount[]
+  sloops         Sloop[]
+  followers      Follow[]        @relation("followers")
+  following      Follow[]        @relation("following")
+  likes          Like[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
-    @@index([email])
-    @@unique([id, username])
-    @@unique([id, email])
-    @@unique([username, email])
+  @@unique([id, username])
+  @@unique([id, email])
+  @@unique([username, email])
+  @@index([email])
+  @@index([username])
 }
 
 model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-    @@unique([identifier, token])
+  @@unique([identifier, token])
 }

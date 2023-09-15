@@ -1,26 +1,124 @@
 import type { NextPage } from "next";
+import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
 import { PiHeartFill } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import { api } from "~/utils/api";
 import Loading from "~/components/utils/Loading";
-import WithAuth from "~/components/utils/WithAuth";
 import SafeImage from "~/components/ui/SafeImage";
 import clsx from "clsx";
 import Avatar from "boring-avatars";
 import { mode, pitchClassColours } from "~/utils/constants";
 import { useRouter } from "next/router";
 import { calcRelativeTime } from "~/utils/calc";
+import toast from "react-hot-toast";
+import { TRPCClientError } from "@trpc/client";
+import { useQueryClient } from "@tanstack/react-query";
+import LoadingButton from "~/components/ui/LoadingButton";
 
-const Profile: NextPage = ({}) => {
+const User: NextPage = ({}) => {
   const router = useRouter();
+  const { data: session } = useSession();
+  if (router.query.username === session?.user.username) {
+    void router.push("/profile");
+  }
   const [imageContainerRef, { height, width }] = useElementSize();
+  const ctx = useQueryClient();
   const {
     data: user,
     isLoading: fetchingUser,
     error: userError,
-  } = api.users.getSessionUser.useQuery();
+  } = api.users.getUserByUsername.useQuery(
+    { username: router.query.username as string },
+    { enabled: router.query.username !== session?.user.username }
+  );
+  const { mutateAsync: follow, isLoading: creatingFollow } =
+    api.users.follow.useMutation();
+  const { mutateAsync: unfollow, isLoading: deletingFollow } =
+    api.users.unfollow.useMutation();
+
+  const handleFollow = async () => {
+    if (!user) return;
+    if (!session?.user) {
+      void router.push("/login");
+      return;
+    }
+    try {
+      const response = await follow({ id: user.id });
+      ctx.setQueryData(
+        [
+          ["users", "getUserByUsername"],
+          { input: { username: user.username }, type: "query" },
+        ],
+        (cachedData: typeof user | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            followers: [...cachedData.followers, response],
+          };
+        }
+      );
+      ctx.setQueryData(
+        [["users", "getSessionUser"], { type: "query" }],
+        (cachedData: typeof user | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            following: [...cachedData.following, response],
+          };
+        }
+      );
+    } catch (error) {
+      if (error instanceof TRPCClientError) {
+        toast.error(`Error: ${error.message}`);
+      }
+      return;
+    }
+  };
+
+  const handleUnfollow = async () => {
+    if (!user) return;
+    if (!session?.user) {
+      void router.push("/login");
+      return;
+    }
+    try {
+      await unfollow({ id: user.id });
+      ctx.setQueryData(
+        [
+          ["users", "getUserByUsername"],
+          { input: { username: user.username }, type: "query" },
+        ],
+        (cachedData: typeof user | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            followers: cachedData.followers.filter(
+              (follow) => follow.followerId !== session.user.id
+            ),
+          };
+        }
+      );
+      ctx.setQueryData(
+        [["users", "getSessionUser"], { type: "query" }],
+        (cachedData: typeof user | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            following: cachedData.following.filter(
+              (follow) => follow.followedId !== user.id
+            ),
+          };
+        }
+      );
+    } catch (error) {
+      if (error instanceof TRPCClientError) {
+        toast.error(`Error: ${error.message}`);
+      }
+      return;
+    }
+  };
 
   if (fetchingUser) {
     return <Loading />;
@@ -33,7 +131,7 @@ const Profile: NextPage = ({}) => {
   return (
     <>
       <Head>
-        <title>Sloopy - Profile</title>
+        <title>Sloopy - {`${user.username}'s Profile`}</title>
       </Head>
       <div className="flex flex-1 flex-col px-4 pt-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
@@ -85,13 +183,28 @@ const Profile: NextPage = ({}) => {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2 text-center font-display text-base font-semibold sm:text-lg">
-              <Link
-                href="/settings"
-                className="flex-1 rounded-md border border-gray-300 bg-gray-200 px-2 py-2.5"
-              >
-                Settings
-              </Link>
+            <div className="flex flex-1 gap-2 text-center font-display text-base font-semibold sm:text-lg">
+              {user.followers.find(
+                (follower) => follower.followerId === session?.user.id
+              ) ? (
+                <LoadingButton
+                  loading={deletingFollow}
+                  disabled={deletingFollow}
+                  onClick={() => void handleUnfollow()}
+                  className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200 px-2 py-2.5"
+                >
+                  Following
+                </LoadingButton>
+              ) : (
+                <LoadingButton
+                  loading={creatingFollow}
+                  disabled={creatingFollow}
+                  onClick={() => void handleFollow()}
+                  className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200 px-2 py-2.5"
+                >
+                  Follow
+                </LoadingButton>
+              )}
               <Link
                 href="/likes"
                 className="flex aspect-square h-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 text-2xl sm:text-3xl"
@@ -125,10 +238,8 @@ const Profile: NextPage = ({}) => {
                     colors={[
                       pitchClassColours[sloop.key]!,
                       mode[sloop.mode] === "Major"
-                        ? pitchClassColours[sloop.key - 3]! ??
-                          pitchClassColours[12 - 3]!
-                        : pitchClassColours[sloop.key + 3]! ??
-                          pitchClassColours[-1 + 3]!,
+                        ? pitchClassColours[sloop.key - 3 ?? 12 - 3]!
+                        : pitchClassColours[sloop.key + 3 ?? -1 + 3]!,
                     ]}
                   />
                 </div>
@@ -147,9 +258,7 @@ const Profile: NextPage = ({}) => {
                   </div>
                   <div className="flex items-center gap-4 text-sm text-gray-400 sm:text-base">
                     <p className="flex-1 truncate">
-                      {sloop.userId === user.id
-                        ? calcRelativeTime(sloop.updatedAt)
-                        : sloop.userUsername}
+                      {calcRelativeTime(sloop.updatedAt)}
                     </p>
                     <p className="flex items-center gap-2">
                       {(2312).toLocaleString(undefined, {
@@ -167,4 +276,5 @@ const Profile: NextPage = ({}) => {
     </>
   );
 };
-export default WithAuth(Profile);
+
+export default User;

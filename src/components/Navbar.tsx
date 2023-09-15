@@ -24,7 +24,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ setVisible }) => {
         animate={{ translateX: "0%" }}
         exit={{ translateX: "-100%" }}
         transition={{ type: "tween", duration: 0.2 }}
-        className="relative z-10 flex h-full w-11/12 flex-col overflow-scroll rounded-e-3xl bg-primary shadow-2xl will-change-transform sm:w-5/6"
+        className="relative z-10 flex h-full w-11/12 flex-col overflow-scroll  bg-primary shadow-2xl will-change-transform sm:w-5/6"
       >
         <h1 className="my-6 ml-6 font-display text-4xl font-black">sloopy</h1>
         <Link className="mb-6 ml-6 text-sm uppercase" href="/profile">

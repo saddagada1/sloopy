@@ -66,6 +66,17 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
   const [timelineRef, { width: timelineWidth }] = useElementSize();
   const [imageContainerRef, { height }] = useElementSize();
 
+  const handleClickToSeek = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
+    if (isScrubbing || !context.player) return;
+    const seekPercentage = clamp(e.clientX, 0, timelineWidth) / timelineWidth;
+    const seekPosition = duration * seekPercentage;
+    context.setPlaybackPosition(seekPosition);
+    void context.player.seek(seekPosition * 1000);
+    context.handlePlayingLoop(seekPosition);
+  };
+
   useEffect(() => {
     const handleMouseScrub = (e: MouseEvent) => {
       if (!isScrubbing) return;
@@ -100,7 +111,8 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
       window.removeEventListener("mouseup", handleFinishScrub);
       window.removeEventListener("touchend", handleFinishScrub);
     };
-  }, [duration, isScrubbing, context, timelineWidth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duration, isScrubbing, timelineWidth]);
 
   useEffect(() => {
     if (!context.player || context.deviceId === "") return;
@@ -205,6 +217,9 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
       </AnimatePresence>
       <div
         ref={timelineRef}
+        onClick={(e) => handleClickToSeek(e)}
+        onMouseDown={() => setIsScrubbing(true)}
+        onTouchStart={() => setIsScrubbing(true)}
         className="h-1 border-b border-gray-300 bg-gray-200"
       >
         <div
@@ -215,11 +230,7 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
           }}
           className="relative flex h-full items-center bg-secondary"
         >
-          <div
-            onMouseDown={() => setIsScrubbing(true)}
-            onTouchStart={() => setIsScrubbing(true)}
-            className="absolute -right-2 aspect-square h-4 cursor-pointer rounded-full bg-secondary"
-          />
+          <div className="absolute -right-2 aspect-square h-4 cursor-pointer rounded-full bg-secondary" />
         </div>
       </div>
       <div

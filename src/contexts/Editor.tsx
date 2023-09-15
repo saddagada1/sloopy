@@ -8,18 +8,9 @@ import React, {
   useEffect,
 } from "react";
 import { useSpotifyWebSDK } from "~/utils/hooks";
-import { type Loop } from "~/utils/types";
+import { type SloopGeneralInfo, type Loop } from "~/utils/types";
 import { useSpotifyContext } from "./Spotify";
 import { api } from "~/utils/api";
-
-interface SloopGeneralInfo {
-  key: number;
-  mode: number;
-  tempo: number;
-  timeSignature: number;
-  name: string;
-  description: string;
-}
 
 export interface EditorValues {
   player: Spotify.Player | undefined;

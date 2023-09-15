@@ -11,12 +11,13 @@ import { useRouter } from "next/router";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { useQuery } from "@tanstack/react-query";
 import Loading from "~/components/utils/Loading";
-import Image from "next/image";
 import { PiXCircle } from "react-icons/pi";
 import { api } from "~/utils/api";
 import { TRPCClientError } from "@trpc/client";
 import toast from "react-hot-toast";
 import WithAuth from "~/components/utils/WithAuth";
+import { useElementSize } from "usehooks-ts";
+import SafeImage from "~/components/ui/SafeImage";
 
 interface SloopValues {
   name: string;
@@ -26,6 +27,7 @@ interface SloopValues {
 const Create: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
+  const [imageContainerRef, { width }] = useElementSize();
   const { mutateAsync: createSloop } = api.sloops.create.useMutation();
   const { data, isLoading, error } = useQuery(
     ["track", router.query.track_id],
@@ -61,23 +63,20 @@ const Create: NextPage = ({}) => {
       <Head>
         <title>Create Sloop</title>
       </Head>
-      <div className="flex flex-1 flex-col px-4 pb-12 pt-6">
+      <div className="flex flex-1 flex-col px-4 py-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
           Create
         </h2>
         <h1 className="mb-4 border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
           Sloop
         </h1>
-        <div className="flex w-full">
-          <div className="relative aspect-square w-1/6 flex-shrink-0 overflow-hidden rounded-md">
-            <Image
-              src={data.track.album.images[0]!.url}
-              alt={data.track.name}
-              sizes="13vw"
-              fill
-              className="object-cover"
-            />
-          </div>
+        <div ref={imageContainerRef} className="flex">
+          <SafeImage
+            url={data.track.album.images[0]?.url}
+            alt={data.track.name}
+            width={width * 0.15}
+            className="relative aspect-square flex-shrink-0 overflow-hidden rounded-md"
+          />
           <div className="ml-4 flex flex-1 flex-col justify-between overflow-hidden">
             <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
               {data.track.name}
@@ -94,7 +93,6 @@ const Create: NextPage = ({}) => {
             <PiXCircle className="text-3xl sm:text-4xl" />
           </button>
         </div>
-
         <Formik
           initialValues={{
             name: "",

@@ -1,3 +1,10 @@
+import {
+  type Follow,
+  type Like,
+  type LinkedAccount,
+  type Sloop,
+  type User,
+} from "@prisma/client";
 import { type ErrorResponse } from "spotify-types";
 
 export interface SpotifyErrorResponse extends ErrorResponse {
@@ -39,6 +46,15 @@ export interface Loop {
   notes: string;
 }
 
+export interface SloopGeneralInfo {
+  key: number;
+  mode: number;
+  tempo: number;
+  timeSignature: number;
+  name: string;
+  description: string;
+}
+
 export interface UpdateSloopInput {
   id: string;
   name: string;
@@ -53,4 +69,12 @@ export interface UpdateSloopInput {
   timeSignature: number;
   loops: Loop[];
   isPrivate: boolean;
+}
+
+export interface CompleteUser extends User {
+  likes: Like[];
+  followers: Follow[];
+  following: Follow[];
+  sloops: Sloop[];
+  linkedAccounts: LinkedAccount[];
 }

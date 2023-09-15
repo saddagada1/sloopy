@@ -6,22 +6,6 @@ import "~/styles/globals.css";
 import Layout from "~/components/Layout";
 import SpotifyProvider from "~/contexts/Spotify";
 import { Toaster } from "react-hot-toast";
-import {
-  QueryClient,
-  QueryClientProvider as SpotifyClientProvider,
-} from "@tanstack/react-query";
-
-export const spotifyClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      retry: false,
-      staleTime: 1000 * 60 * 60 * 24, // 24 hours
-    },
-  },
-});
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,
@@ -30,51 +14,49 @@ const MyApp: AppType<{ session: Session | null }> = ({
   return (
     <SessionProvider refetchOnWindowFocus={false} session={session}>
       <SpotifyProvider>
-        <SpotifyClientProvider client={spotifyClient}>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              className: "font-mono font-medium text-center",
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            className: "font-mono font-medium text-center",
+            style: {
+              backgroundColor: "var(--primary-colour)",
+              color: "var(--secondary-colour)",
+            },
+            error: {
               style: {
-                backgroundColor: "var(--primary-colour)",
-                color: "var(--secondary-colour)",
+                border: "1px",
+                borderStyle: "solid",
+                borderColor: "#ef4444",
+                borderRadius: "6px",
+                backgroundColor: "#fee2e2",
+                color: "#ef4444",
+                minWidth: "fit-content",
               },
-              error: {
-                style: {
-                  border: "1px",
-                  borderStyle: "solid",
-                  borderColor: "#ef4444",
-                  borderRadius: "6px",
-                  backgroundColor: "#fee2e2",
-                  color: "#ef4444",
-                  minWidth: "fit-content",
-                },
-                iconTheme: {
-                  primary: "#ef4444",
-                  secondary: "#fee2e2",
-                },
+              iconTheme: {
+                primary: "#ef4444",
+                secondary: "#fee2e2",
               },
-              success: {
-                style: {
-                  border: "1px",
-                  borderStyle: "solid",
-                  borderColor: "#22c55e",
-                  borderRadius: "6px",
-                  backgroundColor: "#ecfccb",
-                  color: "#22c55e",
-                  minWidth: "fit-content",
-                },
-                iconTheme: {
-                  primary: "#22c55e",
-                  secondary: "#ecfccb",
-                },
+            },
+            success: {
+              style: {
+                border: "1px",
+                borderStyle: "solid",
+                borderColor: "#22c55e",
+                borderRadius: "6px",
+                backgroundColor: "#ecfccb",
+                color: "#22c55e",
+                minWidth: "fit-content",
               },
-            }}
-          />
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
-        </SpotifyClientProvider>
+              iconTheme: {
+                primary: "#22c55e",
+                secondary: "#ecfccb",
+              },
+            },
+          }}
+        />
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
       </SpotifyProvider>
     </SessionProvider>
   );

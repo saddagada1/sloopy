@@ -3,6 +3,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 import { PiSpotifyLogo } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import Carousel from "~/components/ui/Carousel";
@@ -39,7 +40,8 @@ const Artist: NextPage = ({}) => {
         !relatedArtistsResponse.ok ||
         !topTracksResponse.ok
       ) {
-        throw new Error("Error: Failed To Fetch Artist");
+        toast.error("Error: Could Not Fetch Spotify Data");
+        throw new Error("Error: Could Not Fetch Spotify Data");
       }
       return {
         ...artistResponse.data,
@@ -64,7 +66,7 @@ const Artist: NextPage = ({}) => {
   return (
     <>
       <Head>
-        <title>Sloopy - Artist</title>
+        <title>Sloopy - {artist.name}</title>
       </Head>
       <div className="flex flex-1 flex-col px-4 py-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">

@@ -24,6 +24,8 @@ const StyledTextArea: React.FC<StyledTextAreaProps> = ({
       placeholder={placeholder}
       type={type}
       as="textarea"
+      autoComplete="off"
+      autoCorrect="off"
     />
   );
 };

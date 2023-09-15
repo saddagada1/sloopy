@@ -1,177 +1,35 @@
-import { useQuery } from "@tanstack/react-query";
+import Avatar from "boring-avatars";
+import clsx from "clsx";
 import { Field, Form, Formik } from "formik";
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
-import { PiArrowRight, PiMagnifyingGlass } from "react-icons/pi";
-import { useSpotifyContext } from "~/contexts/Spotify";
-import { useRouter } from "next/router";
 import Link from "next/link";
-import Loading from "~/components/utils/Loading";
+import { useRouter } from "next/router";
 import toast from "react-hot-toast";
-import WithAuth from "~/components/utils/WithAuth";
-import Carousel from "~/components/ui/Carousel";
-import SafeImage from "~/components/ui/SafeImage";
+import { PiHeartFill, PiMagnifyingGlass } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
-
-const useDashboard = () => {
-  const spotify = useSpotifyContext();
-  const {
-    data: topArtists,
-    isLoading: fetchingTopArtists,
-    error: topArtistsError,
-  } = useQuery(
-    ["topArtists"],
-    async () => {
-      const response = await spotify.fetchTopArtists();
-      if (!response?.ok) {
-        throw new Error(
-          response?.message ?? "Error: Could Not Fetch Spotify Data"
-        );
-      }
-      return response.data;
-    },
-    {
-      enabled: !!spotify.auth,
-    }
-  );
-  const {
-    data: topTracks,
-    isLoading: fetchingTopTracks,
-    error: topTracksError,
-  } = useQuery(
-    ["topTracks"],
-    async () => {
-      const response = await spotify.fetchTopTracks();
-      if (!response?.ok) {
-        throw new Error(
-          response?.message ?? "Error: Could Not Fetch Spotify Data"
-        );
-      }
-      return response.data;
-    },
-    {
-      enabled: !!spotify.auth,
-    }
-  );
-  const {
-    data: savedAlbums,
-    isLoading: fetchingSavedAlbums,
-    error: savedAlbumsError,
-  } = useQuery(
-    ["SavedAlbums", "0"],
-    async () => {
-      const response = await spotify.fetchCurrentUserAlbums(0);
-      if (!response?.ok) {
-        throw new Error(
-          response?.message ?? "Error: Could Not Fetch Spotify Data"
-        );
-      }
-      return response.data;
-    },
-    {
-      enabled: !!spotify.auth,
-    }
-  );
-  const {
-    data: savedPlaylists,
-    isLoading: fetchingSavedPlaylists,
-    error: savedPlaylistsError,
-  } = useQuery(
-    ["SavedPlaylists", "0"],
-    async () => {
-      const response = await spotify.fetchCurrentUserPlaylists(0);
-      if (!response?.ok) {
-        throw new Error(
-          response?.message ?? "Error: Could Not Fetch Spotify Data"
-        );
-      }
-      return response.data;
-    },
-    {
-      enabled: !!spotify.auth,
-    }
-  );
-  const {
-    data: newReleases,
-    isLoading: fetchingNewReleases,
-    error: newReleasesError,
-  } = useQuery(
-    ["NewReleases", "0"],
-    async () => {
-      const response = await spotify.fetchNewReleases(0);
-      if (!response?.ok) {
-        throw new Error(
-          response?.message ?? "Error: Could Not Fetch Spotify Data"
-        );
-      }
-      return response.data;
-    },
-    {
-      enabled: !!spotify.auth,
-    }
-  );
-
-  if (
-    fetchingTopArtists ||
-    fetchingTopTracks ||
-    fetchingSavedAlbums ||
-    fetchingSavedPlaylists ||
-    fetchingNewReleases
-  ) {
-    return { data: undefined, isLoading: true, error: undefined };
-  }
-
-  if (
-    !topArtists ||
-    !topTracks ||
-    !savedAlbums ||
-    !savedPlaylists ||
-    !newReleases
-  ) {
-    return {
-      data: undefined,
-      isLoading: false,
-      error: "Error: Could Not Fetch Dashboard Data",
-    };
-  }
-
-  if (
-    topArtistsError ||
-    topTracksError ||
-    savedAlbumsError ||
-    savedPlaylistsError ||
-    newReleasesError
-  ) {
-    return {
-      data: undefined,
-      isLoading: false,
-      error: "Error: Could Not Fetch Dashboard Data",
-    };
-  }
-
-  return {
-    data: { topArtists, topTracks, savedAlbums, savedPlaylists, newReleases },
-    isLoading: false,
-    error: undefined,
-  };
-};
+import Loading from "~/components/utils/Loading";
+import WithAuth from "~/components/utils/WithAuth";
+import { api } from "~/utils/api";
+import { calcRelativeTime, calcTimeOfDay } from "~/utils/calc";
+import { mode, pitchClassColours } from "~/utils/constants";
 
 const Home: NextPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
   const [containerRef, { width }] = useElementSize();
   const {
-    data: dashboard,
-    isLoading: fetchingDashboard,
-    error: dashboardError,
-  } = useDashboard();
+    data: sloops,
+    isLoading: fetchingSloops,
+    error: sloopsError,
+  } = api.sloops.getAll.useQuery();
 
-  if (fetchingDashboard) {
+  if (fetchingSloops) {
     return <Loading />;
   }
 
-  if (!dashboard || dashboardError) {
+  if (!sloops || sloopsError) {
     toast.error("Error: Could Not Fetch Dashboard Data");
     return <div>ERROR</div>;
   }
@@ -179,11 +37,11 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Sloopy - Spotify</title>
+        <title>Sloopy - Home</title>
       </Head>
       <div className="flex flex-1 flex-col px-4 py-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
-          Good Morning
+          {calcTimeOfDay()}
         </h2>
         <Link
           href="/profile"
@@ -207,168 +65,76 @@ const Home: NextPage = () => {
                   className="ml-2 w-full bg-transparent text-sm focus:outline-none sm:text-base"
                   id="query"
                   name="query"
-                  placeholder="Search for tracks, albums, playlists..."
+                  placeholder="Search for artists, albums, playlists, tracks..."
+                  autoComplete="off"
+                  autoCorrect="off"
                 />
               </div>
             </Form>
           )}
         </Formik>
-        <div className="mb-4">
-          <div className="flex gap-2 text-center font-display text-base font-semibold text-primary sm:text-lg">
-            <Link
-              href="/recently-played"
-              className="flex-1 rounded-md bg-secondary px-2 py-2.5"
-            >
-              Recently Played
-            </Link>
-            <Link
-              href="/saved/tracks"
-              className="flex-1 rounded-md bg-secondary px-2 py-2.5"
-            >
-              Liked Songs
-            </Link>
-          </div>
-        </div>
-        <div ref={containerRef} className="flex flex-1 flex-col gap-6">
-          <div>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Top Artists
-              <p className="text-base text-gray-400 sm:text-lg">
-                {dashboard.topArtists.items.length}
-              </p>
-            </h3>
-            <Carousel>
-              {dashboard.topArtists.items.map((artist, index) => (
+        <div
+          ref={containerRef}
+          className="mt-4 flex-1 border-t border-gray-300 pt-4"
+        >
+          <ul className="w-full">
+            {sloops.map((sloop, index) => (
+              <li
+                className={clsx(
+                  "flex cursor-pointer gap-4 rounded-lg border border-gray-300 bg-gray-200 p-2",
+                  index !== sloops.length - 1 &&
+                    "mb-2 border-b border-gray-300 pb-2"
+                )}
+                key={index}
+                onClick={() => void router.push(`/sloop/${sloop.id}`)}
+              >
                 <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/artist/${artist.id}`)}
+                  style={{ width: width * 0.25 }}
+                  className="aspect-square overflow-hidden rounded-md"
                 >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-full"
-                    url={artist.images[0]?.url}
-                    alt={artist.name}
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {artist.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
-          </div>
-          <div>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Top Tracks
-              <p className="text-base text-gray-400 sm:text-lg">
-                {dashboard.topTracks.items.length}
-              </p>
-            </h3>
-            <Carousel>
-              {dashboard.topTracks.items.map((track, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/track/${track.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={track.album.images[0]?.url}
-                    alt={track.name}
+                  <Avatar
+                    size={width * 0.25}
+                    name={sloop.name}
+                    variant="marble"
                     square
-                    width={width / 3}
+                    colors={[
+                      pitchClassColours[sloop.key]!,
+                      mode[sloop.mode] === "Major"
+                        ? pitchClassColours[sloop.key - 3 ?? 12 - 3]!
+                        : pitchClassColours[sloop.key + 3 ?? -1 + 3]!,
+                    ]}
                   />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {track.name}
-                  </p>
                 </div>
-              ))}
-            </Carousel>
-          </div>
-          <div>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Your Albums
-              <Link href="/saved/albums">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
-            <Carousel>
-              {dashboard.savedAlbums.items.map((item, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/album/${item.album.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={item.album.images[0]?.url}
-                    alt={item.album.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {item.album.name}
-                  </p>
+                <div className="flex flex-1 flex-col justify-between overflow-hidden">
+                  <div>
+                    <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
+                      {sloop.name}
+                    </h3>
+                    <p className="truncate text-sm text-gray-400 sm:text-base">
+                      {(sloop.artists as string[]).map((artist, index) =>
+                        index === (sloop.artists as string[]).length - 1
+                          ? artist
+                          : `${artist}, `
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-gray-400 sm:text-base">
+                    <p className="flex-1 truncate">
+                      {sloop.userId === session?.user.id
+                        ? calcRelativeTime(sloop.updatedAt)
+                        : sloop.userUsername}
+                    </p>
+                    <p className="flex items-center gap-2">
+                      {sloop.likes.length.toLocaleString(undefined, {
+                        notation: "compact",
+                      })}
+                      <PiHeartFill className="text-xl sm:text-2xl" />
+                    </p>
+                  </div>
                 </div>
-              ))}
-            </Carousel>
-          </div>
-          <div>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Your Playlists
-              <Link href="/saved/playlists">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
-            <Carousel>
-              {dashboard.savedPlaylists.items.map((playlist, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/playlist/${playlist.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={playlist.images[0]?.url}
-                    alt={playlist.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {playlist.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
-          </div>
-          <div>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              New Releases
-              <Link href="/new-releases">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
-            <Carousel>
-              {dashboard.newReleases.albums.items.map((album, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/album/${album.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={album.images[0]?.url}
-                    alt={album.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {album.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
-          </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </>

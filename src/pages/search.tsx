@@ -74,7 +74,9 @@ const Search: NextPage = ({}) => {
                   className="ml-2 w-full bg-transparent text-sm focus:outline-none sm:text-base"
                   id="query"
                   name="query"
-                  placeholder="Search for tracks, albums, playlists..."
+                  placeholder="Search for artists, albums, playlists, tracks..."
+                  autoComplete="off"
+                  autoCorrect="off"
                 />
               </div>
             </Form>

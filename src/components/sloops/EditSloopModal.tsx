@@ -9,11 +9,11 @@ import {
   timeSignature,
 } from "~/utils/constants";
 import InputSlider from "../ui/InputSlider";
-import { type Sloop } from "@prisma/client";
+import { type SloopGeneralInfo } from "~/utils/types";
 
 interface EditSloopModalProps {
   setVisible: Dispatch<SetStateAction<boolean>>;
-  sloop: Sloop;
+  sloopInfo: SloopGeneralInfo;
   onEdit?: ({
     key,
     mode,
@@ -33,15 +33,15 @@ interface EditSloopModalProps {
 
 const EditSloopModal: React.FC<EditSloopModalProps> = ({
   setVisible,
-  sloop,
+  sloopInfo,
   onEdit,
 }) => {
-  const [key, setKey] = useState(sloop.key);
-  const [mode, setMode] = useState(sloop.mode);
-  const [time, setTime] = useState(sloop.timeSignature);
-  const [tempo, setTempo] = useState(Math.round(sloop.tempo));
-  const [name, setName] = useState(sloop.name);
-  const [description, setDescription] = useState(sloop.description);
+  const [key, setKey] = useState(sloopInfo.key);
+  const [mode, setMode] = useState(sloopInfo.mode);
+  const [time, setTime] = useState(sloopInfo.timeSignature);
+  const [tempo, setTempo] = useState(Math.round(sloopInfo.tempo));
+  const [name, setName] = useState(sloopInfo.name);
+  const [description, setDescription] = useState(sloopInfo.description);
   const [isSelecting, setIsSelecting] = useState(false);
 
   return (
@@ -103,12 +103,16 @@ const EditSloopModal: React.FC<EditSloopModalProps> = ({
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="mb-4 w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-sm font-medium sm:text-base"
+          autoComplete="off"
+          autoCorrect="off"
         />
         <StyledLabel label="Bio" />
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="mb-4 h-24 w-full resize-none rounded-md border border-gray-300 bg-gray-200 p-3 text-sm font-medium sm:text-base"
+          autoComplete="off"
+          autoCorrect="off"
         />
         <div className="mt-2 flex w-full gap-2 font-display text-base font-bold sm:text-lg">
           <button

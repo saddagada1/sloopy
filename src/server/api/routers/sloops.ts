@@ -16,11 +16,12 @@ const zodLoop: z.ZodType<Loop> = z.object({
   key: z.number().min(-1).max(11),
   mode: z.number().min(0).max(1),
   chord: z.string(),
+  voicing: z.number(),
   notes: z.string(),
 });
 
 const createSloopInput = z.object({
-  name: z.string().max(20),
+  name: z.string(),
   description: z.string().max(500),
   trackId: z.string(),
   trackName: z.string(),
@@ -34,7 +35,7 @@ const createSloopInput = z.object({
 
 const updateSloopInput = z.object({
   id: z.string(),
-  name: z.string().max(20),
+  name: z.string(),
   description: z.string().max(500),
   trackId: z.string(),
   trackName: z.string(),
@@ -106,6 +107,21 @@ export const sloopsRouter = createTRPCRouter({
       }
     }),
 
+  getAll: publicProcedure.query(async ({ ctx }) => {
+    try {
+      const sloops = await ctx.prisma.sloop.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { likes: true },
+      });
+      return sloops;
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could Not Get Sloops",
+      });
+    }
+  }),
+
   get: publicProcedure
     .input(
       z.object({
@@ -116,11 +132,12 @@ export const sloopsRouter = createTRPCRouter({
       try {
         const sloop = await ctx.prisma.sloop.findUnique({
           where: { id: input.id },
+          include: { likes: true },
         });
         return sloop;
       } catch (error) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
+          code: "NOT_FOUND",
           message: "Sloop Not Found",
         });
       }
@@ -139,4 +156,56 @@ export const sloopsRouter = createTRPCRouter({
       });
     }
   }),
+
+  like: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const like = await ctx.prisma.like.create({
+          data: { userId: ctx.session.user.id, sloopId: input.id },
+        });
+        return like;
+      } catch (error) {
+        if (error instanceof PrismaClientKnownRequestError) {
+          if (error.code === "P2002") {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "Already Liked Sloop",
+            });
+          }
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable To Like Sloop",
+        });
+      }
+    }),
+
+  unlike: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        await ctx.prisma.like.delete({
+          where: {
+            sloopId_userId: {
+              sloopId: input.id,
+              userId: ctx.session.user.id,
+            },
+          },
+        });
+      } catch (error) {
+        if (error instanceof PrismaClientKnownRequestError) {
+          if (error.code === "P2002") {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "Sloop Not Liked",
+            });
+          }
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable To Unlike Sloop",
+        });
+      }
+    }),
 });

@@ -23,6 +23,8 @@ const StyledField: React.FC<StyledFieldProps> = ({
       name={name}
       placeholder={placeholder}
       type={type}
+      autoComplete="off"
+      autoCorrect="off"
     />
   );
 };

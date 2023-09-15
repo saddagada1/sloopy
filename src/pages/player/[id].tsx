@@ -2,13 +2,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import {
-  PiCaretDown,
-  PiCaretUp,
-  PiPauseFill,
-  PiPlayFill,
-  PiRepeat,
-} from "react-icons/pi";
+import { PiPauseFill, PiPlayFill, PiRepeat } from "react-icons/pi";
 import Loading from "~/components/utils/Loading";
 import { api } from "~/utils/api";
 import {
@@ -19,14 +13,7 @@ import {
 } from "~/utils/constants";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import Player from "~/components/sloops/Player";
-import { motion } from "framer-motion";
-import {
-  type DetailedHTMLProps,
-  type HTMLAttributes,
-  useRef,
-  useState,
-  useEffect,
-} from "react";
+import { useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchChords } from "~/utils/helpers";
 import Chord from "~/components/sloops/Chord";
@@ -34,82 +21,19 @@ import LoopTimeline from "~/components/sloops/LoopTimeline";
 import { usePlayerContext } from "~/contexts/Player";
 import { WaveSpinner } from "react-spinners-kit";
 import clsx from "clsx";
-import { type UpdateSloopInput, type Loop } from "~/utils/types";
+import { type Loop } from "~/utils/types";
 import { useElementSize } from "usehooks-ts";
 import WithAuth from "~/components/utils/WithAuth";
-
-interface LoopButtonProps
-  extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
-  label: string;
-  height: number;
-  open?: boolean;
-  children: React.ReactNode;
-}
-
-const LoopButton: React.FC<LoopButtonProps> = ({
-  children,
-  label,
-  height,
-  open,
-  ...DetailedHTMLProps
-}) => {
-  const [expand, setExpand] = useState(false);
-  return (
-    <div
-      {...DetailedHTMLProps}
-      className="flex flex-col rounded text-sm font-semibold sm:text-base"
-    >
-      <div className="flex items-center justify-between p-1.5">
-        <label>{label}</label>
-        {!open && (
-          <button
-            className="text-xl sm:text-2xl"
-            onClick={() => setExpand(!expand)}
-          >
-            {expand ? <PiCaretUp /> : <PiCaretDown />}
-          </button>
-        )}
-      </div>
-      <motion.div
-        className="overflow-hidden"
-        initial={{ height: 0 }}
-        animate={{ height: expand || open ? height : 0 }}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
-};
+import LoopButton from "~/components/sloops/LoopButton";
 
 const SloopPlayer: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
   const playerCtx = usePlayerContext();
-  const { data, isLoading, error } = api.sloops.get.useQuery(
-    {
-      id: router.query.id as string,
-    },
-    {
-      onSuccess: (data) => {
-        if (!data) return;
-        if (router.query.unsaved) {
-          const unsavedData = localStorage.getItem("sloop");
-          if (unsavedData) {
-            const unsavedSloop = JSON.parse(unsavedData) as UpdateSloopInput;
-            if (unsavedSloop.id === data.id) {
-              const sloop = {
-                ...data,
-                ...unsavedSloop,
-              };
-              playerCtx.initialize(sloop);
-              return;
-            }
-          }
-        }
-        playerCtx.initialize(data);
-      },
-    }
-  );
+  const { data, isLoading, error } = api.sloops.get.useQuery({
+    id: router.query.id as string,
+  });
+
   const {
     data: chords,
     isLoading: fetchingChords,
@@ -122,12 +46,20 @@ const SloopPlayer: NextPage = ({}) => {
     return response;
   });
   const [containerRef, { width: containerWidth }] = useElementSize();
-  const variantsRef = useRef<HTMLDivElement>(null!);
-  const [variantsScrollIndex, setVariantsScrollIndex] = useState(0);
+  const voicingRef = useRef<HTMLDivElement>(null!);
 
   useEffect(() => {
-    setVariantsScrollIndex(0);
-  }, [playerCtx.playingLoop?.id]);
+    if (!data) return;
+    playerCtx.initialize(data);
+  }, [data, playerCtx]);
+
+  useEffect(() => {
+    if (!voicingRef.current || !playerCtx.playingLoop || !containerWidth)
+      return;
+    voicingRef.current.scrollTo({
+      left: (containerWidth / 2) * 0.9 * playerCtx.playingLoop?.voicing,
+    });
+  }, [playerCtx.playingLoop, containerWidth]);
 
   if (isLoading || fetchingChords || !spotify.auth) return <Loading />;
 
@@ -147,25 +79,25 @@ const SloopPlayer: NextPage = ({}) => {
         </Link>
         <div className="flex border-b border-gray-300">
           <div className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
-            <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
+            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Key
-            </label>
+            </p>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${
               pitchClass[data.key]
             } ${mode[data.mode]}`}</p>
           </div>
           <div className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
-            <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
+            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Tempo
-            </label>
+            </p>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${Math.round(
               data.tempo
             )} BPM`}</p>
           </div>
           <div className="flex flex-1 flex-col items-start p-1">
-            <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
+            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Time
-            </label>
+            </p>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${data.timeSignature}/4`}</p>
           </div>
         </div>
@@ -175,9 +107,9 @@ const SloopPlayer: NextPage = ({}) => {
         >
           <div className="grid flex-1 grid-rows-[repeat(10,_minmax(0,_1fr))]">
             <div className="row-span-3 flex flex-col items-start border-b px-2 pb-2 pt-1">
-              <label className="font-display text-base text-gray-400 sm:text-lg">
+              <p className="font-display text-base text-gray-400 sm:text-lg">
                 Chord
-              </label>
+              </p>
               {playerCtx.playingLoop && (
                 <p className="w-full truncate text-center text-2xl font-semibold sm:text-3xl">
                   {playerCtx.playingLoop.chord}
@@ -185,10 +117,9 @@ const SloopPlayer: NextPage = ({}) => {
               )}
             </div>
             <div className="row-[span_7_/_span_7] flex flex-col px-2 pb-2 pt-1">
-              <label className="font-display text-base text-gray-400 sm:text-lg">
+              <p className="font-display text-base text-gray-400 sm:text-lg">
                 Loops
-              </label>
-
+              </p>
               {(data.loops as Loop[]).length > 0 ? (
                 <div className="no-scrollbar flex flex-col gap-1.5 overflow-scroll py-1">
                   {(data.loops as Loop[]).map((loop) => (
@@ -267,9 +198,9 @@ const SloopPlayer: NextPage = ({}) => {
                 </div>
               ) : (
                 <div className="flex w-full flex-1 items-center justify-center">
-                  <label className="w-2/3 px-1 text-center font-display text-base text-gray-200 sm:text-lg">
+                  <p className="w-2/3 px-1 text-center font-display text-base text-gray-200 sm:text-lg">
                     {"No Loops :("}
-                  </label>
+                  </p>
                 </div>
               )}
             </div>
@@ -279,24 +210,30 @@ const SloopPlayer: NextPage = ({}) => {
             className="relative flex flex-1 flex-col items-start justify-start border-l border-gray-300 px-2 pb-2 pt-1 "
           >
             <div className="flex w-full items-center justify-between font-display text-gray-400">
-              <label className="text-base sm:text-lg">Voicings</label>
+              <p className="text-base sm:text-lg">Voicings</p>
               {playerCtx.playingLoop && (
-                <label className="-translate-y-1 text-xs sm:text-sm">
-                  {`${variantsScrollIndex + 1}/${
-                    chords.data[playerCtx.playingLoop.chord]!.length
+                <p className="-translate-y-1 text-xs sm:text-sm">
+                  {`${playerCtx.playingLoop.voicing + 1}/${
+                    chords.data[playerCtx.playingLoop.chord]?.length
                   }`}
-                </label>
+                </p>
               )}
             </div>
             {playerCtx.playingLoop && (
               <div
-                ref={variantsRef}
+                ref={voicingRef}
                 onScroll={() =>
-                  setVariantsScrollIndex(
-                    Math.round(
-                      variantsRef?.current?.scrollLeft /
-                        ((containerWidth / 2) * 0.9)
-                    )
+                  playerCtx.setLoops((loops) =>
+                    loops.map((loop) => {
+                      if (loop.id === playerCtx.playingLoop?.id) {
+                        loop.voicing = Math.round(
+                          voicingRef?.current?.scrollLeft /
+                            ((containerWidth / 2) * 0.9)
+                        );
+                        return loop;
+                      }
+                      return loop;
+                    })
                   )
                 }
                 className="no-scrollbar absolute flex h-full w-[90%] snap-x snap-mandatory overflow-x-scroll"
@@ -316,9 +253,9 @@ const SloopPlayer: NextPage = ({}) => {
           </div>
         </div>
         <div className="flex flex-1 flex-shrink flex-col border-b border-gray-300 px-2 pb-2 pt-1">
-          <label className="pb-1 font-display text-base text-gray-400 sm:text-lg">
+          <p className="pb-1 font-display text-base text-gray-400 sm:text-lg">
             Composition / Notes
-          </label>
+          </p>
           {playerCtx.playingLoop && (
             <div className="w-full flex-1 rounded-md border border-gray-300 p-3 text-sm sm:text-base">
               {playerCtx.playingLoop.notes}

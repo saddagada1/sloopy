@@ -90,9 +90,15 @@ export const authOptions = (
 
             const cookies = new Cookies(req, res);
 
-            cookies.set("next-auth.session-token", sessionToken, {
-              expires: sessionExpiry,
-            });
+            cookies.set(
+              env.NODE_ENV === "production"
+                ? "_Secure-next-auth.session-token"
+                : "next-auth.session-token",
+              sessionToken,
+              {
+                expires: sessionExpiry,
+              }
+            );
           }
         }
 
@@ -141,7 +147,11 @@ export const authOptions = (
           req.method === "POST"
         ) {
           const cookies = new Cookies(req, res);
-          const cookie = cookies.get("next-auth.session-token");
+          const cookie = cookies.get(
+            env.NODE_ENV === "production"
+              ? "_Secure-next-auth.session-token"
+              : "next-auth.session-token"
+          );
 
           if (cookie) {
             return cookie;

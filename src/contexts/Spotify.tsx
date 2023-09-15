@@ -533,7 +533,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
           return Promise.reject(error);
         }
         const { status } = (error.response as AxiosResponse) ?? {};
-        if (status === 400 || status === 401) {
+        if (status === 401) {
           console.log("spotify auth error");
           if (!auth) {
             return Promise.reject(error);

@@ -84,7 +84,9 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
     if (container.scrollLeft === scrollToIndex) {
       return;
     }
+    container.style.overflowX = "scroll";
     container.scrollTo({ left: scrollToIndex });
+    container.style.overflowX = "hidden";
   }, [context.playbackPosition, duration, numScrollSections, sliderWidth]);
 
   if (!unit || !snapTo || !sliderWidth || !numScrollSections) {

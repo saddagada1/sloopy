@@ -3,8 +3,6 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
-  PiCaretDown,
-  PiCaretUp,
   PiFloppyDiskBack,
   PiPauseFill,
   PiPencilSimpleLine,
@@ -22,16 +20,10 @@ import {
 } from "~/utils/constants";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import Player from "~/components/sloops/Player";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  type DetailedHTMLProps,
-  type HTMLAttributes,
-  useRef,
-  useState,
-  useEffect,
-} from "react";
+import { AnimatePresence } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
 import CreateLoopModal from "~/components/sloops/CreateLoopModal";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchChords } from "~/utils/helpers";
 import Chord from "~/components/sloops/Chord";
 import LoopTimeline from "~/components/sloops/LoopTimeline";
@@ -39,7 +31,11 @@ import { useEditorContext } from "~/contexts/Editor";
 import { WaveSpinner } from "react-spinners-kit";
 import clsx from "clsx";
 import EditLoopModal from "~/components/sloops/EditLoopModal";
-import { type UpdateSloopInput, type Loop } from "~/utils/types";
+import {
+  type UpdateSloopInput,
+  type Loop,
+  type CompleteUser,
+} from "~/utils/types";
 import { useElementSize } from "usehooks-ts";
 import EditSloopModal from "~/components/sloops/EditSloopModal";
 import { useSaveBeforeRouteChange } from "~/utils/hooks";
@@ -48,79 +44,15 @@ import Modal from "~/components/ui/Modal";
 import StyledLoadingButton from "~/components/ui/form/StyledLoadingButton";
 import LoadingButton from "~/components/ui/LoadingButton";
 import WithAuth from "~/components/utils/WithAuth";
-
-interface LoopButtonProps
-  extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
-  label: string;
-  height: number;
-  open?: boolean;
-  children: React.ReactNode;
-}
-
-const LoopButton: React.FC<LoopButtonProps> = ({
-  children,
-  label,
-  height,
-  open,
-  ...DetailedHTMLProps
-}) => {
-  const [expand, setExpand] = useState(false);
-  return (
-    <div
-      {...DetailedHTMLProps}
-      className="flex flex-col rounded text-sm font-semibold sm:text-base"
-    >
-      <div className="flex items-center justify-between p-1.5">
-        <label>{label}</label>
-        {!open && (
-          <button
-            className="text-xl sm:text-2xl"
-            onClick={() => setExpand(!expand)}
-          >
-            {expand ? <PiCaretUp /> : <PiCaretDown />}
-          </button>
-        )}
-      </div>
-      <motion.div
-        className="overflow-hidden"
-        initial={{ height: 0 }}
-        animate={{ height: expand || open ? height : 0 }}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
-};
+import LoopButton from "~/components/sloops/LoopButton";
 
 const Editor: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
   const editor = useEditorContext();
-  const { data, isLoading, error } = api.sloops.get.useQuery(
-    {
-      id: router.query.id as string,
-    },
-    {
-      onSuccess: (data) => {
-        if (!data) return;
-        if (router.query.unsaved) {
-          const unsavedData = localStorage.getItem("sloop");
-          if (unsavedData) {
-            const unsavedSloop = JSON.parse(unsavedData) as UpdateSloopInput;
-            if (unsavedSloop.id === data.id) {
-              const sloop = {
-                ...data,
-                ...unsavedSloop,
-              };
-              editor.initialize(sloop);
-              return;
-            }
-          }
-        }
-        editor.initialize(data);
-      },
-    }
-  );
+  const { data, isLoading, error } = api.sloops.get.useQuery({
+    id: router.query.id as string,
+  });
   const {
     data: chords,
     isLoading: fetchingChords,
@@ -137,11 +69,14 @@ const Editor: NextPage = ({}) => {
   const [editSloop, setEditSloop] = useState(false);
   const [saveSloop, setSaveSloop] = useState(false);
   const [containerRef, { width: containerWidth }] = useElementSize();
-  const variantsRef = useRef<HTMLDivElement>(null!);
-  const [variantsScrollIndex, setVariantsScrollIndex] = useState(0);
-  const { mutateAsync: updateSloop, isLoading: updatingSloop } =
-    api.sloops.update.useMutation();
+  const voicingRef = useRef<HTMLDivElement>(null!);
+  const {
+    mutateAsync: updateSloop,
+    isLoading: updatingSloop,
+    variables,
+  } = api.sloops.update.useMutation();
   const { route, setRoute, disabled, setDisabled } = useSaveBeforeRouteChange();
+  const ctx = useQueryClient();
 
   const handleSaveSloop = async ({
     publish,
@@ -155,13 +90,38 @@ const Editor: NextPage = ({}) => {
       !publish ? "Saving Sloop..." : "Saving and Publishing Sloop..."
     );
     try {
-      await updateSloop({
+      const response = await updateSloop({
         ...data,
         ...editor.generalInfo,
         artists: data.artists as string[],
         loops: editor.loops,
         isPrivate: publish === undefined ? data.isPrivate : !publish,
       });
+      ctx.setQueryData(
+        [["sloops", "get"], { input: { id: data.id }, type: "query" }],
+        (cachedData: typeof data | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...response,
+            likes: cachedData.likes,
+          };
+        }
+      );
+      ctx.setQueryData(
+        [["users", "getSessionUser"], { type: "query" }],
+        (cachedData: CompleteUser | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            sloops: cachedData.sloops.map((sloop) => {
+              if (sloop.id === response.id) {
+                return response;
+              }
+              return sloop;
+            }),
+          };
+        }
+      );
       toast.remove(updateProgress);
       localStorage.removeItem(`sloop`);
       toast.success("Sloop Saved!", { duration: 4000 });
@@ -179,8 +139,32 @@ const Editor: NextPage = ({}) => {
   };
 
   useEffect(() => {
-    setVariantsScrollIndex(0);
-  }, [editor.playingLoop?.id]);
+    if (!data) return;
+    if (editor.generalInfo !== null) return;
+    if (router.query.unsaved) {
+      const unsavedData = localStorage.getItem("sloop");
+      if (unsavedData) {
+        const unsavedSloop = JSON.parse(unsavedData) as UpdateSloopInput;
+        if (unsavedSloop.id === data.id) {
+          const sloop = {
+            ...data,
+            ...unsavedSloop,
+          };
+          editor.initialize(sloop);
+          return;
+        }
+      }
+    }
+    editor.initialize(data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, router.query.unsaved]);
+
+  useEffect(() => {
+    if (!voicingRef.current || !editor.playingLoop || !containerWidth) return;
+    voicingRef.current.scrollTo({
+      left: (containerWidth / 2) * 0.9 * editor.playingLoop?.voicing,
+    });
+  }, [editor.playingLoop, containerWidth]);
 
   useEffect(() => {
     if (!route) return;
@@ -202,7 +186,7 @@ const Editor: NextPage = ({}) => {
         {editSloop && (
           <EditSloopModal
             setVisible={setEditSloop}
-            sloop={data}
+            sloopInfo={editor.generalInfo}
             onEdit={(values) => editor.setGeneralInfo(values)}
           />
         )}
@@ -212,7 +196,7 @@ const Editor: NextPage = ({}) => {
           <Modal setVisible={setSaveSloop}>
             <LoadingButton
               className="flex h-14 w-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 font-display text-base font-bold sm:text-lg"
-              loading={updatingSloop}
+              loading={updatingSloop && !!variables?.isPrivate}
               disabled={updatingSloop}
               onClick={() => {
                 setDisabled(true);
@@ -224,7 +208,7 @@ const Editor: NextPage = ({}) => {
             <div className="mt-4 border-t border-gray-300 pt-4">
               <StyledLoadingButton
                 label="Save & Publish"
-                loading={updatingSloop}
+                loading={updatingSloop && !variables?.isPrivate}
                 disabled={updatingSloop}
                 onClick={() => {
                   setDisabled(true);
@@ -273,25 +257,25 @@ const Editor: NextPage = ({}) => {
         </div>
         <div className="flex border-b border-gray-300">
           <div className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
-            <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
+            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Key
-            </label>
+            </p>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${
               pitchClass[editor.generalInfo?.key ?? data.key]
             } ${mode[editor.generalInfo?.mode ?? data.mode]}`}</p>
           </div>
           <div className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
-            <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
+            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Tempo
-            </label>
+            </p>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${Math.round(
               editor.generalInfo?.tempo ?? data.tempo
             )} BPM`}</p>
           </div>
           <div className="flex flex-1 flex-col items-start p-1">
-            <label className="px-1 font-display text-xs text-gray-400 sm:text-sm">
+            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
               Time
-            </label>
+            </p>
             <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${
               editor.generalInfo?.timeSignature ?? data.timeSignature
             }/4`}</p>
@@ -303,9 +287,9 @@ const Editor: NextPage = ({}) => {
         >
           <div className="grid flex-1 grid-rows-[repeat(10,_minmax(0,_1fr))]">
             <div className="row-span-3 flex flex-col items-start border-b px-2 pb-2 pt-1">
-              <label className="font-display text-base text-gray-400 sm:text-lg">
+              <p className="font-display text-base text-gray-400 sm:text-lg">
                 Chord
-              </label>
+              </p>
               {editor.playingLoop && (
                 <p className="w-full truncate text-center text-2xl font-semibold sm:text-3xl">
                   {editor.playingLoop.chord}
@@ -314,7 +298,7 @@ const Editor: NextPage = ({}) => {
             </div>
             <div className="row-[span_7_/_span_7] flex flex-col px-2 pb-2 pt-1">
               <div className="flex w-full items-center justify-between font-display text-base text-gray-400 sm:text-lg">
-                <label>Loops</label>
+                <p>Loops</p>
                 <button onClick={() => setCreateLoop(true)}>
                   <PiPlus />
                 </button>
@@ -410,30 +394,32 @@ const Editor: NextPage = ({}) => {
           </div>
           <div className="relative flex flex-1 flex-col items-start justify-start border-l border-gray-300 px-2 pb-2 pt-1 ">
             <div className="flex w-full items-center justify-between font-display text-gray-400">
-              <label className="text-base sm:text-lg">Voicings</label>
+              <p className="text-base sm:text-lg">Voicings</p>
               {editor.playingLoop && (
-                <label className="-translate-y-1 text-xs sm:text-sm">
-                  {`${variantsScrollIndex + 1}/${
+                <p className="-translate-y-1 text-xs sm:text-sm">
+                  {`${editor.playingLoop.voicing + 1}/${
                     chords.data[editor.playingLoop.chord]?.length
                   }`}
-                </label>
+                </p>
               )}
             </div>
             {editor.playingLoop && (
               <div
-                ref={variantsRef}
-                // onScroll={() =>
-                //   setVariantsScrollIndex(
-                //     Math.round(
-                //       variantsRef?.current?.scrollLeft /
-                //         ((containerWidth / 2) * 0.9)
-                //     )
-                //   )
-                // }
-
-                // onScrollEnd={(e) => {
-
-                // }}
+                ref={voicingRef}
+                onScroll={() =>
+                  editor.setLoops((loops) =>
+                    loops.map((loop) => {
+                      if (loop.id === editor.playingLoop?.id) {
+                        loop.voicing = Math.round(
+                          voicingRef?.current?.scrollLeft /
+                            ((containerWidth / 2) * 0.9)
+                        );
+                        return loop;
+                      }
+                      return loop;
+                    })
+                  )
+                }
                 className="no-scrollbar absolute flex h-full w-[90%] snap-x snap-mandatory overflow-x-scroll"
               >
                 {chords.data[editor.playingLoop.chord]?.map((chord, index) => (
@@ -449,9 +435,9 @@ const Editor: NextPage = ({}) => {
           </div>
         </div>
         <div className="flex flex-1 flex-shrink flex-col border-b border-gray-300 px-2 pb-2 pt-1">
-          <label className="pb-1 font-display text-base text-gray-400 sm:text-lg">
+          <p className="pb-1 font-display text-base text-gray-400 sm:text-lg">
             Composition / Notes
-          </label>
+          </p>
           {editor.playingLoop && (
             <textarea
               value={editor.playingLoop.notes}
@@ -466,6 +452,8 @@ const Editor: NextPage = ({}) => {
                   })
                 )
               }
+              autoComplete="off"
+              autoCorrect="off"
               className="w-full flex-1 resize-none rounded-md border border-gray-300 bg-transparent p-3 text-sm focus:outline-none sm:text-base"
             />
           )}
