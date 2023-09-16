@@ -7,8 +7,12 @@ import toast from "react-hot-toast";
 import { PiPlusCircle, PiSpotifyLogo } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "~/components/ui/SafeImage";
+import SloopList from "~/components/ui/SloopList";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { useSpotifyContext } from "~/contexts/Spotify";
+import { api } from "~/utils/api";
+import { mode, pitchClass } from "~/utils/constants";
 
 const Track: NextPage = ({}) => {
   const router = useRouter();
@@ -37,13 +41,18 @@ const Track: NextPage = ({}) => {
       enabled: !!spotify.auth,
     }
   );
+  const {
+    data: sloops,
+    isLoading: fetchingSloops,
+    error: sloopError,
+  } = api.sloops.getTrackSloops.useQuery({ id: router.query.id as string });
 
-  if (fetchingTrack) {
+  if (fetchingTrack || fetchingSloops) {
     return <Loading />;
   }
 
-  if (!track || trackError) {
-    return <div>ERROR</div>;
+  if ((!track || trackError) ?? (!sloops || sloopError)) {
+    return <ErrorView />;
   }
 
   return (
@@ -81,8 +90,35 @@ const Track: NextPage = ({}) => {
               <PiPlusCircle />
             </Link>
           </div>
-          <p className="text-sm text-gray-400 sm:text-base">{0}</p>
+          <p className="text-sm text-gray-400 sm:text-base">{sloops.length}</p>
         </div>
+        <div className="mb-4 flex w-full border-b border-gray-300 pb-4">
+          <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
+            <p className="font-display text-xs text-gray-400 sm:text-sm">Key</p>
+            <p className="w-full text-center text-sm font-semibold sm:text-base">
+              {`${pitchClass[track.analysis.track.key]} ${
+                mode[track.analysis.track.mode]
+              }`}
+            </p>
+          </div>
+          <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
+            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
+              Tempo
+            </p>
+            <p className="w-full text-center text-sm font-semibold sm:text-base">
+              {`${Math.round(track.analysis.track.tempo)} BPM`}
+            </p>
+          </div>
+          <div className="flex flex-1 flex-col items-start gap-1">
+            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
+              Time
+            </p>
+            <p className="w-full text-center text-sm font-semibold sm:text-base">
+              {`${track.analysis.track.time_signature} / 4`}
+            </p>
+          </div>
+        </div>
+        <SloopList sloops={sloops} />
       </div>
     </>
   );

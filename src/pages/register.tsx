@@ -44,7 +44,8 @@ const Register: NextPage = ({}) => {
               .required("Required"),
             confirmPassword: yup
               .string()
-              .oneOf([yup.ref("password"), undefined], "Does Not Match"),
+              .oneOf([yup.ref("password"), undefined], "Does Not Match")
+              .required("Required"),
           })}
           onSubmit={async (
             values: RegisterValues,

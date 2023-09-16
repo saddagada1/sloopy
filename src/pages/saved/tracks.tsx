@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { PiArrowLeft, PiArrowRight, PiSpotifyLogo } from "react-icons/pi";
 import { type Track } from "spotify-types";
 import TrackList from "~/components/ui/TrackList";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
@@ -65,7 +66,7 @@ const SavedTracks: NextPage = ({}) => {
   }
 
   if (!saved || savedError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (

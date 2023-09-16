@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import toast from "react-hot-toast";
 import { PiSpotifyLogo } from "react-icons/pi";
 import TrackList from "~/components/ui/TrackList";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
@@ -51,7 +52,7 @@ const RecentlyPlayed: NextPage = ({}) => {
   }
 
   if (!recentlyPlayed || recentlyPlayedError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
   return (
     <>

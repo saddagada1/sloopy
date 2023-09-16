@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Field, Form, Formik } from "formik";
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
-import { PiArrowRight, PiMagnifyingGlass } from "react-icons/pi";
+import { PiArrowRight } from "react-icons/pi";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -13,6 +12,8 @@ import WithAuth from "~/components/utils/WithAuth";
 import Carousel from "~/components/ui/Carousel";
 import SafeImage from "~/components/ui/SafeImage";
 import { useElementSize } from "usehooks-ts";
+import ErrorView from "~/components/utils/ErrorView";
+import SearchInput from "~/components/ui/SearchInput";
 
 const useLibrary = () => {
   const spotify = useSpotifyContext();
@@ -173,7 +174,7 @@ const Library: NextPage = () => {
 
   if (!library || libraryError) {
     toast.error("Error: Could Not Fetch Library Data");
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (
@@ -191,30 +192,7 @@ const Library: NextPage = () => {
         >
           {session?.user.name ?? session?.user.username}
         </Link>
-        <Formik
-          initialValues={{
-            query: "",
-          }}
-          onSubmit={(values: { query: string }) => {
-            void router.push(`/search?q=${values.query}`);
-          }}
-        >
-          {() => (
-            <Form className="mb-4 w-full">
-              <div className="flex items-center rounded-md border border-gray-300 bg-gray-200 p-2">
-                <PiMagnifyingGlass className="text-2xl text-gray-400" />
-                <Field
-                  className="ml-2 w-full bg-transparent text-sm focus:outline-none sm:text-base"
-                  id="query"
-                  name="query"
-                  placeholder="Search for artists, albums, playlists, tracks..."
-                  autoComplete="off"
-                  autoCorrect="off"
-                />
-              </div>
-            </Form>
-          )}
-        </Formik>
+        <SearchInput tab="spotify" />
         <div className="mb-4">
           <div className="flex gap-2 text-center font-display text-base font-semibold text-primary sm:text-lg">
             <Link
@@ -232,7 +210,7 @@ const Library: NextPage = () => {
           </div>
         </div>
         <div ref={containerRef} className="flex flex-1 flex-col gap-6">
-          <div>
+          <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Top Artists
               <p className="text-base text-gray-400 sm:text-lg">
@@ -258,8 +236,8 @@ const Library: NextPage = () => {
                 </div>
               ))}
             </Carousel>
-          </div>
-          <div>
+          </section>
+          <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Top Tracks
               <p className="text-base text-gray-400 sm:text-lg">
@@ -286,8 +264,8 @@ const Library: NextPage = () => {
                 </div>
               ))}
             </Carousel>
-          </div>
-          <div>
+          </section>
+          <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Your Albums
               <Link href="/saved/albums">
@@ -314,8 +292,8 @@ const Library: NextPage = () => {
                 </div>
               ))}
             </Carousel>
-          </div>
-          <div>
+          </section>
+          <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Your Playlists
               <Link href="/saved/playlists">
@@ -342,8 +320,8 @@ const Library: NextPage = () => {
                 </div>
               ))}
             </Carousel>
-          </div>
-          <div>
+          </section>
+          <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               New Releases
               <Link href="/new-releases">
@@ -370,7 +348,7 @@ const Library: NextPage = () => {
                 </div>
               ))}
             </Carousel>
-          </div>
+          </section>
         </div>
       </div>
     </>

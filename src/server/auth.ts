@@ -35,6 +35,7 @@ declare module "next-auth" {
       linkedAccounts: LinkedAccount[];
       spotifyLinked: boolean;
       canPlaySpotify: boolean;
+      bio: string | null;
       // ...other properties
       // role: UserRole;
     };
@@ -43,6 +44,7 @@ declare module "next-auth" {
   interface User {
     username: string;
     verified: boolean;
+    bio: string | null;
     // ...other properties
     // role: UserRole;
   }
@@ -92,7 +94,7 @@ export const authOptions = (
 
             cookies.set(
               env.NODE_ENV === "production"
-                ? "_Secure-next-auth.session-token"
+                ? "__Secure-next-auth.session-token"
                 : "next-auth.session-token",
               sessionToken,
               {
@@ -116,6 +118,7 @@ export const authOptions = (
             email: user.email,
             verified: user.verified,
             username: user.username,
+            bio: user.bio,
             linkedAccounts: linkedAccounts,
             spotifyLinked: linkedAccounts.find(
               (account) => account.provider === "spotify"
@@ -149,7 +152,7 @@ export const authOptions = (
           const cookies = new Cookies(req, res);
           const cookie = cookies.get(
             env.NODE_ENV === "production"
-              ? "_Secure-next-auth.session-token"
+              ? "__Secure-next-auth.session-token"
               : "next-auth.session-token"
           );
 
@@ -237,6 +240,7 @@ export const authOptions = (
           return {
             id: profile.sub,
             name: profile.name,
+            bio: null,
             username:
               profile.email.split("@")[0]?.slice(0, 5) +
                 Math.random().toString(36).slice(2, 10) ??
@@ -254,6 +258,7 @@ export const authOptions = (
           return {
             id: profile.id,
             name: profile.name as string,
+            bio: null,
             username:
               (profile.email as string).split("@")[0]?.slice(0, 5) +
                 Math.random().toString(36).slice(2, 10) ??

@@ -35,6 +35,7 @@ import {
   type UpdateSloopInput,
   type Loop,
   type CompleteUser,
+  type CompleteSloop,
 } from "~/utils/types";
 import { useElementSize } from "usehooks-ts";
 import EditSloopModal from "~/components/sloops/EditSloopModal";
@@ -45,12 +46,13 @@ import StyledLoadingButton from "~/components/ui/form/StyledLoadingButton";
 import LoadingButton from "~/components/ui/LoadingButton";
 import WithAuth from "~/components/utils/WithAuth";
 import LoopButton from "~/components/sloops/LoopButton";
+import ErrorView from "~/components/utils/ErrorView";
 
 const Editor: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
   const editor = useEditorContext();
-  const { data, isLoading, error } = api.sloops.get.useQuery({
+  const { data, isLoading, error } = api.sloops.getUserSloop.useQuery({
     id: router.query.id as string,
   });
   const {
@@ -99,7 +101,7 @@ const Editor: NextPage = ({}) => {
       });
       ctx.setQueryData(
         [["sloops", "get"], { input: { id: data.id }, type: "query" }],
-        (cachedData: typeof data | undefined) => {
+        (cachedData: CompleteSloop | undefined) => {
           if (!cachedData) return;
           return {
             ...response,
@@ -175,7 +177,7 @@ const Editor: NextPage = ({}) => {
 
   if (isLoading || fetchingChords || !spotify.auth) return <Loading />;
 
-  if ((!data || error) ?? (!chords || chordsError)) return <div>ERROR</div>;
+  if ((!data || error) ?? (!chords || chordsError)) return <ErrorView />;
 
   return (
     <>
@@ -434,11 +436,11 @@ const Editor: NextPage = ({}) => {
             )}
           </div>
         </div>
-        <div className="flex flex-1 flex-shrink flex-col border-b border-gray-300 px-2 pb-2 pt-1">
+        <div className="flex flex-1 flex-col border-b border-gray-300 px-2 pb-2 pt-1">
           <p className="pb-1 font-display text-base text-gray-400 sm:text-lg">
             Composition / Notes
           </p>
-          {editor.playingLoop && (
+          {editor.playingLoop ? (
             <textarea
               value={editor.playingLoop.notes}
               onChange={(e) =>
@@ -454,8 +456,10 @@ const Editor: NextPage = ({}) => {
               }
               autoComplete="off"
               autoCorrect="off"
-              className="w-full flex-1 resize-none rounded-md border border-gray-300 bg-transparent p-3 text-sm focus:outline-none sm:text-base"
+              className="no-scrollbar aspect-video w-full flex-1 resize-none rounded-md border border-gray-300 bg-transparent p-3 text-sm focus:outline-none sm:text-base"
             />
+          ) : (
+            <div className="aspect-video w-full flex-1 rounded-md border border-gray-300" />
           )}
         </div>
         <LoopTimeline

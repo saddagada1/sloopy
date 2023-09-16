@@ -8,6 +8,7 @@ import { PiSpotifyLogo } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { useSpotifyContext } from "~/contexts/Spotify";
 
@@ -45,7 +46,7 @@ const Album: NextPage = ({}) => {
   }
 
   if (!album || albumError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (

@@ -113,7 +113,11 @@ const EditSloopModal: React.FC<EditSloopModalProps> = ({
           className="mb-4 h-24 w-full resize-none rounded-md border border-gray-300 bg-gray-200 p-3 text-sm font-medium sm:text-base"
           autoComplete="off"
           autoCorrect="off"
+          maxLength={500}
         />
+        <p className="mb-6 w-full text-right text-xs text-gray-400 sm:text-sm">
+          {`${description ? 500 - description.length : 500} Chars Left`}
+        </p>
         <div className="mt-2 flex w-full gap-2 font-display text-base font-bold sm:text-lg">
           <button
             onClick={() => !isSelecting && setVisible(false)}

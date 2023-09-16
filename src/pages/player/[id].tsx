@@ -25,6 +25,7 @@ import { type Loop } from "~/utils/types";
 import { useElementSize } from "usehooks-ts";
 import WithAuth from "~/components/utils/WithAuth";
 import LoopButton from "~/components/sloops/LoopButton";
+import ErrorView from "~/components/utils/ErrorView";
 
 const SloopPlayer: NextPage = ({}) => {
   const router = useRouter();
@@ -63,7 +64,7 @@ const SloopPlayer: NextPage = ({}) => {
 
   if (isLoading || fetchingChords || !spotify.auth) return <Loading />;
 
-  if ((!data || error) ?? (!chords || chordsError)) return <div>ERROR</div>;
+  if ((!data || error) ?? (!chords || chordsError)) return <ErrorView />;
 
   return (
     <>
@@ -252,15 +253,13 @@ const SloopPlayer: NextPage = ({}) => {
             )}
           </div>
         </div>
-        <div className="flex flex-1 flex-shrink flex-col border-b border-gray-300 px-2 pb-2 pt-1">
+        <div className="flex flex-1 flex-col border-b border-gray-300 px-2 pb-2 pt-1">
           <p className="pb-1 font-display text-base text-gray-400 sm:text-lg">
             Composition / Notes
           </p>
-          {playerCtx.playingLoop && (
-            <div className="w-full flex-1 rounded-md border border-gray-300 p-3 text-sm sm:text-base">
-              {playerCtx.playingLoop.notes}
-            </div>
-          )}
+          <div className="no-scrollbar aspect-video w-full flex-1 overflow-scroll rounded-md border border-gray-300 p-3 text-sm sm:text-base">
+            {playerCtx.playingLoop?.notes}
+          </div>
         </div>
         <LoopTimeline
           duration={data.duration}

@@ -26,7 +26,9 @@ import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { env } from "~/env.mjs";
 import { api } from "~/utils/api";
+import { calcTrimmedString } from "~/utils/calc";
 import { spotifyScopes } from "~/utils/constants";
+import { toErrorMap } from "~/utils/toErrorMap";
 
 interface GeneralValues {
   username: string;
@@ -52,6 +54,13 @@ const Settings: NextPage = ({}) => {
   const [providerToEdit, setProviderToEdit] = useState<string | null>(null);
   const { mutateAsync: unlinkSpotifyAccount, isLoading: isUnlinking } =
     api.spotify.unlinkSpotifyAccount.useMutation();
+  const { mutateAsync: changeEmail } = api.users.changeEmail.useMutation();
+  const { mutateAsync: changeUsername } =
+    api.users.changeUsername.useMutation();
+  const { mutateAsync: changePassword } =
+    api.users.changePassword.useMutation();
+  const { mutateAsync: changeName } = api.users.changeName.useMutation();
+  const { mutateAsync: changeBio } = api.users.changeBio.useMutation();
 
   useEffect(() => {
     if (params.get("code")) {
@@ -166,14 +175,47 @@ const Settings: NextPage = ({}) => {
               .matches(/^[A-Za-z0-9]*$/, "Only ABC's & Numbers")
               .max(20, "Max 20 Chars"),
           })}
-          onSubmit={(
+          onSubmit={async (
             values: GeneralValues,
             { setErrors, resetForm }: FormikHelpers<GeneralValues>
           ) => {
-            if (values.username) {
+            if (calcTrimmedString(values.username) !== "") {
+              try {
+                const response = await changeUsername({
+                  username: calcTrimmedString(values.username),
+                });
+                if (!response.user) {
+                  setErrors(toErrorMap(response.errors));
+                  return;
+                }
+                await updateSession();
+                toast.success("Successfully Updated Username");
+                resetForm();
+              } catch (error) {
+                if (error instanceof TRPCClientError) {
+                  toast.error(`Error: ${error.message}`);
+                }
+                return;
+              }
             }
-
-            if (values.email) {
+            if (calcTrimmedString(values.email) !== "") {
+              try {
+                const response = await changeEmail({
+                  email: calcTrimmedString(values.email),
+                });
+                if (!response.user) {
+                  setErrors(toErrorMap(response.errors));
+                  return;
+                }
+                await updateSession();
+                toast.success("Successfully Updated Email");
+                resetForm();
+              } catch (error) {
+                if (error instanceof TRPCClientError) {
+                  toast.error(`Error: ${error.message}`);
+                }
+                return;
+              }
             }
           }}
         >
@@ -188,7 +230,7 @@ const Settings: NextPage = ({}) => {
               <StyledField
                 id="username"
                 name="username"
-                placeholder={session!.user.username}
+                placeholder={session?.user.username}
               />
               <StyledLabel
                 label="Email"
@@ -198,7 +240,7 @@ const Settings: NextPage = ({}) => {
               <StyledField
                 id="email"
                 name="email"
-                placeholder={session!.user.email}
+                placeholder={session?.user.email}
                 type="email"
                 style={{ marginBottom: "24px" }}
               />
@@ -222,13 +264,26 @@ const Settings: NextPage = ({}) => {
               .required("Required"),
             confirmPassword: yup
               .string()
-              .oneOf([yup.ref("password"), undefined], "Does Not Match"),
+              .oneOf([yup.ref("password"), undefined], "Does Not Match")
+              .required("Required"),
           })}
-          onSubmit={(
+          onSubmit={async (
             values: SecurityValues,
-            { setErrors, resetForm }: FormikHelpers<SecurityValues>
+            { resetForm }: FormikHelpers<SecurityValues>
           ) => {
-            return;
+            try {
+              await changePassword({
+                password: values.password,
+              });
+              await updateSession();
+              toast.success("Successfully Updated Password");
+              resetForm();
+            } catch (error) {
+              if (error instanceof TRPCClientError) {
+                toast.error(`Error: ${error.message}`);
+              }
+              return;
+            }
           }}
         >
           {({ errors, touched, isSubmitting }) => (
@@ -267,21 +322,48 @@ const Settings: NextPage = ({}) => {
         </Formik>
         <Formik
           initialValues={{
-            name: session!.user.name ?? "",
-            bio: session!.user.name ?? "",
+            name: "",
+            bio: "",
           }}
           validationSchema={yup.object().shape({
-            name: yup.string().max(20, "Max 20 Chars"),
+            name: yup.string(),
             bio: yup.string().max(500, "Max 500 Chars"),
           })}
-          onSubmit={(
+          onSubmit={async (
             values: AboutValues,
-            { setErrors, resetForm }: FormikHelpers<AboutValues>
+            { resetForm }: FormikHelpers<AboutValues>
           ) => {
-            return;
+            if (calcTrimmedString(values.name) !== "") {
+              try {
+                await changeName({
+                  name: calcTrimmedString(values.name),
+                });
+                await updateSession();
+                toast.success("Successfully Updated Name");
+                resetForm();
+              } catch (error) {
+                if (error instanceof TRPCClientError) {
+                  toast.error(`Error: ${error.message}`);
+                }
+                return;
+              }
+            }
+            if (calcTrimmedString(values.bio) !== "") {
+              try {
+                await changeBio({ bio: calcTrimmedString(values.bio) });
+                await updateSession();
+                toast.success("Successfully Updated Bio");
+                resetForm();
+              } catch (error) {
+                if (error instanceof TRPCClientError) {
+                  toast.error(`Error: ${error.message}`);
+                }
+                return;
+              }
+            }
           }}
         >
-          {({ errors, touched, isSubmitting }) => (
+          {({ errors, touched, isSubmitting, values }) => (
             <Form className="mt-12 w-full">
               <StyledTitle title="about" />
               <StyledLabel
@@ -289,7 +371,11 @@ const Settings: NextPage = ({}) => {
                 error={errors.name}
                 touched={touched.name}
               />
-              <StyledField id="name" name="name" />
+              <StyledField
+                id="name"
+                name="name"
+                placeholder={session?.user.name ?? undefined}
+              />
               <StyledLabel
                 label="Bio"
                 error={errors.bio}
@@ -298,8 +384,12 @@ const Settings: NextPage = ({}) => {
               <StyledTextArea
                 id="bio"
                 name="bio"
-                style={{ marginBottom: "24px" }}
+                style={{ marginBottom: 0 }}
+                placeholder={session?.user.bio ?? undefined}
               />
+              <p className="mb-6 w-full text-right text-xs text-gray-400 sm:text-sm">
+                {`${values.bio ? 500 - values.bio.length : 500} Chars Left`}
+              </p>
               <StyledLoadingButton
                 label="update"
                 loading={isSubmitting}

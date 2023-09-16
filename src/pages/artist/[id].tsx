@@ -9,6 +9,7 @@ import { useElementSize } from "usehooks-ts";
 import Carousel from "~/components/ui/Carousel";
 import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { pitchClassColours } from "~/utils/constants";
@@ -60,7 +61,7 @@ const Artist: NextPage = ({}) => {
   }
 
   if (!artist || artistError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (

@@ -7,6 +7,7 @@ import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import { PiArrowLeft, PiArrowRight, PiSpotifyLogo } from "react-icons/pi";
 import AlbumList from "~/components/ui/AlbumList";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
@@ -68,7 +69,7 @@ const NewReleases: NextPage = ({}) => {
   }
 
   if (!newReleases || newReleasesError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (

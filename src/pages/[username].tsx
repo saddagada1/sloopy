@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { TRPCClientError } from "@trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import LoadingButton from "~/components/ui/LoadingButton";
+import ErrorView from "~/components/utils/ErrorView";
 
 const User: NextPage = ({}) => {
   const router = useRouter();
@@ -125,7 +126,7 @@ const User: NextPage = ({}) => {
   }
 
   if (!user || userError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (

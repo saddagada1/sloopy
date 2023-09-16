@@ -21,7 +21,7 @@ const Modal: React.FC<ModalProps> = ({ setVisible, disabled, children }) => {
         initial={{ translateY: "-25%", opacity: 0 }}
         animate={{ translateY: "0%", opacity: 1 }}
         exit={{ translateY: "25%", opacity: 0 }}
-        transition={{ type: "tween", duration: 0.2 }}
+        transition={{ type: "spring", duration: 0.5 }}
         className="z-10 w-11/12 rounded-md bg-primary p-4 sm:w-10/12"
       >
         {children}

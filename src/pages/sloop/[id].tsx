@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
 import Avatar from "boring-avatars";
+import { AnimatePresence, motion } from "framer-motion";
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
@@ -12,6 +13,7 @@ import {
   PiCheck,
   PiHeart,
   PiHeartFill,
+  PiLink,
   PiMusicNote,
   PiPencilSimpleLine,
   PiPlayFill,
@@ -19,9 +21,11 @@ import {
 } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import Chord from "~/components/sloops/Chord";
+import Popover from "~/components/ui/Popover";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { api } from "~/utils/api";
-import { calcRelativeTime } from "~/utils/calc";
+import { calcRelativeTime, calcSloopColours } from "~/utils/calc";
 import { mode, pitchClass, pitchClassColours } from "~/utils/constants";
 import { fetchChords } from "~/utils/helpers";
 import { type CompleteUser, type Loop } from "~/utils/types";
@@ -32,6 +36,7 @@ const Sloop: NextPage = ({}) => {
   const [containerRef, { width }] = useElementSize();
   const ctx = useQueryClient();
   const [previewLoop, setPreviewLoop] = useState(0);
+  const [showShare, setShowShare] = useState(false);
   const {
     data: sloop,
     isLoading: fetchingSloop,
@@ -134,7 +139,7 @@ const Sloop: NextPage = ({}) => {
   }
 
   if ((!sloop || sloopError) ?? (!chords || chordsError)) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   const loops = sloop.loops as Loop[];
@@ -155,19 +160,17 @@ const Sloop: NextPage = ({}) => {
           <Avatar
             size={width * 0.6}
             name={sloop.name}
-            variant="marble"
+            variant="pixel"
             square
-            colors={[
-              pitchClassColours[sloop.key]!,
-              mode[sloop.mode] === "Major"
-                ? pitchClassColours[sloop.key - 3 ?? 12 - 3]!
-                : pitchClassColours[sloop.key + 3 ?? -1 + 3]!,
-            ]}
+            colors={calcSloopColours(sloop)}
           />
         </div>
-        <h2 className="w-full truncate font-display text-lg text-gray-400 sm:text-xl">
+        <Link
+          href={`/${sloop.userUsername}`}
+          className="w-full truncate font-display text-lg text-gray-400 sm:text-xl"
+        >
           {sloop.userUsername}
-        </h2>
+        </Link>
         <h1 className="mb-4 w-full text-3xl font-semibold sm:text-4xl">
           {sloop.name}
         </h1>
@@ -182,13 +185,15 @@ const Sloop: NextPage = ({}) => {
           )}
           {session?.user.id !== sloop.userId &&
             (sloop.likes.find((like) => like.userId === session?.user.id) ? (
-              <button
+              <motion.button
+                initial={{ scale: "150%" }}
+                animate={{ scale: "100%" }}
                 disabled={deletingLike}
                 onClick={() => void handleUnlike()}
                 className="text-red-500"
               >
                 <PiHeartFill />
-              </button>
+              </motion.button>
             ) : (
               <button disabled={creatingLike} onClick={() => void handleLike()}>
                 <PiHeart />
@@ -197,9 +202,25 @@ const Sloop: NextPage = ({}) => {
           <Link href={`/track/${sloop.trackId}`}>
             <PiMusicNote />
           </Link>
-          <Link href={""}>
+          <button className="relative" onClick={() => setShowShare(true)}>
             <PiShareNetwork />
-          </Link>
+            <AnimatePresence>
+              {showShare && (
+                <Popover
+                  setVisible={setShowShare}
+                  className="flex items-center gap-2 text-2xl text-secondary shadow-2xl sm:text-3xl"
+                  x="left"
+                >
+                  <PiLink />
+                  <input
+                    type="text"
+                    defaultValue={window.location.toString()}
+                    className="rounded-md border border-gray-300 bg-gray-200 p-2 text-sm font-medium sm:text-base"
+                  />
+                </Popover>
+              )}
+            </AnimatePresence>
+          </button>
         </div>
         {sloop.description !== "" && (
           <div className="mb-4 flex w-full flex-col items-start gap-1 border-b border-gray-300 pb-4">
@@ -267,7 +288,6 @@ const Sloop: NextPage = ({}) => {
             </p>
           </div>
         </div>
-
         {loops.length > 0 ? (
           <>
             <div
@@ -319,14 +339,11 @@ const Sloop: NextPage = ({}) => {
                 </div>
               </div>
             </div>
-            <div
-              style={{ height: width / 2 }}
-              className="flex h-full w-full flex-col items-start gap-2"
-            >
+            <div className="flex w-full flex-col items-start gap-2">
               <p className="font-display text-xs text-gray-400 sm:text-sm">
                 Composition / Notes
               </p>
-              <div className="h-full w-full rounded border border-gray-300 p-3 text-sm font-semibold sm:text-base">
+              <div className="no-scrollbar aspect-video w-full overflow-y-scroll rounded border border-gray-300 p-3 text-sm font-semibold sm:text-base">
                 {loops[previewLoop]?.notes}
               </div>
             </div>

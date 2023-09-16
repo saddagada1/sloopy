@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import WithAuth from "~/components/utils/WithAuth";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "~/components/ui/SafeImage";
+import ErrorView from "~/components/utils/ErrorView";
 
 interface SloopValues {
   name: string;
@@ -29,7 +30,11 @@ const Create: NextPage = ({}) => {
   const spotify = useSpotifyContext();
   const [imageContainerRef, { width }] = useElementSize();
   const { mutateAsync: createSloop } = api.sloops.create.useMutation();
-  const { data, isLoading, error } = useQuery(
+  const {
+    data: track,
+    isLoading: fetchingTrack,
+    error: trackError,
+  } = useQuery(
     ["track", router.query.track_id],
     async () => {
       const id = router.query.track_id;
@@ -38,26 +43,25 @@ const Create: NextPage = ({}) => {
       }
       const trackResponse = await spotify.fetchTrack(id);
       const analysisResponse = await spotify.fetchTrackAnalysis(id);
-      if (!trackResponse?.ok) {
-        throw new Error(trackResponse?.message ?? "Fatal Error");
+      if (!trackResponse?.ok || !analysisResponse?.ok) {
+        toast.error("Error: Could Not Fetch Spotify Data");
+        throw new Error("Error: Could Not Fetch Spotify Data");
       }
-      if (!analysisResponse?.ok) {
-        throw new Error(analysisResponse?.message ?? "Fatal Error");
-      }
-      return { track: trackResponse.data, analysis: analysisResponse.data };
+      return { ...trackResponse.data, analysis: analysisResponse.data };
     },
     {
       enabled: !!spotify.auth,
     }
   );
 
-  if (isLoading) {
+  if (fetchingTrack) {
     return <Loading />;
   }
 
-  if (!data || error) {
-    return <div>ERROR</div>;
+  if (!track || trackError) {
+    return <ErrorView />;
   }
+
   return (
     <>
       <Head>
@@ -72,18 +76,18 @@ const Create: NextPage = ({}) => {
         </h1>
         <div ref={imageContainerRef} className="flex">
           <SafeImage
-            url={data.track.album.images[0]?.url}
-            alt={data.track.name}
+            url={track.album.images[0]?.url}
+            alt={track.name}
             width={width * 0.15}
             className="relative aspect-square flex-shrink-0 overflow-hidden rounded-md"
           />
           <div className="ml-4 flex flex-1 flex-col justify-between overflow-hidden">
             <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
-              {data.track.name}
+              {track.name}
             </h3>
             <p className="truncate text-sm text-gray-400 sm:text-base">
-              {data.track.artists.map((artist, index) =>
-                index === data.track.artists.length - 1
+              {track.artists.map((artist, index) =>
+                index === track.artists.length - 1
                   ? artist.name
                   : `${artist.name}, `
               )}
@@ -99,21 +103,21 @@ const Create: NextPage = ({}) => {
             description: "",
           }}
           validationSchema={yup.object().shape({
-            name: yup.string().max(20, "Max 20 Chars").required("Required"),
+            name: yup.string().required("Required"),
             description: yup.string().max(500, "Max 500 Chars"),
           })}
           onSubmit={async (values: SloopValues) => {
             try {
               const response = await createSloop({
                 ...values,
-                trackId: data.track.id,
-                trackName: data.track.name,
-                artists: data.track.artists.map((artist) => artist.name),
-                duration: data.analysis.track.duration,
-                key: data.analysis.track.key,
-                mode: data.analysis.track.mode,
-                tempo: data.analysis.track.tempo,
-                timeSignature: data.analysis.track.time_signature,
+                trackId: track.id,
+                trackName: track.name,
+                artists: track.artists.map((artist) => artist.name),
+                duration: track.analysis.track.duration,
+                key: track.analysis.track.key,
+                mode: track.analysis.track.mode,
+                tempo: track.analysis.track.tempo,
+                timeSignature: track.analysis.track.time_signature,
               });
               void router.replace(`/editor/${response.id}`);
             } catch (error) {
@@ -124,7 +128,7 @@ const Create: NextPage = ({}) => {
             }
           }}
         >
-          {({ errors, touched, isSubmitting }) => (
+          {({ errors, touched, isSubmitting, values }) => (
             <Form className="mt-12 w-full">
               <StyledTitle title="General" />
               <StyledLabel
@@ -141,8 +145,13 @@ const Create: NextPage = ({}) => {
               <StyledTextArea
                 id="description"
                 name="description"
-                style={{ marginBottom: "24px" }}
+                style={{ marginBottom: 0 }}
               />
+              <p className="mb-6 w-full text-right text-xs text-gray-400 sm:text-sm">
+                {`${
+                  values.description ? 500 - values.description.length : 500
+                } Chars Left`}
+              </p>
               <StyledLoadingButton
                 label="create"
                 loading={isSubmitting}

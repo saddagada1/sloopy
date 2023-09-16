@@ -86,20 +86,6 @@ export const sloopsRouter = createTRPCRouter({
         });
         return sloop;
       } catch (error) {
-        if (error instanceof PrismaClientKnownRequestError) {
-          console.log(error);
-          // if (error.code === "P2002") {
-          //   return {
-          //     errors: [
-          //       {
-          //         field: "email",
-          //         message: `Email in Use`,
-          //       },
-          //     ],
-          //   };
-          // }
-        }
-
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Sloop Not Found",
@@ -143,6 +129,26 @@ export const sloopsRouter = createTRPCRouter({
       }
     }),
 
+  getUserSloop: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const sloop = await ctx.prisma.sloop.findUnique({
+          where: { id: input.id, userId: ctx.session.user.id },
+        });
+        return sloop;
+      } catch (error) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Sloop Not Found",
+        });
+      }
+    }),
+
   getUserSloops: protectedProcedure.query(async ({ ctx }) => {
     try {
       const sloops = await ctx.prisma.sloop.findMany({
@@ -156,6 +162,27 @@ export const sloopsRouter = createTRPCRouter({
       });
     }
   }),
+
+  getTrackSloops: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const sloops = await ctx.prisma.sloop.findMany({
+          where: { trackId: input.id },
+          include: { likes: true },
+        });
+        return sloops;
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Fetch Sloops",
+        });
+      }
+    }),
 
   like: protectedProcedure
     .input(z.object({ id: z.string() }))

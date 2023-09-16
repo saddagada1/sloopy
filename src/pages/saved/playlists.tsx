@@ -10,6 +10,7 @@ import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import PlaylistList from "~/components/ui/PlaylistList";
 import Link from "next/link";
+import ErrorView from "~/components/utils/ErrorView";
 
 const SavedPlaylists: NextPage = ({}) => {
   const router = useRouter();
@@ -64,7 +65,7 @@ const SavedPlaylists: NextPage = ({}) => {
   }
 
   if (!saved || savedError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (

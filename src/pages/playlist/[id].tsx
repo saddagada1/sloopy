@@ -10,6 +10,7 @@ import { type Track } from "spotify-types";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { useSpotifyContext } from "~/contexts/Spotify";
 
@@ -101,7 +102,7 @@ const Playlist: NextPage = ({}) => {
   }
 
   if (!playlist || playlistError || !playlistTracks || playlistTracksError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (

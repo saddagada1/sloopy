@@ -78,3 +78,7 @@ export interface CompleteUser extends User {
   sloops: Sloop[];
   linkedAccounts: LinkedAccount[];
 }
+
+export interface CompleteSloop extends Sloop {
+  likes: Like[];
+}

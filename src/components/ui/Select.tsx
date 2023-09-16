@@ -104,7 +104,7 @@ const Select: React.FC<SelectProps> = ({
             initial={{ translateY: 0, opacity: 0 }}
             animate={{ translateY: height, opacity: 1 }}
             exit={{ translateY: 0, opacity: 0 }}
-            transition={{ type: "tween", duration: 0.2 }}
+            transition={{ type: "spring", duration: 0.5 }}
             className="no-scrollbar absolute z-50 flex max-h-40 w-full flex-col gap-1 overflow-y-scroll whitespace-nowrap rounded-md border border-gray-300 bg-primary p-1 shadow-md"
           >
             {searchable && filteredData.length > 0 ? (

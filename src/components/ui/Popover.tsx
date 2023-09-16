@@ -39,7 +39,7 @@ const Popover: React.FC<PopoverProps> = ({
       initial={{ translateY: "0%", opacity: 0 }}
       animate={{ translateY: animate ?? "-25%", opacity: 1 }}
       exit={{ translateY: "0%", opacity: 0 }}
-      transition={{ type: "tween", duration: 0.2 }}
+      transition={{ type: "spring", duration: 0.5 }}
       className={clsx(
         "absolute z-50 rounded-md border border-gray-300 bg-primary p-2",
         x === "left" && "right-full",

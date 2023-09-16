@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { Field, Form, Formik } from "formik";
 import type { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { PiMagnifyingGlass } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import Carousel from "~/components/ui/Carousel";
 import SafeImage from "~/components/ui/SafeImage";
+import SearchInput from "~/components/ui/SearchInput";
 import TrackList from "~/components/ui/TrackList";
+import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { useSpotifyContext } from "~/contexts/Spotify";
 
@@ -43,7 +43,7 @@ const Search: NextPage = ({}) => {
   }
 
   if (!search || searchError) {
-    return <div>ERROR</div>;
+    return <ErrorView />;
   }
 
   return (
@@ -58,30 +58,7 @@ const Search: NextPage = ({}) => {
         <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
           Search
         </h1>
-        <Formik
-          initialValues={{
-            query: router.query.q ? (router.query.q as string) : "",
-          }}
-          onSubmit={(values: { query: string }) => {
-            void router.push(`/search?q=${values.query}`);
-          }}
-        >
-          {() => (
-            <Form className="mb-4 w-full">
-              <div className="flex items-center rounded-md border border-gray-300 bg-gray-200 p-2">
-                <PiMagnifyingGlass className="text-2xl text-gray-400" />
-                <Field
-                  className="ml-2 w-full bg-transparent text-sm focus:outline-none sm:text-base"
-                  id="query"
-                  name="query"
-                  placeholder="Search for artists, albums, playlists, tracks..."
-                  autoComplete="off"
-                  autoCorrect="off"
-                />
-              </div>
-            </Form>
-          )}
-        </Formik>
+        <SearchInput tab={router.query.tab as string | undefined} />
         <div ref={containerRef} className="flex flex-1 flex-col gap-6">
           {search.data.artists && (
             <div>
