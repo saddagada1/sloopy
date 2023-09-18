@@ -56,9 +56,9 @@ const TrackList: React.FC<TrackListProps> = ({
               style={{ height: width * 0.13 }}
               className="flex flex-col justify-between overflow-hidden"
             >
-              <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
+              <h1 className="truncate font-display text-lg font-semibold sm:text-xl">
                 {track.name}
-              </h3>
+              </h1>
               <p className="truncate text-sm text-gray-400 sm:text-base">
                 {track.artists.map((artist, index) =>
                   index === track.artists.length - 1

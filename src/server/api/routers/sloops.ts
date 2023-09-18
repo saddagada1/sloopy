@@ -53,6 +53,12 @@ export const sloopsRouter = createTRPCRouter({
   create: protectedProcedure
     .input(createSloopInput)
     .mutation(async ({ input, ctx }) => {
+      if (!ctx.session.user.verified) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Please Verify Your Account To Proceed",
+        });
+      }
       try {
         const sloop = await ctx.prisma.sloop.create({
           data: {
@@ -153,6 +159,7 @@ export const sloopsRouter = createTRPCRouter({
     try {
       const sloops = await ctx.prisma.sloop.findMany({
         where: { userId: ctx.session.user.id },
+        include: { likes: true },
       });
       return sloops;
     } catch (error) {
@@ -232,6 +239,40 @@ export const sloopsRouter = createTRPCRouter({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Unable To Unlike Sloop",
+        });
+      }
+    }),
+
+  search: publicProcedure
+    .input(
+      z.object({
+        query: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const sloops = await ctx.prisma.sloop.findMany({
+          where: {
+            name: {
+              search: `${input.query}*`,
+            },
+            description: {
+              search: `${input.query}*`,
+            },
+            trackName: {
+              search: `${input.query}*`,
+            },
+            userUsername: {
+              search: `${input.query}*`,
+            },
+          },
+          include: { likes: true },
+        });
+        return sloops;
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Search Sloops",
         });
       }
     }),

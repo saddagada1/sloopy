@@ -48,7 +48,6 @@ export const api = createTRPCNext<AppRouter>({
             refetchOnWindowFocus: false,
             refetchOnMount: false,
             refetchOnReconnect: false,
-            retry: false,
             staleTime: 1000 * 60 * 60 * 24, // 24 hours
           },
         },

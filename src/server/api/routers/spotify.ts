@@ -1,11 +1,8 @@
 import { z } from "zod";
-import {
-  createTRPCRouter,
-  publicProcedure,
-  protectedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
   fetchCurrentSpotifyUser,
+  fetchSpotifyClientCredentials,
   fetchSpotifyCredentials,
   refreshSpotifyCredentials,
 } from "~/utils/axios/spotify";
@@ -13,14 +10,6 @@ import { TRPCError } from "@trpc/server";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export const spotifyRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      };
-    }),
-
   linkSpotifyAccount: protectedProcedure
     .input(z.object({ code: z.string() }))
     .mutation(async ({ input, ctx }) => {
@@ -131,4 +120,19 @@ export const spotifyRouter = createTRPCRouter({
         });
       }
     }),
+
+  fetchSpotifyAuth: protectedProcedure.mutation(async () => {
+    const spotifyCredentials = await fetchSpotifyClientCredentials();
+    if (!spotifyCredentials.ok) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: spotifyCredentials.message,
+      });
+    }
+    const expires_at = Date.now() / 1000 + spotifyCredentials.expires_in;
+    return {
+      access_token: spotifyCredentials.access_token,
+      expires_at: expires_at,
+    };
+  }),
 });

@@ -33,11 +33,11 @@ export interface Playlist extends Omit<SpotifyPlaylist, "tracks"> {
   tracks: Paging<PlaylistTrack>;
 }
 
-interface Album extends Omit<SpotifyAlbum, "tracks"> {
+export interface Album extends Omit<SpotifyAlbum, "tracks"> {
   tracks: Paging<SimplifiedTrack>;
 }
 
-interface Search extends SearchContent {
+export interface Search extends SearchContent {
   playlists?: Paging<SpotifyPlaylist>;
 }
 
@@ -48,7 +48,7 @@ interface QueuedRequest {
 
 interface SpotifyAuth {
   access_token: string;
-  refresh_token: string;
+  refresh_token?: string;
   expires_at: number;
 }
 
@@ -139,6 +139,8 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     api.spotify.linkSpotifyAccount.useMutation();
   const { mutateAsync: refreshSpotifyAuth } =
     api.spotify.refreshSpotifyAuth.useMutation();
+  const { mutateAsync: fetchSpotifyAuth } =
+    api.spotify.fetchSpotifyAuth.useMutation();
 
   const linkAccount = async (params: ReadonlyURLSearchParams) => {
     const code = params.get("code");
@@ -491,9 +493,14 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
         isRefreshing = true;
         console.log("refreshing spotify auth");
         try {
-          const credentials = await refreshSpotifyAuth({
-            refresh_token: auth.refresh_token,
-          });
+          let credentials: { access_token: string; expires_at: number };
+          if (auth.refresh_token) {
+            credentials = await refreshSpotifyAuth({
+              refresh_token: auth.refresh_token,
+            });
+          } else {
+            credentials = await fetchSpotifyAuth();
+          }
           console.log("refreshed spotify auth");
           setAuth({ ...credentials, refresh_token: auth.refresh_token });
           config.headers.Authorization = `Bearer ${credentials.access_token}`;
@@ -553,9 +560,14 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
           }
           isRefreshing = true;
           try {
-            const credentials = await refreshSpotifyAuth({
-              refresh_token: auth.refresh_token,
-            });
+            let credentials: { access_token: string; expires_at: number };
+            if (auth.refresh_token) {
+              credentials = await refreshSpotifyAuth({
+                refresh_token: auth.refresh_token,
+              });
+            } else {
+              credentials = await fetchSpotifyAuth();
+            }
             console.log("refreshed spotify auth");
             setAuth({ ...credentials, refresh_token: auth.refresh_token });
             originalRequest.headers.Authorization = `Bearer ${credentials.access_token}`;
@@ -579,6 +591,14 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     }
   );
 
+  const initSpotifyClientCredentialsAuth = async () => {
+    const credentials = await fetchSpotifyAuth();
+    setAuth({
+      access_token: credentials.access_token,
+      expires_at: credentials.expires_at,
+    });
+  };
+
   useEffect(() => {
     if (!session || auth) return;
 
@@ -586,7 +606,10 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
       (account) => account.provider === "spotify"
     );
 
-    if (!credentials) return;
+    if (!credentials) {
+      void initSpotifyClientCredentialsAuth();
+      return;
+    }
 
     setAuth({
       access_token: credentials.access_token,

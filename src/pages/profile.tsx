@@ -1,7 +1,7 @@
 import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { PiHeartFill } from "react-icons/pi";
+import { PiHeart } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import { api } from "~/utils/api";
 import Loading from "~/components/utils/Loading";
@@ -44,7 +44,7 @@ const Profile: NextPage = ({}) => {
         <div ref={imageContainerRef} className="flex gap-4">
           <SafeImage
             url={user.image}
-            alt={`${session?.user.username}'s profile picture`}
+            alt={user.username}
             width={height}
             className="relative aspect-square overflow-hidden rounded-full"
             colours={Object.keys(pitchClassColours).map(
@@ -63,7 +63,10 @@ const Profile: NextPage = ({}) => {
                   })}
                 </p>
               </div>
-              <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
+              <Link
+                href="/followers"
+                className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300"
+              >
                 <p className="px-2 font-display text-xs text-gray-400 sm:text-sm">
                   Followers
                 </p>
@@ -72,8 +75,11 @@ const Profile: NextPage = ({}) => {
                     notation: "compact",
                   })}
                 </p>
-              </div>
-              <div className="flex flex-1 flex-col items-start gap-1">
+              </Link>
+              <Link
+                href="/following"
+                className="flex flex-1 flex-col items-start gap-1"
+              >
                 <p className="px-2 font-display text-xs text-gray-400 sm:text-sm">
                   Following
                 </p>
@@ -82,7 +88,7 @@ const Profile: NextPage = ({}) => {
                     notation: "compact",
                   })}
                 </p>
-              </div>
+              </Link>
             </div>
             <div className="flex gap-2 text-center font-display text-base font-semibold sm:text-lg">
               <Link
@@ -95,12 +101,12 @@ const Profile: NextPage = ({}) => {
                 href="/likes"
                 className="flex aspect-square h-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 text-2xl sm:text-3xl"
               >
-                <PiHeartFill />
+                <PiHeart />
               </Link>
             </div>
           </div>
         </div>
-        {session?.user.bio !== "" && (
+        {session?.user.bio && (
           <div className="mt-4 flex w-full flex-col items-start gap-1 border-t border-gray-300 pt-4">
             <p className="font-display text-xs text-gray-400 sm:text-sm">Bio</p>
             <p className="w-full text-sm font-semibold sm:text-base">

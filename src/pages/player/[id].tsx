@@ -277,4 +277,4 @@ const SloopPlayer: NextPage = ({}) => {
   );
 };
 
-export default WithAuth(SloopPlayer, { linked: true, premium: true });
+export default WithAuth(SloopPlayer, { premium: true });

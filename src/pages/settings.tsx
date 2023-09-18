@@ -61,6 +61,24 @@ const Settings: NextPage = ({}) => {
     api.users.changePassword.useMutation();
   const { mutateAsync: changeName } = api.users.changeName.useMutation();
   const { mutateAsync: changeBio } = api.users.changeBio.useMutation();
+  const { mutateAsync: sendVerificationEmail } =
+    api.users.sendVerificationEmail.useMutation();
+
+  const sendEmail = async () => {
+    const sending = toast.loading("Sending Email...");
+    try {
+      await sendVerificationEmail();
+      toast.remove(sending);
+      toast.success("Success: Check Your Inbox", { duration: 4000 });
+    } catch (error) {
+      toast.remove(sending);
+      if (error instanceof TRPCClientError) {
+        toast.error(`Error: ${error.message}. Please Try Again`);
+      } else {
+        toast.error(`Error: Something Went Wrong. Please Try Again`);
+      }
+    }
+  };
 
   useEffect(() => {
     if (params.get("code")) {
@@ -136,6 +154,13 @@ const Settings: NextPage = ({}) => {
           </Modal>
         )}
       </AnimatePresence>
+      {!session?.user.verified && (
+        <div className="bg-secondary p-3 text-center font-display text-sm text-primary sm:text-base">
+          <button onClick={() => void sendEmail()} className="underline">
+            Please Verify Your Account To Unlock All Features.
+          </button>
+        </div>
+      )}
       <div className="flex flex-1 flex-col px-4 pb-12 pt-6">
         <StyledTitle title="providers" />
         <div className="flex w-full gap-2">

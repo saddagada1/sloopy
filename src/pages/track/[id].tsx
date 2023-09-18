@@ -10,6 +10,7 @@ import SafeImage from "~/components/ui/SafeImage";
 import SloopList from "~/components/ui/SloopList";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
+import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { api } from "~/utils/api";
 import { mode, pitchClass } from "~/utils/constants";
@@ -30,12 +31,33 @@ const Track: NextPage = ({}) => {
         throw new Error("404");
       }
       const trackResponse = await spotify.fetchTrack(id);
-      const analysisResponse = await spotify.fetchTrackAnalysis(id);
-      if (!trackResponse?.ok || !analysisResponse?.ok) {
+      if (!trackResponse?.ok) {
         toast.error("Error: Could Not Fetch Spotify Data");
         throw new Error("Error: Could Not Fetch Spotify Data");
       }
-      return { ...trackResponse.data, analysis: analysisResponse.data };
+      return trackResponse.data;
+    },
+    {
+      enabled: !!spotify.auth,
+    }
+  );
+  const {
+    data: analysis,
+    isLoading: fetchingAnalysis,
+    error: analysisError,
+  } = useQuery(
+    ["analysis", router.query.id],
+    async () => {
+      const id = router.query.id;
+      if (typeof id !== "string") {
+        throw new Error("404");
+      }
+      const analysisResponse = await spotify.fetchTrackAnalysis(id);
+      if (!analysisResponse?.ok) {
+        toast.error("Error: Could Not Fetch Spotify Data");
+        throw new Error("Error: Could Not Fetch Spotify Data");
+      }
+      return analysisResponse.data;
     },
     {
       enabled: !!spotify.auth,
@@ -47,11 +69,15 @@ const Track: NextPage = ({}) => {
     error: sloopError,
   } = api.sloops.getTrackSloops.useQuery({ id: router.query.id as string });
 
-  if (fetchingTrack || fetchingSloops) {
+  if (fetchingTrack || fetchingAnalysis || fetchingSloops) {
     return <Loading />;
   }
 
-  if ((!track || trackError) ?? (!sloops || sloopError)) {
+  if (
+    (!track || trackError) ??
+    (!analysis || analysisError) ??
+    (!sloops || sloopError)
+  ) {
     return <ErrorView />;
   }
 
@@ -96,9 +122,7 @@ const Track: NextPage = ({}) => {
           <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
             <p className="font-display text-xs text-gray-400 sm:text-sm">Key</p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${pitchClass[track.analysis.track.key]} ${
-                mode[track.analysis.track.mode]
-              }`}
+              {`${pitchClass[analysis.track.key]} ${mode[analysis.track.mode]}`}
             </p>
           </div>
           <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
@@ -106,7 +130,7 @@ const Track: NextPage = ({}) => {
               Tempo
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${Math.round(track.analysis.track.tempo)} BPM`}
+              {`${Math.round(analysis.track.tempo)} BPM`}
             </p>
           </div>
           <div className="flex flex-1 flex-col items-start gap-1">
@@ -114,7 +138,7 @@ const Track: NextPage = ({}) => {
               Time
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${track.analysis.track.time_signature} / 4`}
+              {`${analysis.track.time_signature} / 4`}
             </p>
           </div>
         </div>
@@ -123,4 +147,4 @@ const Track: NextPage = ({}) => {
     </>
   );
 };
-export default Track;
+export default WithAuth(Track);

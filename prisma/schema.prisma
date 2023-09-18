@@ -9,6 +9,7 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 model Sloop {
@@ -36,6 +37,11 @@ model Sloop {
   @@index([trackId])
   @@index([userUsername])
   @@index([userId, userUsername])
+  @@fulltext([name])
+  @@fulltext([description])
+  @@fulltext([trackName])
+  @@fulltext([userUsername], map: "userUsername-fulltext")
+  @@fulltext([name, description, trackName, userUsername])
 }
 
 model Like {
@@ -136,6 +142,10 @@ model User {
   @@unique([username, email])
   @@index([email])
   @@index([username])
+  @@fulltext([username], map: "username-fulltext")
+  @@fulltext([name])
+  @@fulltext([bio])
+  @@fulltext([username, name, bio])
 }
 
 model VerificationToken {

@@ -1,10 +1,12 @@
 import clsx from "clsx";
 import { Resizable } from "re-resizable";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type EditorValues } from "~/contexts/Editor";
 import { pitchClassColours } from "~/utils/constants";
 import Loading from "../utils/Loading";
 import { type PlayerValues } from "~/contexts/Player";
+import { AnimatePresence, motion } from "framer-motion";
+import { calcVideoTimestamp } from "~/utils/calc";
 
 interface RulerProps {
   start?: number;
@@ -74,6 +76,8 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
   const snapTo = unit + segmentWidth;
   const sliderWidth = duration * snapTo + segmentWidth;
   const numScrollSections = sliderWidth / width;
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizePosition, setResizePosition] = useState<number | null>(null);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -94,73 +98,101 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
   }
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className={clsx(
-        "no-scrollbar h-24 border-b border-gray-300",
-        !context.isPlaying && "overflow-x-scroll"
-      )}
-    >
+    <>
+      <AnimatePresence>
+        {isResizing && resizePosition && (
+          <div className="pointer-events-none fixed z-50 flex h-full w-full items-end justify-center">
+            <motion.div
+              initial={{ translateY: "-150%", opacity: 0 }}
+              animate={{ translateY: "-200%", opacity: 1 }}
+              exit={{ translateY: "0%", opacity: 0 }}
+              transition={{ type: "tween", duration: 0.2 }}
+              className="select-none rounded-md border border-gray-300 bg-primary px-3 py-2 text-sm font-semibold sm:text-base"
+            >
+              {`${calcVideoTimestamp(
+                Math.round(resizePosition)
+              )} / ${calcVideoTimestamp(Math.round(duration))}`}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       <div
-        style={{ width: sliderWidth }}
+        ref={scrollContainerRef}
         className={clsx(
-          "relative flex h-full flex-col",
-          width > sliderWidth && "border-r border-gray-300"
+          "no-scrollbar h-24 border-b border-gray-300",
+          !context.isPlaying && "overflow-x-scroll"
         )}
       >
         <div
-          style={{
-            transform: `translateX(-${
-              100 - (context.playbackPosition / duration) * 100
-            }%)`,
-          }}
-          className="absolute h-full w-full bg-gray-300/50"
-        />
-        <div className="h-1/5">
-          <Ruler
-            width={sliderWidth}
-            numOfSegments={Math.round(duration)}
-            segmentWidth={segmentWidth}
-            unit={unit}
+          style={{ width: sliderWidth }}
+          className={clsx(
+            "relative flex h-full flex-col",
+            width > sliderWidth && "border-r border-gray-300"
+          )}
+        >
+          <div
+            style={{
+              transform: `translateX(-${
+                100 - (context.playbackPosition / duration) * 100
+              }%)`,
+            }}
+            className="absolute h-full w-full bg-gray-300/50"
           />
-        </div>
-        <div key={context.loops.length} className="flex flex-1">
-          {context.loops.map((loop, index) => (
-            <Resizable
-              key={loop.id}
-              defaultSize={{
-                width: `${(loop.end - loop.start) * snapTo}`,
-                height: "100%",
-              }}
-              bounds="parent"
-              enable={{ right: !disabled }}
-              handleComponent={{ right: <SliderLoopHandle /> }}
-              handleClasses={{ right: "z-10" }}
-              onResizeStop={(_event, _direction, _refToElement, delta) => {
-                const loops = context.loops.map((lp, i) => {
-                  if (i === index) {
-                    lp.end = lp.end + delta.width / snapTo;
-                  } else if (i > index) {
-                    lp.start = lp.start + delta.width / snapTo;
-                    lp.end = lp.end + delta.width / snapTo;
-                  }
-                  return lp;
-                });
-                context.setLoops(loops);
-                context.handlePlayingLoop(context.playbackPosition);
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: pitchClassColours[loop.key] + "80",
+          <div className="h-1/5">
+            <Ruler
+              width={sliderWidth}
+              numOfSegments={Math.round(duration)}
+              segmentWidth={segmentWidth}
+              unit={unit}
+            />
+          </div>
+          <div key={context.loops.length} className="flex flex-1">
+            {context.loops.map((loop, index) => (
+              <Resizable
+                key={loop.id}
+                defaultSize={{
+                  width: `${(loop.end - loop.start) * snapTo}`,
+                  height: "100%",
                 }}
-                className="h-full w-full rounded"
-              />
-            </Resizable>
-          ))}
+                bounds="parent"
+                enable={{ right: !disabled }}
+                handleComponent={{ right: <SliderLoopHandle /> }}
+                handleClasses={{ right: "z-10" }}
+                onResizeStart={() => {
+                  setIsResizing(true);
+                  setResizePosition(loop.end);
+                }}
+                onResize={(_event, _direction, _refToElement, delta) =>
+                  setResizePosition(loop.end + delta.width / snapTo)
+                }
+                onResizeStop={(_event, _direction, _refToElement, delta) => {
+                  setIsResizing(false);
+                  setResizePosition(null);
+                  const loops = context.loops.map((lp, i) => {
+                    if (i === index) {
+                      lp.end = lp.end + delta.width / snapTo;
+                    } else if (i > index) {
+                      lp.start = lp.start + delta.width / snapTo;
+                      lp.end = lp.end + delta.width / snapTo;
+                    }
+                    return lp;
+                  });
+                  context.setLoops(loops);
+                  context.handlePlayingLoop(context.playbackPosition);
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: pitchClassColours[loop.key] + "80",
+                  }}
+                  className="h-full w-full rounded"
+                />
+              </Resizable>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

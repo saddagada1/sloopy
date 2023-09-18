@@ -11,7 +11,6 @@ import { useRouter } from "next/router";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { useQuery } from "@tanstack/react-query";
 import Loading from "~/components/utils/Loading";
-import { PiXCircle } from "react-icons/pi";
 import { api } from "~/utils/api";
 import { TRPCClientError } from "@trpc/client";
 import toast from "react-hot-toast";
@@ -42,23 +41,44 @@ const Create: NextPage = ({}) => {
         throw new Error("404");
       }
       const trackResponse = await spotify.fetchTrack(id);
-      const analysisResponse = await spotify.fetchTrackAnalysis(id);
-      if (!trackResponse?.ok || !analysisResponse?.ok) {
+      if (!trackResponse?.ok) {
         toast.error("Error: Could Not Fetch Spotify Data");
         throw new Error("Error: Could Not Fetch Spotify Data");
       }
-      return { ...trackResponse.data, analysis: analysisResponse.data };
+      return trackResponse.data;
+    },
+    {
+      enabled: !!spotify.auth,
+    }
+  );
+  const {
+    data: analysis,
+    isLoading: fetchingAnalysis,
+    error: analysisError,
+  } = useQuery(
+    ["analysis", router.query.track_id],
+    async () => {
+      const id = router.query.track_id;
+      if (typeof id !== "string") {
+        throw new Error("404");
+      }
+      const analysisResponse = await spotify.fetchTrackAnalysis(id);
+      if (!analysisResponse?.ok) {
+        toast.error("Error: Could Not Fetch Spotify Data");
+        throw new Error("Error: Could Not Fetch Spotify Data");
+      }
+      return analysisResponse.data;
     },
     {
       enabled: !!spotify.auth,
     }
   );
 
-  if (fetchingTrack) {
+  if (fetchingTrack || fetchingAnalysis) {
     return <Loading />;
   }
 
-  if (!track || trackError) {
+  if ((!track || trackError) ?? (!analysis || analysisError)) {
     return <ErrorView />;
   }
 
@@ -79,6 +99,7 @@ const Create: NextPage = ({}) => {
             url={track.album.images[0]?.url}
             alt={track.name}
             width={width * 0.15}
+            square
             className="relative aspect-square flex-shrink-0 overflow-hidden rounded-md"
           />
           <div className="ml-4 flex flex-1 flex-col justify-between overflow-hidden">
@@ -93,9 +114,6 @@ const Create: NextPage = ({}) => {
               )}
             </p>
           </div>
-          <button>
-            <PiXCircle className="text-3xl sm:text-4xl" />
-          </button>
         </div>
         <Formik
           initialValues={{
@@ -113,16 +131,19 @@ const Create: NextPage = ({}) => {
                 trackId: track.id,
                 trackName: track.name,
                 artists: track.artists.map((artist) => artist.name),
-                duration: track.analysis.track.duration,
-                key: track.analysis.track.key,
-                mode: track.analysis.track.mode,
-                tempo: track.analysis.track.tempo,
-                timeSignature: track.analysis.track.time_signature,
+                duration: analysis.track.duration,
+                key: analysis.track.key,
+                mode: analysis.track.mode,
+                tempo: analysis.track.tempo,
+                timeSignature: analysis.track.time_signature,
               });
               void router.replace(`/editor/${response.id}`);
             } catch (error) {
               if (error instanceof TRPCClientError) {
                 toast.error(`Error: ${error.message}`);
+                if (error.message.includes("Verify")) {
+                  void router.push("/settings");
+                }
               }
               return;
             }
@@ -164,4 +185,5 @@ const Create: NextPage = ({}) => {
     </>
   );
 };
+
 export default WithAuth(Create, { linked: true });

@@ -228,7 +228,7 @@ export const authOptions = (
             });
           }
 
-          user.password = "";
+          user.password = null;
 
           return user;
         },

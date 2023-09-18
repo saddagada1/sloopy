@@ -21,8 +21,10 @@ const WithAuth = (Page: NextPage, requirements?: AuthRequirements) => {
         void router.push("/login");
       } else if (requirements?.linked && !session.user.spotifyLinked) {
         void router.push("/settings");
+        toast.error("Spotify Account Required");
       } else if (requirements?.premium && !session.user.canPlaySpotify) {
         toast.error("Spotify Premium Required");
+        setIsOk(true);
       } else {
         setIsOk(true);
       }

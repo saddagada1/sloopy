@@ -59,6 +59,43 @@ export const fetchSpotifyCredentials = async (code: string) => {
   }
 };
 
+export const fetchSpotifyClientCredentials = async () => {
+  try {
+    const response = await axios.post<AccessToken>(
+      "https://accounts.spotify.com/api/token",
+      {
+        grant_type: "client_credentials",
+      },
+      {
+        headers: {
+          Authorization:
+            "Basic " +
+            Buffer.from(
+              env.SPOTIFY_CLIENT_ID + ":" + env.SPOTIFY_CLIENT_SECRET,
+              "utf-8"
+            ).toString("base64"),
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+    return { ok: true as const, ...response.data };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const serverError = error as AxiosError<ErrorResponse>;
+      if (serverError?.response) {
+        return {
+          ok: false as const,
+          ...serverError.response.data,
+        };
+      }
+    }
+    return {
+      ok: false as const,
+      message: "Failed To Fetch Spotify Credentials",
+    };
+  }
+};
+
 export const fetchCurrentSpotifyUser = async (access_token: string) => {
   try {
     const response = await axios.get<PrivateUser>(

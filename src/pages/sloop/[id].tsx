@@ -84,7 +84,13 @@ const Sloop: NextPage = ({}) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            likes: [...cachedData.likes, response],
+            likes: [
+              ...cachedData.likes,
+              {
+                ...response,
+                sloop: { ...sloop, likes: [...sloop.likes, response] },
+              },
+            ],
           };
         }
       );

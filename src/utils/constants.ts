@@ -46,36 +46,6 @@ export const pitchClassColours: Record<number, string> = {
   11: "#ff00ff",
 };
 
-const majorDegrees = {
-  0: ["C", "D", "E", "F", "G", "A", "B"],
-  1: ["C#/Db", "D#/Eb", "F", "F#/Gb", "G#/Ab", "A#/Bb", "C"],
-  2: ["D", "E", "F#/Gb", "G", "A", "B", "C#/Db"],
-  3: ["D#/Eb", "F", "G", "G#/Ab", "A#/Bb", "C#/Db", "D"],
-  4: ["E", "F#/Gb", "G#/Ab", "A", "B", "C#/Db", "D#/Eb"],
-  5: ["F", "G", "A", "A#/Bb", "C", "D", "E"],
-  6: ["F#/Gb", "G#/Ab", "A#/Bb", "B", "C#/Db", "D#/Eb", "F"],
-  7: ["G", "A", "B", "C", "D", "E", "F#/Gb"],
-  8: ["G#/Ab", "A#/Bb", "C", "C#/Db", "D#/Eb", "F", "G"],
-  9: ["A", "B", "C#/Db", "D", "E", "F#/Gb", "G#/Ab"],
-  10: ["A#/Bb", "C", "D", "D#/Eb", "F", "G", "A"],
-  11: ["B", "C#/Db", "D#/Eb", "E", "F#/Gb", "G#/Ab", "A#/Bb"],
-};
-
-const minorDegrees = {
-  0: ["C", "D", "D#/Eb", "F", "G", "G#/Ab", "A#/Bb"],
-  1: ["C#/Db", "D#/Eb", "E", "F#/Gb", "G#/Ab", "A", "B"],
-  2: ["D", "E", "F", "G", "A", "A#/Bb", "C"],
-  3: ["D#/Eb", "F", "F#/Gb", "G#/Ab", "A#/Bb", "B", "C#/Db"],
-  4: ["E", "F#/Gb", "G", "A", "B", "C", "D"],
-  5: ["F", "G", "G#/Ab", "A#/Bb", "C", "C#/Db", "D#/Eb"],
-  6: ["F#/Gb", "G#/Ab", "A", "B", "C#/Db", "D", "E"],
-  7: ["G", "A", "A#/Bb", "C", "D", "D#/Eb", "F"],
-  8: ["G#/Ab", "A#/Bb", "B", "C#/Db", "D#/Eb", "E", "F#/Gb"],
-  9: ["A", "B", "C", "D", "E", "F", "G"],
-  10: ["A#/Bb", "C", "C#/Db", "D#/Eb", "F", "F#/Gb", "G#/Ab"],
-  11: ["B", "C#/Db", "D", "E", "F#/Gb", "G", "A"],
-};
-
 export const spotifyScopes = `user-read-email user-read-private user-library-read user-library-modify 
 user-read-recently-played user-top-read playlist-read-private playlist-read-collaborative 
 playlist-modify-private playlist-modify-public user-follow-read user-follow-modify user-read-playback-state 
@@ -86,3 +56,11 @@ export const genericSpotifyError = {
   message: "Failed To Query Spotify Api",
   status: 500,
 };
+
+export const FORGOT_PASSWORD_PREFIX = "forgot-password:";
+
+export const VERIFY_EMAIL_PREFIX = "verify-email:";
+
+export const domain = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://192.168.0.151:3000";

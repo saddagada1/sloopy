@@ -9,7 +9,6 @@ import {
   PiSpotifyLogo,
 } from "react-icons/pi";
 import { useSpotifyContext } from "~/contexts/Spotify";
-import Loading from "../utils/Loading";
 import { useElementSize } from "usehooks-ts";
 import { AnimatePresence, motion } from "framer-motion";
 import { calcVideoTimestamp, clamp } from "~/utils/calc";
@@ -20,6 +19,8 @@ import { type EditorValues } from "~/contexts/Editor";
 import toast from "react-hot-toast";
 import SafeImage from "../ui/SafeImage";
 import { type PlayerValues } from "~/contexts/Player";
+import { WaveSpinner } from "react-spinners-kit";
+import { secondaryColour } from "~/utils/constants";
 
 interface PlayerProps {
   trackId: string;
@@ -31,6 +32,7 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
   const spotify = useSpotifyContext();
   const { mutateAsync: initializePlayback } = useMutation({
     mutationFn: async () => {
+      if (context.deviceId === "") return;
       const playResponse = await spotify?.playTrack(context.deviceId, trackId);
       if (!playResponse?.ok) {
         toast.error(
@@ -44,6 +46,7 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
   });
   const { mutateAsync: transferPlayback } = useMutation({
     mutationFn: async () => {
+      if (context.deviceId === "") return;
       const transferResponse = await spotify?.transferPlayback(
         context.deviceId
       );
@@ -115,10 +118,11 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
   }, [duration, isScrubbing, timelineWidth]);
 
   useEffect(() => {
-    if (!context.player || context.deviceId === "") return;
+    if (!context.player) return;
 
     if (context.error) {
       setIsLoading(false);
+      return;
     }
 
     context.player.addListener("player_state_changed", (state) => {
@@ -142,13 +146,7 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    context.player,
-    context.deviceId,
-    context.error,
-    initializePlayback,
-    transferPlayback,
-  ]);
+  }, [context.player, context.deviceId, context.error]);
 
   useEffect(() => {
     const getPlaybackPosition = () => {
@@ -180,20 +178,33 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
     context.playbackPosition,
   ]);
 
-  if (!context.player || !track || isLoading) {
+  if (!context.player || isLoading) {
     return (
       <div className="flex h-[68px]">
-        <Loading />
+        <WaveSpinner size={24} color={secondaryColour} loading={true} />
       </div>
     );
   }
 
   if (context.error) {
-    return <div className="h-[68px]">{context.error}</div>;
+    return (
+      <div className="flex h-[68px] items-center justify-center p-2">
+        <p className="h-fit rounded border border-red-500 bg-red-200 p-1 text-xs text-red-500 sm:text-sm">
+          {context.error.split(":")[1]?.trim() ??
+            "Something Went Wrong. Please Refresh."}
+        </p>
+      </div>
+    );
   }
 
-  if (!context.isReady) {
-    return <div className="h-[68px]">no internet</div>;
+  if (!context.isReady || !track) {
+    return (
+      <div className="flex h-[68px] items-center justify-center p-2">
+        <p className="h-fit rounded border border-red-500 bg-red-200 p-1 text-xs text-red-500 sm:text-sm">
+          Something Went Wrong. Please Refresh.
+        </p>
+      </div>
+    );
   }
 
   return (

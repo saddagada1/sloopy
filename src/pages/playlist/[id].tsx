@@ -12,6 +12,7 @@ import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
+import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 
 const Playlist: NextPage = ({}) => {
@@ -166,4 +167,5 @@ const Playlist: NextPage = ({}) => {
     </>
   );
 };
-export default Playlist;
+
+export default WithAuth(Playlist);

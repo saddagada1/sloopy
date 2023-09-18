@@ -9,7 +9,7 @@ import StyledLoadingButton from "~/components/ui/form/StyledLoadingButton";
 import StyledLink from "~/components/ui/form/StyledLink";
 import OAuthButtons from "~/components/ui/form/OAuthButtons";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 
 interface LoginValues {
   email: string;
@@ -21,7 +21,7 @@ const Login: NextPage = ({}) => {
   return (
     <>
       <Head>
-        <title>Slooper - Login</title>
+        <title>Sloopy - Login</title>
       </Head>
       <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6">
         <Formik
@@ -42,7 +42,7 @@ const Login: NextPage = ({}) => {
               password: values.password,
             });
             if (response?.ok) {
-              router.push("/");
+              void router.push("/");
             } else {
               setErrors({ email: response!.error! });
             }
@@ -76,7 +76,7 @@ const Login: NextPage = ({}) => {
               />
               <StyledLink
                 label="Forgotten Password?"
-                href="/register"
+                href="/forgot-password"
                 style={{ textAlign: "right", marginBottom: "24px" }}
               />
               <StyledLoadingButton
@@ -97,4 +97,5 @@ const Login: NextPage = ({}) => {
     </>
   );
 };
+
 export default Login;

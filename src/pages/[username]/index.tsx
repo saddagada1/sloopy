@@ -2,29 +2,27 @@ import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
-import { PiHeartFill } from "react-icons/pi";
+import { PiHeart } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import { api } from "~/utils/api";
 import Loading from "~/components/utils/Loading";
 import SafeImage from "~/components/ui/SafeImage";
-import clsx from "clsx";
-import Avatar from "boring-avatars";
-import { mode, pitchClassColours } from "~/utils/constants";
+import { pitchClassColours } from "~/utils/constants";
 import { useRouter } from "next/router";
-import { calcRelativeTime } from "~/utils/calc";
 import toast from "react-hot-toast";
 import { TRPCClientError } from "@trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import LoadingButton from "~/components/ui/LoadingButton";
 import ErrorView from "~/components/utils/ErrorView";
+import SloopList from "~/components/ui/SloopList";
 
 const User: NextPage = ({}) => {
   const router = useRouter();
   const { data: session } = useSession();
   if (router.query.username === session?.user.username) {
-    void router.push("/profile");
+    void router.replace("/profile");
   }
-  const [imageContainerRef, { height, width }] = useElementSize();
+  const [imageContainerRef, { height }] = useElementSize();
   const ctx = useQueryClient();
   const {
     data: user,
@@ -54,9 +52,23 @@ const User: NextPage = ({}) => {
         ],
         (cachedData: typeof user | undefined) => {
           if (!cachedData) return;
+          const follower: typeof user | undefined = ctx.getQueryData([
+            ["users", "getSessionUser"],
+            { type: "query" },
+          ]);
+          if (!follower) {
+            void ctx.invalidateQueries([
+              ["users", "getUserByUsername"],
+              { input: { username: user.username }, type: "query" },
+            ]);
+            return;
+          }
           return {
             ...cachedData,
-            followers: [...cachedData.followers, response],
+            followers: [
+              ...cachedData.followers,
+              { ...response, follower: follower },
+            ],
           };
         }
       );
@@ -66,7 +78,10 @@ const User: NextPage = ({}) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            following: [...cachedData.following, response],
+            following: [
+              ...cachedData.following,
+              { ...response, followed: user },
+            ],
           };
         }
       );
@@ -144,7 +159,7 @@ const User: NextPage = ({}) => {
         <div ref={imageContainerRef} className="flex gap-4">
           <SafeImage
             url={user.image}
-            alt={`${user.username}'s profile picture`}
+            alt={user.username}
             width={height}
             className="relative aspect-square overflow-hidden rounded-full"
             colours={Object.keys(pitchClassColours).map(
@@ -163,7 +178,10 @@ const User: NextPage = ({}) => {
                   })}
                 </p>
               </div>
-              <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
+              <Link
+                href={`/${user.username}/followers`}
+                className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300"
+              >
                 <p className="px-2 font-display text-xs text-gray-400 sm:text-sm">
                   Followers
                 </p>
@@ -172,8 +190,11 @@ const User: NextPage = ({}) => {
                     notation: "compact",
                   })}
                 </p>
-              </div>
-              <div className="flex flex-1 flex-col items-start gap-1">
+              </Link>
+              <Link
+                href={`/${user.username}/following`}
+                className="flex flex-1 flex-col items-start gap-1"
+              >
                 <p className="px-2 font-display text-xs text-gray-400 sm:text-sm">
                   Following
                 </p>
@@ -182,7 +203,7 @@ const User: NextPage = ({}) => {
                     notation: "compact",
                   })}
                 </p>
-              </div>
+              </Link>
             </div>
             <div className="flex flex-1 gap-2 text-center font-display text-base font-semibold sm:text-lg">
               {user.followers.find(
@@ -207,71 +228,16 @@ const User: NextPage = ({}) => {
                 </LoadingButton>
               )}
               <Link
-                href="/likes"
+                href={`/${user.username}/likes`}
                 className="flex aspect-square h-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 text-2xl sm:text-3xl"
               >
-                <PiHeartFill />
+                <PiHeart />
               </Link>
             </div>
           </div>
         </div>
         <div className="mt-4 flex-1 border-t border-gray-300 pt-4">
-          <ul className="w-full">
-            {user.sloops.map((sloop, index) => (
-              <li
-                className={clsx(
-                  "flex cursor-pointer gap-4 rounded-lg border border-gray-300 bg-gray-200 p-2",
-                  index !== user.sloops.length - 1 &&
-                    "mb-2 border-b border-gray-300 pb-2"
-                )}
-                key={index}
-                onClick={() => void router.push(`/sloop/${sloop.id}`)}
-              >
-                <div
-                  style={{ width: width * 0.25 }}
-                  className="aspect-square overflow-hidden rounded-md"
-                >
-                  <Avatar
-                    size={width * 0.25}
-                    name={sloop.name}
-                    variant="marble"
-                    square
-                    colors={[
-                      pitchClassColours[sloop.key]!,
-                      mode[sloop.mode] === "Major"
-                        ? pitchClassColours[sloop.key - 3 ?? 12 - 3]!
-                        : pitchClassColours[sloop.key + 3 ?? -1 + 3]!,
-                    ]}
-                  />
-                </div>
-                <div className="flex flex-1 flex-col justify-between overflow-hidden">
-                  <div>
-                    <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
-                      {sloop.name}
-                    </h3>
-                    <p className="truncate text-sm text-gray-400 sm:text-base">
-                      {(sloop.artists as string[]).map((artist, index) =>
-                        index === (sloop.artists as string[]).length - 1
-                          ? artist
-                          : `${artist}, `
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-400 sm:text-base">
-                    <p className="flex-1 truncate">
-                      {calcRelativeTime(sloop.updatedAt)}
-                    </p>
-                    <p className="flex items-center gap-2">
-                      {(2312).toLocaleString(undefined, {
-                        notation: "compact",
-                      })}
-                      <PiHeartFill className="text-xl sm:text-2xl" />
-                    </p>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <SloopList sloops={user.sloops} />
         </div>
       </div>
     </>

@@ -72,7 +72,9 @@ const Menu: React.FC<MenuProps> = ({ setVisible }) => {
           <PiSignOut />
         </button>
       </div>
-      <p className="w-full text-right text-xs sm:text-sm">Sloopy &copy; 2023</p>
+      <p className="w-full text-right text-xs text-gray-400 sm:text-sm">
+        Sloopy &copy; 2023
+      </p>
     </Modal>
   );
 };

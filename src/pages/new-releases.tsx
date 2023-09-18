@@ -121,4 +121,5 @@ const NewReleases: NextPage = ({}) => {
     </>
   );
 };
+
 export default WithAuth(NewReleases, { linked: true });

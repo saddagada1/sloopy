@@ -236,7 +236,10 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       spotify.setAuth({ ...credentials, refresh_token: refresh_token });
     };
 
-    if (spotify.auth.expires_at < Date.now() / 1000) {
+    if (
+      spotify.auth.refresh_token &&
+      spotify.auth.expires_at < Date.now() / 1000
+    ) {
       void refresh(spotify.auth.refresh_token);
       return;
     }
