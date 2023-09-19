@@ -18,9 +18,9 @@ const WithAuth = (Page: NextPage, requirements?: AuthRequirements) => {
 
     useEffect(() => {
       if (sessionStatus !== "authenticated") {
-        void router.push("/login");
+        void router.replace("/login");
       } else if (requirements?.linked && !session.user.spotifyLinked) {
-        void router.push("/settings");
+        void router.replace("/settings");
         toast.error("Spotify Account Required");
       } else if (requirements?.premium && !session.user.canPlaySpotify) {
         toast.error("Spotify Premium Required");

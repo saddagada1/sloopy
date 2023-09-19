@@ -31,7 +31,7 @@ const Create: NextPage = ({}) => {
   const { mutateAsync: createSloop } = api.sloops.create.useMutation();
   const {
     data: track,
-    isLoading: fetchingTrack,
+    isFetching: fetchingTrack,
     error: trackError,
   } = useQuery(
     ["track", router.query.track_id],
@@ -73,12 +73,39 @@ const Create: NextPage = ({}) => {
       enabled: !!spotify.auth,
     }
   );
+  const {
+    data: artists,
+    isLoading: fetchingArtists,
+    error: artistsError,
+  } = useQuery(
+    ["artists", track?.artists.map((artist) => artist.id)],
+    async () => {
+      if (!track) {
+        throw new Error("404");
+      }
+      const artistsResponse = await spotify.fetchArtists(
+        track.artists.map((artist) => artist.id)
+      );
+      if (!artistsResponse?.ok) {
+        toast.error("Error: Could Not Fetch Spotify Data");
+        throw new Error("Error: Could Not Fetch Spotify Data");
+      }
+      return artistsResponse.data;
+    },
+    {
+      enabled: !!spotify.auth && !fetchingTrack,
+    }
+  );
 
-  if (fetchingTrack || fetchingAnalysis) {
+  if (fetchingTrack || fetchingAnalysis || fetchingArtists) {
     return <Loading />;
   }
 
-  if ((!track || trackError) ?? (!analysis || analysisError)) {
+  if (
+    (!track || trackError) ??
+    (!analysis || analysisError) ??
+    (!artists || artistsError)
+  ) {
     return <ErrorView />;
   }
 
@@ -130,7 +157,13 @@ const Create: NextPage = ({}) => {
                 ...values,
                 trackId: track.id,
                 trackName: track.name,
-                artists: track.artists.map((artist) => artist.name),
+                artists: artists.artists.map((artist) => {
+                  return {
+                    spotifyId: artist.id,
+                    image: artist.images[0]?.url,
+                    name: artist.name,
+                  };
+                }),
                 duration: analysis.track.duration,
                 key: analysis.track.key,
                 mode: analysis.track.mode,
@@ -139,6 +172,7 @@ const Create: NextPage = ({}) => {
               });
               void router.replace(`/editor/${response.id}`);
             } catch (error) {
+              console.log(error);
               if (error instanceof TRPCClientError) {
                 toast.error(`Error: ${error.message}`);
                 if (error.message.includes("Verify")) {

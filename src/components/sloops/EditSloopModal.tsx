@@ -110,7 +110,7 @@ const EditSloopModal: React.FC<EditSloopModalProps> = ({
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="mb-4 h-24 w-full resize-none rounded-md border border-gray-300 bg-gray-200 p-3 text-sm font-medium sm:text-base"
+          className="h-24 w-full resize-none rounded-md border border-gray-300 bg-gray-200 p-3 text-sm font-medium sm:text-base"
           autoComplete="off"
           autoCorrect="off"
           maxLength={500}

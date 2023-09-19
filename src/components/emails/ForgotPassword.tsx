@@ -42,7 +42,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ name, token }) => {
         <Head />
         <Preview>{`Sloopy - ${name}'s Password Reset Link`}</Preview>
         <Body
-          style={{ backgroundColor: primaryColour, color: secondaryColour }}
+          style={{ backgroundColor: primaryColour }}
           className="m-auto py-10"
         >
           <Container className="w-11/12 rounded-md border border-solid border-gray-300 px-4 pt-6">
@@ -52,37 +52,47 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ name, token }) => {
                   <Img
                     src={`${domain}/logo.png`}
                     alt="Sloopy"
-                    className="w-2/3"
+                    className="w-1/2"
                   />
                 </Column>
               </Row>
             </Section>
             <Section className="mb-6 h-full text-base sm:text-lg">
-              <Text className="text-xl font-semibold sm:text-2xl">
+              <Text
+                style={{ color: secondaryColour }}
+                className="text-xl font-semibold sm:text-2xl"
+              >
                 {`Hello ${name}!`}
               </Text>
-              <Text className="mb-6">
+              <Text style={{ color: secondaryColour }} className="mb-6">
                 {`Someone recently requested a password change for your Sloopy account. If this was you, 
                 you can set a new password below.`}
               </Text>
               <Row>
                 <Column align="center">
                   <Button
-                    className="rounded-md bg-black p-4 font-semibold text-white"
+                    style={{
+                      backgroundColor: secondaryColour,
+                      color: primaryColour,
+                    }}
+                    className="rounded-md p-4 font-semibold"
                     href={`${domain}/reset-password/${token}`}
                   >
                     Reset Password
                   </Button>
                 </Column>
               </Row>
-              <Text className="mb-6">
+              <Text style={{ color: secondaryColour }} className="mb-6">
                 {`If you don't want to change your password or didn't request this, 
                 just ignore and delete this message.`}
               </Text>
             </Section>
             <Row>
               <Column align="right">
-                <Text className="text-xs text-gray-400 sm:text-sm">
+                <Text
+                  style={{ color: secondaryColour }}
+                  className="text-xs text-gray-400 sm:text-sm"
+                >
                   Sloopy &copy; 2023
                 </Text>
               </Column>

@@ -18,13 +18,13 @@ const AlbumList: React.FC<AlbumListProps> = ({
   const router = useRouter();
   const [imageContainerRef, { width }] = useElementSize();
   return (
-    <ul ref={imageContainerRef} className="w-full">
+    <ul ref={imageContainerRef} className="w-full flex-1">
       {albums.map((album, index) => {
         return (
           <li
             key={album.id}
             className={clsx(
-              "flex",
+              "flex cursor-pointer",
               index !== albums.length - 1 &&
                 "mb-2 border-b border-gray-300 pb-2"
             )}

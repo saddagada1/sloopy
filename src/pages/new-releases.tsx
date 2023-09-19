@@ -94,29 +94,39 @@ const NewReleases: NextPage = ({}) => {
             } / ${newReleases.albums.total}`}
           </p>
         </div>
-        <AlbumList albums={newReleases.albums.items} />
-        <div className="mt-2 flex items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
-          <p className="flex-1">
-            {Math.round(
-              (newReleases.albums.total / newReleases.albums.limit) *
-                (newReleases.albums.offset / newReleases.albums.total)
-            ) + 1}
+        {newReleases.albums.total > 0 ? (
+          <>
+            <AlbumList albums={newReleases.albums.items} />
+            <div className="mt-2 flex items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
+              <p className="flex-1">
+                {Math.round(
+                  (newReleases.albums.total / newReleases.albums.limit) *
+                    (newReleases.albums.offset / newReleases.albums.total)
+                ) + 1}
+              </p>
+              <button
+                onClick={() => handlePrevious()}
+                disabled={!newReleases.albums.previous}
+                className={clsx(
+                  !newReleases.albums.previous && "text-gray-300"
+                )}
+              >
+                <PiArrowLeft />
+              </button>
+              <button
+                onClick={() => handleNext()}
+                disabled={!newReleases.albums.next}
+                className={clsx(!newReleases.albums.next && "text-gray-300")}
+              >
+                <PiArrowRight />
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+            No New Releases
           </p>
-          <button
-            onClick={() => handlePrevious()}
-            disabled={!newReleases.albums.previous}
-            className={clsx(!newReleases.albums.previous && "text-gray-300")}
-          >
-            <PiArrowLeft />
-          </button>
-          <button
-            onClick={() => handleNext()}
-            disabled={!newReleases.albums.next}
-            className={clsx(!newReleases.albums.next && "text-gray-300")}
-          >
-            <PiArrowRight />
-          </button>
-        </div>
+        )}
       </div>
     </>
   );

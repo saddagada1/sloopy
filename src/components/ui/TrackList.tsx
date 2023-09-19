@@ -18,13 +18,13 @@ const TrackList: React.FC<TrackListProps> = ({
   const router = useRouter();
   const [imageContainerRef, { width }] = useElementSize();
   return (
-    <ul ref={imageContainerRef} className="w-full">
+    <ul ref={imageContainerRef} className="w-full flex-1">
       {tracks.map((track, index) => {
         return (
           <li
             key={track.id}
             className={clsx(
-              "flex",
+              "flex cursor-pointer",
               index !== tracks.length - 1 &&
                 "mb-2 border-b border-gray-300 pb-2"
             )}

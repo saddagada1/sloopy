@@ -3,16 +3,21 @@ import { useRouter } from "next/router";
 import { PiMagnifyingGlass } from "react-icons/pi";
 
 interface SearchInputProps {
+  defaultValue?: string;
   tab?: string;
   onSearch?: () => void;
 }
 
-const SearchInput: React.FC<SearchInputProps> = ({ tab, onSearch }) => {
+const SearchInput: React.FC<SearchInputProps> = ({
+  defaultValue,
+  tab,
+  onSearch,
+}) => {
   const router = useRouter();
   return (
     <Formik
       initialValues={{
-        query: "",
+        query: defaultValue ?? "",
       }}
       onSubmit={(values: { query: string }) => {
         void router.push(`/search?q=${values.query}&tab=${tab ?? "sloopy"}`);

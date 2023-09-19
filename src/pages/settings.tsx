@@ -180,8 +180,8 @@ const Settings: NextPage = ({}) => {
           </button>
           <button
             // implement apple music
-            disabled
-            className="relative flex aspect-video flex-1 flex-col items-center justify-center rounded-md border border-secondary bg-secondary p-2 font-display text-lg font-medium text-primary disabled:opacity-75 sm:text-xl"
+            onClick={() => toast("Coming Soon", { icon: "🪄" })}
+            className="relative flex aspect-video flex-1 flex-col items-center justify-center rounded-md border border-secondary bg-secondary p-2 font-display text-lg font-medium text-primary opacity-75 sm:text-xl"
           >
             <PiAppleLogo className="mr-2 text-3xl sm:text-4xl" /> music
             <PiXCircle className="text-md absolute right-1 top-1 text-red-500" />

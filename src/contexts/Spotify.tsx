@@ -90,7 +90,8 @@ interface SpotifyValues {
     id: string
   ) => Promise<SpotifyResponse<Track> | SpotifyErrorResponse>;
   fetchAlbum: (
-    id: string
+    id: string,
+    offset: number
   ) => Promise<SpotifyResponse<Album> | SpotifyErrorResponse>;
   fetchTrackAnalysis: (
     id: string
@@ -108,6 +109,12 @@ interface SpotifyValues {
   fetchArtist: (
     id: string
   ) => Promise<SpotifyResponse<Artist> | SpotifyErrorResponse>;
+  fetchArtists: (ids: string[]) => Promise<
+    | SpotifyResponse<{
+        artists: Artist[];
+      }>
+    | SpotifyErrorResponse
+  >;
   fetchArtistAlbums: (
     id: string
   ) => Promise<SpotifyResponse<Paging<Album>> | SpotifyErrorResponse>;
@@ -320,10 +327,13 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
   };
 
   const fetchAlbum = async (
-    id: string
+    id: string,
+    offset: number
   ): Promise<SpotifyResponse<Album> | SpotifyErrorResponse> => {
     try {
-      const response = await client.get<Album>(`/albums/${id}`);
+      const response = await client.get<Album>(
+        `/albums/${id}?offset=${offset}`
+      );
       return { ok: true, data: response.data };
     } catch (error) {
       return handleSpotifyError(error);
@@ -398,6 +408,19 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
   ): Promise<SpotifyResponse<Artist> | SpotifyErrorResponse> => {
     try {
       const response = await client.get<Artist>(`/artists/${id}`);
+      return { ok: true, data: response.data };
+    } catch (error) {
+      return handleSpotifyError(error);
+    }
+  };
+
+  const fetchArtists = async (
+    ids: string[]
+  ): Promise<SpotifyResponse<{ artists: Artist[] }> | SpotifyErrorResponse> => {
+    try {
+      const response = await client.get<{ artists: Artist[] }>(
+        `/artists?ids=${ids.toString()}`
+      );
       return { ok: true, data: response.data };
     } catch (error) {
       return handleSpotifyError(error);
@@ -642,6 +665,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
         playTrack,
         search,
         fetchArtist,
+        fetchArtists,
         fetchArtistAlbums,
         fetchRelatedArtists,
         fetchArtistTopTracks,

@@ -138,31 +138,39 @@ const Playlist: NextPage = ({}) => {
             }`}
           </p>
         </div>
-        <TrackList
-          tracks={playlistTracks.items.map((item) => item.track as Track)}
-        />
-        <div className="mt-2 flex w-full items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
-          <p className="flex-1">
-            {Math.round(
-              (playlistTracks.total / playlistTracks.limit) *
-                (playlistTracks.offset / playlistTracks.total)
-            ) + 1}
+        {playlistTracks.total > 0 ? (
+          <>
+            <TrackList
+              tracks={playlistTracks.items.map((item) => item.track as Track)}
+            />
+            <div className="mt-2 flex w-full items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
+              <p className="flex-1">
+                {Math.round(
+                  (playlistTracks.total / playlistTracks.limit) *
+                    (playlistTracks.offset / playlistTracks.total)
+                ) + 1}
+              </p>
+              <button
+                onClick={() => handlePrevious()}
+                disabled={!playlistTracks.previous}
+                className={clsx(!playlistTracks.previous && "text-gray-300")}
+              >
+                <PiArrowLeft />
+              </button>
+              <button
+                onClick={() => handleNext()}
+                disabled={!playlistTracks.next}
+                className={clsx(!playlistTracks.next && "text-gray-300")}
+              >
+                <PiArrowRight />
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+            Empty Playlist
           </p>
-          <button
-            onClick={() => handlePrevious()}
-            disabled={!playlistTracks.previous}
-            className={clsx(!playlistTracks.previous && "text-gray-300")}
-          >
-            <PiArrowLeft />
-          </button>
-          <button
-            onClick={() => handleNext()}
-            disabled={!playlistTracks.next}
-            className={clsx(!playlistTracks.next && "text-gray-300")}
-          >
-            <PiArrowRight />
-          </button>
-        </div>
+        )}
       </div>
     </>
   );

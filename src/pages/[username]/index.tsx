@@ -15,23 +15,21 @@ import { useQueryClient } from "@tanstack/react-query";
 import LoadingButton from "~/components/ui/LoadingButton";
 import ErrorView from "~/components/utils/ErrorView";
 import SloopList from "~/components/ui/SloopList";
+import IsSessionUser from "~/components/utils/IsSessionUser";
+import { type Following, type Follower, type Paging } from "~/utils/types";
 
 const User: NextPage = ({}) => {
   const router = useRouter();
   const { data: session } = useSession();
-  if (router.query.username === session?.user.username) {
-    void router.replace("/profile");
-  }
   const [imageContainerRef, { height }] = useElementSize();
   const ctx = useQueryClient();
   const {
     data: user,
     isLoading: fetchingUser,
     error: userError,
-  } = api.users.getUserByUsername.useQuery(
-    { username: router.query.username as string },
-    { enabled: router.query.username !== session?.user.username }
-  );
+  } = api.users.getUserByUsername.useQuery({
+    username: router.query.username as string,
+  });
   const { mutateAsync: follow, isLoading: creatingFollow } =
     api.users.follow.useMutation();
   const { mutateAsync: unfollow, isLoading: deletingFollow } =
@@ -52,22 +50,35 @@ const User: NextPage = ({}) => {
         ],
         (cachedData: typeof user | undefined) => {
           if (!cachedData) return;
-          const follower: typeof user | undefined = ctx.getQueryData([
-            ["users", "getSessionUser"],
-            { type: "query" },
-          ]);
-          if (!follower) {
-            void ctx.invalidateQueries([
-              ["users", "getUserByUsername"],
-              { input: { username: user.username }, type: "query" },
-            ]);
-            return;
-          }
           return {
             ...cachedData,
-            followers: [
-              ...cachedData.followers,
-              { ...response, follower: follower },
+            _count: {
+              ...cachedData._count,
+              followers: cachedData._count.followers + 1,
+            },
+            followers: [response],
+          };
+        }
+      );
+      ctx.setQueryData(
+        [
+          ["users", "getFollowers"],
+          { input: { username: user.username, offset: 0 }, type: "query" },
+        ],
+        (cachedData: Paging<Follower> | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            items: [
+              {
+                ...response,
+                follower: {
+                  name: session.user.name,
+                  image: session.user.image,
+                  username: session.user.username,
+                },
+              },
+              ...cachedData.items,
             ],
           };
         }
@@ -78,9 +89,32 @@ const User: NextPage = ({}) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            following: [
-              ...cachedData.following,
-              { ...response, followed: user },
+            _count: {
+              ...cachedData._count,
+              following: cachedData._count.following + 1,
+            },
+          };
+        }
+      );
+      ctx.setQueryData(
+        [
+          ["users", "getUserFollowing"],
+          { input: { offset: 0 }, type: "query" },
+        ],
+        (cachedData: Paging<Following> | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            items: [
+              {
+                ...response,
+                followed: {
+                  name: user.name,
+                  image: user.image,
+                  username: user.username,
+                },
+              },
+              ...cachedData.items,
             ],
           };
         }
@@ -110,24 +144,50 @@ const User: NextPage = ({}) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            followers: cachedData.followers.filter(
-              (follow) => follow.followerId !== session.user.id
+            _count: {
+              ...cachedData._count,
+              followers: cachedData._count.followers - 1,
+            },
+            followers: [],
+          };
+        }
+      );
+      ctx.setQueryData(
+        [
+          ["users", "getFollowers"],
+          { input: { username: user.username, offset: 0 }, type: "query" },
+        ],
+        (cachedData: Paging<Follower> | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            items: cachedData.items.filter(
+              ({ followerId }) => followerId !== session.user.id
             ),
           };
         }
       );
+      void ctx.invalidateQueries([
+        ["users", "getFollowers"],
+        { type: "query" },
+      ]);
       ctx.setQueryData(
         [["users", "getSessionUser"], { type: "query" }],
         (cachedData: typeof user | undefined) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            following: cachedData.following.filter(
-              (follow) => follow.followedId !== user.id
-            ),
+            _count: {
+              ...cachedData._count,
+              following: cachedData._count.following - 1,
+            },
           };
         }
       );
+      void ctx.invalidateQueries([
+        ["users", "getUserFollowing"],
+        { type: "query" },
+      ]);
     } catch (error) {
       if (error instanceof TRPCClientError) {
         toast.error(`Error: ${error.message}`);
@@ -154,7 +214,7 @@ const User: NextPage = ({}) => {
           Profile
         </h2>
         <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
-          {user.name ?? user.username}
+          {user.username}
         </h1>
         <div ref={imageContainerRef} className="flex gap-4">
           <SafeImage
@@ -186,7 +246,7 @@ const User: NextPage = ({}) => {
                   Followers
                 </p>
                 <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user.followers.length.toLocaleString(undefined, {
+                  {user._count.followers.toLocaleString(undefined, {
                     notation: "compact",
                   })}
                 </p>
@@ -199,7 +259,7 @@ const User: NextPage = ({}) => {
                   Following
                 </p>
                 <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user.following.length.toLocaleString(undefined, {
+                  {user._count.following.toLocaleString(undefined, {
                     notation: "compact",
                   })}
                 </p>
@@ -236,6 +296,24 @@ const User: NextPage = ({}) => {
             </div>
           </div>
         </div>
+        {user.name && (
+          <div className="mt-4 flex w-full flex-col items-start gap-1 border-t border-gray-300 pt-4">
+            <p className="font-display text-xs text-gray-400 sm:text-sm">
+              Name
+            </p>
+            <p className="w-full text-sm font-semibold sm:text-base">
+              {user.name}
+            </p>
+          </div>
+        )}
+        {user.bio && (
+          <div className="mt-4 flex w-full flex-col items-start gap-1 border-t border-gray-300 pt-4">
+            <p className="font-display text-xs text-gray-400 sm:text-sm">Bio</p>
+            <p className="w-full text-sm font-semibold sm:text-base">
+              {user.bio}
+            </p>
+          </div>
+        )}
         <div className="mt-4 flex-1 border-t border-gray-300 pt-4">
           <SloopList sloops={user.sloops} />
         </div>
@@ -244,4 +322,4 @@ const User: NextPage = ({}) => {
   );
 };
 
-export default User;
+export default IsSessionUser(User);

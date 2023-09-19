@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
-import { PiSpotifyLogo } from "react-icons/pi";
+import { PiArrowLeft, PiArrowRight, PiSpotifyLogo } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
@@ -21,13 +22,20 @@ const Album: NextPage = ({}) => {
     isLoading: fetchingAlbum,
     error: albumError,
   } = useQuery(
-    ["album", router.query.id],
+    ["album", router.query.id, router.query.offset ?? "0"],
     async () => {
       const id = router.query.id;
       if (typeof id !== "string") {
         throw new Error("404");
       }
-      const response = await spotify.fetchAlbum(id);
+      const offset = router.query.offset;
+      if (offset && typeof offset !== "string") {
+        throw new Error("404");
+      }
+      const response = await spotify.fetchAlbum(
+        id,
+        offset ? parseInt(offset) : 0
+      );
       if (!response?.ok) {
         toast.error("Error: Could Not Fetch Spotify Data");
         throw new Error(
@@ -41,6 +49,28 @@ const Album: NextPage = ({}) => {
     }
   );
   const [imageContainerRef, { width }] = useElementSize();
+
+  const handleNext = () => {
+    if (!album?.tracks.next || typeof router.query.id !== "string") return;
+    void router.push(
+      `/album/${router.query.id}?offset=${
+        album.tracks.offset + album.tracks.limit
+      }`,
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  const handlePrevious = () => {
+    if (!album?.tracks.previous || typeof router.query.id !== "string") return;
+    void router.push(
+      `/album/${router.query.id}?offset=${
+        album.tracks.offset - album.tracks.limit
+      }`,
+      undefined,
+      { shallow: true }
+    );
+  };
 
   if (fetchingAlbum) {
     return <Loading />;
@@ -81,10 +111,44 @@ const Album: NextPage = ({}) => {
             <PiSpotifyLogo className="text-3xl sm:text-4xl" />
           </Link>
           <p className="text-sm text-gray-400 sm:text-base">
-            {album.tracks.items.length}
+            {`${album.tracks.offset + album.tracks.items.length} / ${
+              album.tracks.total
+            }`}
           </p>
         </div>
-        <TrackList tracks={album.tracks.items} numbered />
+        {album.tracks.total > 0 ? (
+          <>
+            <TrackList tracks={album.tracks.items} numbered />
+            {album.tracks.total > album.tracks.items.length && (
+              <div className="mt-2 flex w-full items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
+                <p className="flex-1">
+                  {Math.round(
+                    (album.tracks.total / album.tracks.limit) *
+                      (album.tracks.offset / album.tracks.total)
+                  ) + 1}
+                </p>
+                <button
+                  onClick={() => handlePrevious()}
+                  disabled={!album.tracks.previous}
+                  className={clsx(!album.tracks.previous && "text-gray-300")}
+                >
+                  <PiArrowLeft />
+                </button>
+                <button
+                  onClick={() => handleNext()}
+                  disabled={!album.tracks.next}
+                  className={clsx(!album.tracks.next && "text-gray-300")}
+                >
+                  <PiArrowRight />
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+            How Is This Even An Album
+          </p>
+        )}
       </div>
     </>
   );

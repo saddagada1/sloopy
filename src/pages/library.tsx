@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import Head from "next/head";
 import { PiArrowRight } from "react-icons/pi";
 import { useSpotifyContext } from "~/contexts/Spotify";
-import { useRouter } from "next/router";
 import Link from "next/link";
 import Loading from "~/components/utils/Loading";
 import toast from "react-hot-toast";
@@ -159,7 +158,6 @@ const useLibrary = () => {
 };
 
 const Library: NextPage = () => {
-  const router = useRouter();
   const { data: session } = useSession();
   const [containerRef, { width }] = useElementSize();
   const {
@@ -193,21 +191,19 @@ const Library: NextPage = () => {
           {session?.user.name ?? session?.user.username}
         </Link>
         <SearchInput tab="spotify" />
-        <div className="mb-4">
-          <div className="flex gap-2 text-center font-display text-base font-semibold text-primary sm:text-lg">
-            <Link
-              href="/recently-played"
-              className="flex-1 rounded-md bg-secondary px-2 py-2.5"
-            >
-              Recently Played
-            </Link>
-            <Link
-              href="/saved/tracks"
-              className="flex-1 rounded-md bg-secondary px-2 py-2.5"
-            >
-              Liked Songs
-            </Link>
-          </div>
+        <div className="mb-4 flex gap-2 text-center font-display text-base font-semibold text-primary sm:text-lg">
+          <Link
+            href="/recently-played"
+            className="flex-1 rounded-md bg-secondary px-2 py-2.5"
+          >
+            Recently Played
+          </Link>
+          <Link
+            href="/saved/tracks"
+            className="flex-1 rounded-md bg-secondary px-2 py-2.5"
+          >
+            Liked Songs
+          </Link>
         </div>
         <div ref={containerRef} className="flex flex-1 flex-col gap-6">
           <section>
@@ -217,25 +213,31 @@ const Library: NextPage = () => {
                 {library.topArtists.items.length}
               </p>
             </h3>
-            <Carousel>
-              {library.topArtists.items.map((artist, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/artist/${artist.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-full"
-                    url={artist.images[0]?.url}
-                    alt={artist.name}
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {artist.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
+            {library.topArtists.items.length > 0 ? (
+              <Carousel>
+                {library.topArtists.items.map((artist, index) => (
+                  <Link
+                    key={index}
+                    style={{ width: width / 3 }}
+                    href={`/artist/${artist.id}`}
+                  >
+                    <SafeImage
+                      className="relative mb-2 aspect-square overflow-hidden rounded-full"
+                      url={artist.images[0]?.url}
+                      alt={artist.name}
+                      width={width / 3}
+                    />
+                    <p className="truncate text-sm font-semibold sm:text-base">
+                      {artist.name}
+                    </p>
+                  </Link>
+                ))}
+              </Carousel>
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No Artist Results
+              </p>
+            )}
           </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
@@ -244,26 +246,32 @@ const Library: NextPage = () => {
                 {library.topTracks.items.length}
               </p>
             </h3>
-            <Carousel>
-              {library.topTracks.items.map((track, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/track/${track.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={track.album.images[0]?.url}
-                    alt={track.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {track.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
+            {library.topTracks.items.length > 0 ? (
+              <Carousel>
+                {library.topTracks.items.map((track, index) => (
+                  <Link
+                    key={index}
+                    style={{ width: width / 3 }}
+                    href={`/track/${track.id}`}
+                  >
+                    <SafeImage
+                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
+                      url={track.album.images[0]?.url}
+                      alt={track.name}
+                      square
+                      width={width / 3}
+                    />
+                    <p className="truncate text-sm font-semibold sm:text-base">
+                      {track.name}
+                    </p>
+                  </Link>
+                ))}
+              </Carousel>
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No Track Results
+              </p>
+            )}
           </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
@@ -272,26 +280,32 @@ const Library: NextPage = () => {
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
-            <Carousel>
-              {library.savedAlbums.items.map((item, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/album/${item.album.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={item.album.images[0]?.url}
-                    alt={item.album.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {item.album.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
+            {library.savedAlbums.items.length > 0 ? (
+              <Carousel>
+                {library.savedAlbums.items.map((item, index) => (
+                  <Link
+                    key={index}
+                    style={{ width: width / 3 }}
+                    href={`/album/${item.album.id}`}
+                  >
+                    <SafeImage
+                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
+                      url={item.album.images[0]?.url}
+                      alt={item.album.name}
+                      square
+                      width={width / 3}
+                    />
+                    <p className="truncate text-sm font-semibold sm:text-base">
+                      {item.album.name}
+                    </p>
+                  </Link>
+                ))}
+              </Carousel>
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No Album Results
+              </p>
+            )}
           </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
@@ -300,26 +314,32 @@ const Library: NextPage = () => {
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
-            <Carousel>
-              {library.savedPlaylists.items.map((playlist, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/playlist/${playlist.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={playlist.images[0]?.url}
-                    alt={playlist.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {playlist.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
+            {library.savedPlaylists.items.length > 0 ? (
+              <Carousel>
+                {library.savedPlaylists.items.map((playlist, index) => (
+                  <Link
+                    key={index}
+                    style={{ width: width / 3 }}
+                    href={`/playlist/${playlist.id}`}
+                  >
+                    <SafeImage
+                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
+                      url={playlist.images[0]?.url}
+                      alt={playlist.name}
+                      square
+                      width={width / 3}
+                    />
+                    <p className="truncate text-sm font-semibold sm:text-base">
+                      {playlist.name}
+                    </p>
+                  </Link>
+                ))}
+              </Carousel>
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No Playlist Results
+              </p>
+            )}
           </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
@@ -328,26 +348,32 @@ const Library: NextPage = () => {
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
-            <Carousel>
-              {library.newReleases.albums.items.map((album, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/album/${album.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={album.images[0]?.url}
-                    alt={album.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {album.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
+            {library.newReleases.albums.items.length > 0 ? (
+              <Carousel>
+                {library.newReleases.albums.items.map((album, index) => (
+                  <Link
+                    key={index}
+                    style={{ width: width / 3 }}
+                    href={`/album/${album.id}`}
+                  >
+                    <SafeImage
+                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
+                      url={album.images[0]?.url}
+                      alt={album.name}
+                      square
+                      width={width / 3}
+                    />
+                    <p className="truncate text-sm font-semibold sm:text-base">
+                      {album.name}
+                    </p>
+                  </Link>
+                ))}
+              </Carousel>
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No New Releases
+              </p>
+            )}
           </section>
         </div>
       </div>

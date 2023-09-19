@@ -4,13 +4,14 @@ import { useRouter } from "next/router";
 import { PiHeartFill } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import { calcRelativeTime, calcSloopColours } from "~/utils/calc";
-import { type CompleteSloop } from "~/utils/types";
+import { type ListSloop } from "~/utils/types";
 
 interface SloopListProps {
-  sloops: CompleteSloop[];
+  sloops: ListSloop[];
+  profile?: boolean;
 }
 
-const SloopList: React.FC<SloopListProps> = ({ sloops }) => {
+const SloopList: React.FC<SloopListProps> = ({ sloops, profile }) => {
   const router = useRouter();
   const { data: session } = useSession();
   const [imageContainerRef, { width }] = useElementSize();
@@ -21,7 +22,11 @@ const SloopList: React.FC<SloopListProps> = ({ sloops }) => {
         <li
           className="flex cursor-pointer gap-4 rounded-lg border border-gray-300 bg-gray-200 p-2"
           key={index}
-          onClick={() => void router.push(`/sloop/${sloop.id}`)}
+          onClick={() =>
+            void router.push(
+              profile ? `/profile/sloop/${sloop.id}` : `/sloop/${sloop.id}`
+            )
+          }
         >
           <div
             style={{ width: width * 0.25, height: width * 0.25 }}
@@ -51,7 +56,7 @@ const SloopList: React.FC<SloopListProps> = ({ sloops }) => {
                 {calcRelativeTime(sloop.updatedAt)}
               </p>
               <p className="flex items-center gap-2">
-                {sloop.likes.length.toLocaleString(undefined, {
+                {sloop._count.likes.toLocaleString(undefined, {
                   notation: "compact",
                 })}
                 <PiHeartFill className="text-xl sm:text-2xl" />

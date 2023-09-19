@@ -30,21 +30,25 @@ interface PlayerProps {
 
 const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
   const spotify = useSpotifyContext();
-  const { mutateAsync: initializePlayback } = useMutation({
-    mutationFn: async () => {
-      if (context.deviceId === "") return;
-      const playResponse = await spotify?.playTrack(context.deviceId, trackId);
-      if (!playResponse?.ok) {
-        toast.error(
-          `Error: ${
-            playResponse.message ?? "Could Not Connect To Spotify"
-          }. Please Refresh`
+  const { mutateAsync: initializePlayback, error: initializeError } =
+    useMutation({
+      mutationFn: async () => {
+        if (context.deviceId === "") return;
+        const playResponse = await spotify?.playTrack(
+          context.deviceId,
+          trackId
         );
-      }
-      setIsLoading(false);
-    },
-  });
-  const { mutateAsync: transferPlayback } = useMutation({
+        if (!playResponse?.ok) {
+          toast.error(
+            `Error: ${
+              playResponse.message ?? "Could Not Connect To Spotify"
+            }. Please Refresh`
+          );
+        }
+        setIsLoading(false);
+      },
+    });
+  const { mutateAsync: transferPlayback, error: transferError } = useMutation({
     mutationFn: async () => {
       if (context.deviceId === "") return;
       const transferResponse = await spotify?.transferPlayback(
@@ -180,29 +184,33 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
 
   if (!context.player || isLoading) {
     return (
-      <div className="flex h-[68px]">
+      <div className="flex h-[68px] items-center justify-center p-2">
         <WaveSpinner size={24} color={secondaryColour} loading={true} />
       </div>
     );
   }
 
-  if (context.error) {
+  if (context.error ?? !context.isReady) {
     return (
       <div className="flex h-[68px] items-center justify-center p-2">
         <p className="h-fit rounded border border-red-500 bg-red-200 p-1 text-xs text-red-500 sm:text-sm">
-          {context.error.split(":")[1]?.trim() ??
+          {context.error?.split(":")[1]?.trim() ??
             "Something Went Wrong. Please Refresh."}
         </p>
       </div>
     );
   }
 
-  if (!context.isReady || !track) {
+  if (!track) {
     return (
       <div className="flex h-[68px] items-center justify-center p-2">
-        <p className="h-fit rounded border border-red-500 bg-red-200 p-1 text-xs text-red-500 sm:text-sm">
-          Something Went Wrong. Please Refresh.
-        </p>
+        {initializeError || transferError ? (
+          <p className="h-fit rounded border border-red-500 bg-red-200 p-1 text-xs text-red-500 sm:text-sm">
+            Something Went Wrong. Please Refresh.
+          </p>
+        ) : (
+          <WaveSpinner size={24} color={secondaryColour} loading={true} />
+        )}
       </div>
     );
   }

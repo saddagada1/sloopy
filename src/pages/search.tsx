@@ -13,9 +13,10 @@ import { useSpotifyContext } from "~/contexts/Spotify";
 import { type Search as SpotifySearch } from "~/contexts/Spotify";
 import Link from "next/link";
 import { api } from "~/utils/api";
-import { type CompleteSloop } from "~/utils/types";
 import SloopList from "~/components/ui/SloopList";
 import { pitchClassColours } from "~/utils/constants";
+import { type ListSloop } from "~/utils/types";
+import { type Artist } from "@prisma/client";
 
 interface SpotifyResultsProps {
   results: SpotifySearch;
@@ -154,28 +155,27 @@ const SpotifyResults: React.FC<SpotifyResultsProps> = ({ results, width }) => {
 };
 
 interface SloopyResultsProps {
-  userResults: { username: string; image: string | null }[];
-  sloopResults: CompleteSloop[];
+  results: {
+    users: { username: string; image: string | null }[];
+    artists: Artist[];
+    sloops: ListSloop[];
+  };
   width: number;
 }
 
-const SloopyResults: React.FC<SloopyResultsProps> = ({
-  userResults,
-  sloopResults,
-  width,
-}) => {
+const SloopyResults: React.FC<SloopyResultsProps> = ({ results, width }) => {
   return (
     <>
       <section>
         <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
           Users
           <p className="text-base text-gray-400 sm:text-lg">
-            {userResults.length}
+            {results.users.length}
           </p>
         </h3>
-        {userResults.length > 0 ? (
+        {results.users.length > 0 ? (
           <Carousel>
-            {userResults.map((user, index) => (
+            {results.users.map((user, index) => (
               <Link
                 key={index}
                 style={{ width: width / 3 }}
@@ -204,13 +204,49 @@ const SloopyResults: React.FC<SloopyResultsProps> = ({
       </section>
       <section>
         <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-          Sloops
+          Artists
           <p className="text-base text-gray-400 sm:text-lg">
-            {sloopResults.length}
+            {results.artists.length}
           </p>
         </h3>
-        {sloopResults.length > 0 ? (
-          <SloopList sloops={sloopResults} />
+        {results.artists.length > 0 ? (
+          <Carousel>
+            {results.artists.map((artist, index) => (
+              <Link
+                key={index}
+                style={{ width: width / 3 }}
+                href={`/${artist.name}`}
+              >
+                <SafeImage
+                  className="relative mb-2 aspect-square overflow-hidden rounded-full"
+                  url={artist.image}
+                  alt={artist.name}
+                  width={width / 3}
+                  colours={Object.keys(pitchClassColours).map(
+                    (key) => pitchClassColours[parseInt(key)]!
+                  )}
+                />
+                <p className="truncate text-sm font-semibold sm:text-base">
+                  {artist.name}
+                </p>
+              </Link>
+            ))}
+          </Carousel>
+        ) : (
+          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+            No Artist Results
+          </p>
+        )}
+      </section>
+      <section>
+        <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
+          Sloops
+          <p className="text-base text-gray-400 sm:text-lg">
+            {results.sloops.length}
+          </p>
+        </h3>
+        {results.sloops.length > 0 ? (
+          <SloopList sloops={results.sloops} />
         ) : (
           <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
             No Sloop Results
@@ -249,24 +285,15 @@ const Search: NextPage = ({}) => {
   );
 
   const {
-    data: userSearch,
-    isLoading: fetchingUserSearch,
-    error: userSearchError,
-  } = api.users.search.useQuery(
+    data: sloopySearch,
+    isLoading: fetchingSloopySearch,
+    error: sloopySearchError,
+  } = api.search.all.useQuery(
     { query: router.query.q as string },
     { enabled: router.query.tab === "sloopy" }
   );
 
-  const {
-    data: sloopSearch,
-    isLoading: fetchingSloopSearch,
-    error: sloopSearchError,
-  } = api.sloops.search.useQuery(
-    { query: router.query.q as string },
-    { enabled: router.query.tab === "sloopy" }
-  );
-
-  if (spotifySearchError ?? userSearchError ?? sloopSearchError) {
+  if (spotifySearchError ?? sloopySearchError) {
     return <ErrorView />;
   }
 
@@ -282,45 +309,43 @@ const Search: NextPage = ({}) => {
         <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
           Search
         </h1>
-        <SearchInput tab={router.query.tab as string | undefined} />
-        <div className="mb-4">
-          <div className="flex gap-2 text-center font-display text-base font-semibold text-primary sm:text-lg">
-            <button
-              onClick={() =>
-                void router.replace(
-                  `/search?q=${router.query.q as string}&tab=sloopy`,
-                  undefined,
-                  { shallow: true }
-                )
-              }
-              className="flex-1 rounded-md bg-secondary px-2 py-2.5"
-            >
-              Sloopy
-            </button>
-            <button
-              onClick={() =>
-                void router.replace(
-                  `/search?q=${router.query.q as string}&tab=spotify`,
-                  undefined,
-                  { shallow: true }
-                )
-              }
-              className="flex-1 rounded-md bg-secondary px-2 py-2.5"
-            >
-              Spotify
-            </button>
-          </div>
+        <SearchInput
+          key={router.query.q as string | undefined}
+          defaultValue={router.query.q as string | undefined}
+          tab={router.query.tab as string | undefined}
+        />
+        <div className="mb-4 flex gap-2 text-center font-display text-base font-semibold text-primary sm:text-lg">
+          <button
+            onClick={() =>
+              void router.replace(
+                `/search?q=${router.query.q as string}&tab=sloopy`,
+                undefined,
+                { shallow: true }
+              )
+            }
+            className="flex-1 rounded-md bg-secondary px-2 py-2.5"
+          >
+            Sloopy
+          </button>
+          <button
+            onClick={() =>
+              void router.replace(
+                `/search?q=${router.query.q as string}&tab=spotify`,
+                undefined,
+                { shallow: true }
+              )
+            }
+            className="flex-1 rounded-md bg-secondary px-2 py-2.5"
+          >
+            Spotify
+          </button>
         </div>
         <div ref={containerRef} className="flex flex-1 flex-col gap-6">
           {router.query.tab === "sloopy" ? (
-            fetchingSloopSearch || fetchingUserSearch ? (
+            fetchingSloopySearch ? (
               <Loading />
-            ) : sloopSearch && userSearch ? (
-              <SloopyResults
-                sloopResults={sloopSearch}
-                userResults={userSearch}
-                width={width}
-              />
+            ) : sloopySearch ? (
+              <SloopyResults results={sloopySearch} width={width} />
             ) : (
               <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
                 Unable To Search Sloopy

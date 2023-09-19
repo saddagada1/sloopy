@@ -18,19 +18,19 @@ const UserList: React.FC<UserListProps> = ({ users }) => {
   const router = useRouter();
   const [imageContainerRef, { width }] = useElementSize();
   return (
-    <ul ref={imageContainerRef} className="w-full">
+    <ul ref={imageContainerRef} className="w-full flex-1">
       {users.map((user, index) => (
         <li
           key={index}
           className={clsx(
-            "flex",
+            "flex cursor-pointer",
             index !== users.length - 1 && "mb-4 border-b border-gray-300 pb-4"
           )}
           onClick={() => void router.push(`/${user.username}`)}
         >
           <SafeImage
             url={user.image}
-            alt={`${user.username}'s profile picture`}
+            alt={user.username}
             width={width * 0.13}
             className="relative mr-4 aspect-square flex-shrink-0 overflow-hidden rounded-full"
             colours={Object.keys(pitchClassColours).map(
@@ -41,7 +41,7 @@ const UserList: React.FC<UserListProps> = ({ users }) => {
             style={{ height: width * 0.13 }}
             className="flex flex-col justify-between overflow-hidden"
           >
-            <h1 className="truncate font-display text-lg font-semibold sm:text-xl">
+            <h1 className="truncate font-display text-lg font-semibold leading-none sm:text-xl">
               {user.username}
             </h1>
             <p className="truncate text-sm text-gray-400 sm:text-base">

@@ -31,18 +31,16 @@ export const usersRouter = createTRPCRouter({
           image: true,
           username: true,
           bio: true,
-          sloops: { include: { likes: true } },
-          followers: {
+          sloops: {
             include: {
-              follower: { select: { name: true, image: true, username: true } },
+              _count: {
+                select: { likes: true },
+              },
             },
           },
-          following: {
-            include: {
-              followed: { select: { name: true, image: true, username: true } },
-            },
+          _count: {
+            select: { followers: true, following: true },
           },
-          likes: { include: { sloop: { include: { likes: true } } } },
         },
       });
       return user;
@@ -55,7 +53,11 @@ export const usersRouter = createTRPCRouter({
   }),
 
   getUserByUsername: publicProcedure
-    .input(z.object({ username: z.string() }))
+    .input(
+      z.object({
+        username: z.string(),
+      })
+    )
     .query(async ({ input, ctx }) => {
       try {
         const user = await ctx.prisma.user.findUnique({
@@ -66,22 +68,18 @@ export const usersRouter = createTRPCRouter({
             image: true,
             username: true,
             bio: true,
-            sloops: { include: { likes: true } },
-            followers: {
+            sloops: {
+              where: { isPrivate: false },
               include: {
-                follower: {
-                  select: { name: true, image: true, username: true },
+                _count: {
+                  select: { likes: true },
                 },
               },
             },
-            following: {
-              include: {
-                followed: {
-                  select: { name: true, image: true, username: true },
-                },
-              },
+            _count: {
+              select: { followers: true, following: true },
             },
-            likes: { include: { sloop: { include: { likes: true } } } },
+            followers: { where: { followedId: ctx.session?.user.id } },
           },
         });
         return user;
@@ -89,6 +87,204 @@ export const usersRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "User Not Found",
+        });
+      }
+    }),
+
+  countUserLikes: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      const likes = await ctx.prisma.like.count({
+        where: { userId: ctx.session.user.id },
+      });
+      return likes;
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could Not Count Likes",
+      });
+    }
+  }),
+
+  getUserLikes: protectedProcedure
+    .input(z.object({ offset: z.number(), limit: z.number().optional() }))
+    .query(async ({ input, ctx }) => {
+      try {
+        const likes = await ctx.prisma.like.findMany({
+          where: { userId: ctx.session.user.id },
+          include: {
+            sloop: { include: { _count: { select: { likes: true } } } },
+          },
+          skip: input.offset,
+          take: input.limit ?? 100,
+        });
+        return {
+          offset: input.offset,
+          limit: input.limit ?? 100,
+          items: likes,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get Likes",
+        });
+      }
+    }),
+
+  getUserFollowers: protectedProcedure
+    .input(z.object({ offset: z.number(), limit: z.number().optional() }))
+    .query(async ({ input, ctx }) => {
+      try {
+        const followers = await ctx.prisma.follow.findMany({
+          where: { followedId: ctx.session.user.id },
+          include: {
+            follower: { select: { name: true, image: true, username: true } },
+          },
+          skip: input.offset,
+          take: input.limit ?? 100,
+        });
+        return {
+          offset: input.offset,
+          limit: input.limit ?? 100,
+          items: followers,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get Followers",
+        });
+      }
+    }),
+
+  getUserFollowing: protectedProcedure
+    .input(z.object({ offset: z.number(), limit: z.number().optional() }))
+    .query(async ({ input, ctx }) => {
+      try {
+        const following = await ctx.prisma.follow.findMany({
+          where: { followerId: ctx.session.user.id },
+          include: {
+            followed: { select: { name: true, image: true, username: true } },
+          },
+          skip: input.offset,
+          take: input.limit ?? 100,
+        });
+        return {
+          offset: input.offset,
+          limit: input.limit ?? 100,
+          items: following,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get Following",
+        });
+      }
+    }),
+
+  countLikes: publicProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const likes = await ctx.prisma.like.count({
+          where: { user: { username: input.username } },
+        });
+        return likes;
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Count User Likes",
+        });
+      }
+    }),
+
+  getLikes: publicProcedure
+    .input(
+      z.object({
+        offset: z.number(),
+        limit: z.number().optional(),
+        username: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const likes = await ctx.prisma.like.findMany({
+          where: { user: { username: input.username } },
+          include: {
+            sloop: { include: { _count: { select: { likes: true } } } },
+          },
+          skip: input.offset,
+          take: input.limit ?? 100,
+        });
+        return {
+          offset: input.offset,
+          limit: input.limit ?? 100,
+          items: likes,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get User Likes",
+        });
+      }
+    }),
+
+  getFollowers: publicProcedure
+    .input(
+      z.object({
+        offset: z.number(),
+        limit: z.number().optional(),
+        username: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const followers = await ctx.prisma.follow.findMany({
+          where: { followed: { username: input.username } },
+          include: {
+            follower: { select: { name: true, image: true, username: true } },
+          },
+          skip: input.offset,
+          take: input.limit ?? 100,
+        });
+        return {
+          offset: input.offset,
+          limit: input.limit ?? 100,
+          items: followers,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get User Followers",
+        });
+      }
+    }),
+
+  getFollowing: publicProcedure
+    .input(
+      z.object({
+        offset: z.number(),
+        limit: z.number().optional(),
+        username: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const following = await ctx.prisma.follow.findMany({
+          where: { follower: { username: input.username } },
+          include: {
+            followed: { select: { name: true, image: true, username: true } },
+          },
+          skip: input.offset,
+          take: input.limit ?? 100,
+        });
+        return {
+          offset: input.offset,
+          limit: input.limit ?? 100,
+          items: following,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get User Following",
         });
       }
     }),
@@ -384,40 +580,6 @@ export const usersRouter = createTRPCRouter({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Unable To Unfollow User",
-        });
-      }
-    }),
-
-  search: publicProcedure
-    .input(
-      z.object({
-        query: z.string(),
-      })
-    )
-    .query(async ({ input, ctx }) => {
-      try {
-        const users = await ctx.prisma.user.findMany({
-          where: {
-            name: {
-              search: `${input.query}*`,
-            },
-            bio: {
-              search: `${input.query}*`,
-            },
-            username: {
-              search: `${input.query}*`,
-            },
-          },
-          select: {
-            username: true,
-            image: true,
-          },
-        });
-        return users;
-      } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Could Not Search Users",
         });
       }
     }),

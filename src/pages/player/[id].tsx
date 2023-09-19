@@ -26,15 +26,17 @@ import { useElementSize } from "usehooks-ts";
 import WithAuth from "~/components/utils/WithAuth";
 import LoopButton from "~/components/sloops/LoopButton";
 import ErrorView from "~/components/utils/ErrorView";
+import { useSession } from "next-auth/react";
 
 const SloopPlayer: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
+  const { data: session } = useSession();
   const playerCtx = usePlayerContext();
   const { data, isLoading, error } = api.sloops.get.useQuery({
     id: router.query.id as string,
+    getPrivate: !!router.query.private,
   });
-
   const {
     data: chords,
     isLoading: fetchingChords,
@@ -46,13 +48,17 @@ const SloopPlayer: NextPage = ({}) => {
     }
     return response;
   });
+  const { mutateAsync: updatePlays } =
+    api.sloops.createOrUpdatePlay.useMutation();
   const [containerRef, { width: containerWidth }] = useElementSize();
   const voicingRef = useRef<HTMLDivElement>(null!);
 
   useEffect(() => {
     if (!data) return;
     playerCtx.initialize(data);
-  }, [data, playerCtx]);
+    session?.user.id !== data.userId && void updatePlays({ id: data.id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   useEffect(() => {
     if (!voicingRef.current || !playerCtx.playingLoop || !containerWidth)

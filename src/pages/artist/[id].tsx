@@ -106,7 +106,6 @@ const Artist: NextPage = ({}) => {
                 </p>
               </div>
             </div>
-
             <Link
               href={artist.uri}
               className="flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-gray-200 px-2 py-2.5 font-display text-base font-semibold sm:text-lg"
@@ -127,26 +126,32 @@ const Artist: NextPage = ({}) => {
                 {artist.albums.length}
               </p>
             </h3>
-            <Carousel>
-              {artist.albums.map((album, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/album/${album.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={album.images[0]?.url}
-                    alt={album.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {album.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
+            {artist.albums.length > 0 ? (
+              <Carousel>
+                {artist.albums.map((album, index) => (
+                  <Link
+                    key={index}
+                    style={{ width: width / 3 }}
+                    href={`/album/${album.id}`}
+                  >
+                    <SafeImage
+                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
+                      url={album.images[0]?.url}
+                      alt={album.name}
+                      square
+                      width={width / 3}
+                    />
+                    <p className="truncate text-sm font-semibold sm:text-base">
+                      {album.name}
+                    </p>
+                  </Link>
+                ))}
+              </Carousel>
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No Album Results
+              </p>
+            )}
           </div>
           <div>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
@@ -155,7 +160,13 @@ const Artist: NextPage = ({}) => {
                 {artist.tracks.length}
               </p>
             </h3>
-            <TrackList tracks={artist.tracks} />
+            {artist.tracks.length > 0 ? (
+              <TrackList tracks={artist.tracks} />
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No Track Results
+              </p>
+            )}
           </div>
           <div>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
@@ -164,25 +175,31 @@ const Artist: NextPage = ({}) => {
                 {artist.related.length}
               </p>
             </h3>
-            <Carousel>
-              {artist.related.map((related, index) => (
-                <div
-                  key={index}
-                  style={{ width: width / 3 }}
-                  onClick={() => void router.push(`/artist/${related.id}`)}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-full"
-                    url={related.images[0]?.url}
-                    alt={related.name}
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {related.name}
-                  </p>
-                </div>
-              ))}
-            </Carousel>
+            {artist.related.length > 0 ? (
+              <Carousel>
+                {artist.related.map((related, index) => (
+                  <Link
+                    key={index}
+                    style={{ width: width / 3 }}
+                    href={`/artist/${related.id}`}
+                  >
+                    <SafeImage
+                      className="relative mb-2 aspect-square overflow-hidden rounded-full"
+                      url={related.images[0]?.url}
+                      alt={related.name}
+                      width={width / 3}
+                    />
+                    <p className="truncate text-sm font-semibold sm:text-base">
+                      {related.name}
+                    </p>
+                  </Link>
+                ))}
+              </Carousel>
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No Artist Results
+              </p>
+            )}
           </div>
         </div>
       </div>

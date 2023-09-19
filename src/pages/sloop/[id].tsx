@@ -28,7 +28,7 @@ import { api } from "~/utils/api";
 import { calcRelativeTime, calcSloopColours } from "~/utils/calc";
 import { mode, pitchClass, pitchClassColours } from "~/utils/constants";
 import { fetchChords } from "~/utils/helpers";
-import { type CompleteUser, type Loop } from "~/utils/types";
+import { type Paging, type Loop, type ListSloop } from "~/utils/types";
 
 const Sloop: NextPage = ({}) => {
   const router = useRouter();
@@ -74,22 +74,26 @@ const Sloop: NextPage = ({}) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            likes: [...cachedData.likes, response],
+            _count: {
+              ...cachedData._count,
+              likes: cachedData._count.likes + 1,
+            },
+            likes: [response],
           };
         }
       );
       ctx.setQueryData(
-        [["users", "getSessionUser"], { type: "query" }],
-        (cachedData: CompleteUser | undefined) => {
+        [["users", "getUserLikes"], { input: { offset: 0 }, type: "query" }],
+        (cachedData: Paging<ListSloop> | undefined) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            likes: [
-              ...cachedData.likes,
+            items: [
               {
-                ...response,
-                sloop: { ...sloop, likes: [...sloop.likes, response] },
+                ...sloop,
+                _count: { likes: sloop._count.likes + 1 },
               },
+              ...cachedData.items,
             ],
           };
         }
@@ -116,22 +120,18 @@ const Sloop: NextPage = ({}) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            likes: cachedData.likes.filter(
-              (like) => like.userId !== session.user.id
-            ),
+            _count: {
+              ...cachedData._count,
+              likes: cachedData._count.likes - 1,
+            },
+            likes: [],
           };
         }
       );
-      ctx.setQueryData(
-        [["users", "getSessionUser"], { type: "query" }],
-        (cachedData: CompleteUser | undefined) => {
-          if (!cachedData) return;
-          return {
-            ...cachedData,
-            likes: cachedData.likes.filter((like) => like.sloopId !== sloop.id),
-          };
-        }
-      );
+      void ctx.invalidateQueries([
+        ["users", "getUserLikes"],
+        { type: "query" },
+      ]);
     } catch (error) {
       if (error instanceof TRPCClientError) {
         toast.error(`Error: ${error.message}`);
@@ -241,14 +241,12 @@ const Sloop: NextPage = ({}) => {
         <div className="mb-4 flex w-full border-b border-gray-300 pb-4">
           <div className="flex basis-1/4 flex-col items-start gap-1 border-r border-gray-300">
             <p className="font-display text-xs text-gray-400 sm:text-sm">
-              Completed
+              Plays
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {loops.length > 0
-                ? `${Math.round(
-                    (loops[loops.length - 1]!.end / sloop.duration) * 100
-                  )}%`
-                : "0%"}
+              {sloop._count.plays.toLocaleString(undefined, {
+                notation: "compact",
+              })}
             </p>
           </div>
           <div className="flex basis-1/4 flex-col items-start gap-1 border-r border-gray-300">
@@ -256,7 +254,7 @@ const Sloop: NextPage = ({}) => {
               Likes
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {sloop.likes.length.toLocaleString(undefined, {
+              {sloop._count.likes.toLocaleString(undefined, {
                 notation: "compact",
               })}
             </p>
@@ -285,12 +283,24 @@ const Sloop: NextPage = ({}) => {
               {`${Math.round(sloop.tempo)} BPM`}
             </p>
           </div>
-          <div className="flex flex-1 flex-col items-start gap-1">
+          <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
             <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
               Time
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
               {`${sloop.timeSignature} / 4`}
+            </p>
+          </div>
+          <div className="flex flex-1 flex-col items-start gap-1">
+            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
+              Complete
+            </p>
+            <p className="w-full text-center text-sm font-semibold sm:text-base">
+              {loops.length > 0
+                ? `${Math.round(
+                    (loops[loops.length - 1]!.end / sloop.duration) * 100
+                  )}%`
+                : "0%"}
             </p>
           </div>
         </div>

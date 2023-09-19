@@ -147,4 +147,5 @@ const Track: NextPage = ({}) => {
     </>
   );
 };
+
 export default WithAuth(Track);

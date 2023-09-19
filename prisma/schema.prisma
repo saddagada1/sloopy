@@ -18,7 +18,7 @@ model Sloop {
   description   String   @db.Text
   trackId       String
   trackName     String   @db.Text
-  artists       Json
+  artists       Artist[]
   duration      Float
   key           Int
   mode          Int
@@ -30,6 +30,7 @@ model Sloop {
   userUsername  String   @db.VarChar(255)
   user          User     @relation(fields: [userId, userUsername], references: [id, username], onDelete: Cascade)
   likes         Like[]
+  plays         Play[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -42,6 +43,32 @@ model Sloop {
   @@fulltext([trackName])
   @@fulltext([userUsername], map: "userUsername-fulltext")
   @@fulltext([name, description, trackName, userUsername])
+}
+
+model Artist {
+  id         String   @id @default(cuid())
+  spotifyId  String   @unique
+  name       String   @db.Text
+  image      String?  @db.Text
+  sloops     Sloop[]  
+  createdAt  DateTime @default(now())
+
+  @@index([spotifyId])
+  @@fulltext([name])
+}
+
+model Play {
+  id         String   @id @default(cuid())
+  sloopId    String
+  userId     String
+  sloop      Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([sloopId, userId])
+  @@index([sloopId])
+  @@index([userId])
 }
 
 model Like {
@@ -134,6 +161,7 @@ model User {
   followers      Follow[]        @relation("followers")
   following      Follow[]        @relation("following")
   likes          Like[]
+  plays          Play[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 

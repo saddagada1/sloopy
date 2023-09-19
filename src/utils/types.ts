@@ -1,10 +1,4 @@
-import {
-  type Follow,
-  type Like,
-  type LinkedAccount,
-  type Sloop,
-  type User,
-} from "@prisma/client";
+import { type Follow, type Sloop, type User } from "@prisma/client";
 import { type ErrorResponse } from "spotify-types";
 
 export interface SpotifyErrorResponse extends ErrorResponse {
@@ -71,14 +65,36 @@ export interface UpdateSloopInput {
   isPrivate: boolean;
 }
 
-export interface CompleteUser extends User {
-  likes: Like[];
-  followers: Follow[];
-  following: Follow[];
-  sloops: Sloop[];
-  linkedAccounts: LinkedAccount[];
+export interface Paging<T> {
+  offset: number;
+  paging: number;
+  items: T[];
 }
 
-export interface CompleteSloop extends Sloop {
-  likes: Like[];
+export interface ListSloop extends Sloop {
+  _count: { likes: number };
+}
+
+export interface PageSloop extends Sloop {
+  _count: { likes: number; plays: number };
+}
+
+export interface Follower extends Follow {
+  follower: {
+    name?: string | null;
+    image?: string | null;
+    username: string;
+  };
+}
+
+export interface Following extends Follow {
+  followed: {
+    name?: string | null;
+    image?: string | null;
+    username: string;
+  };
+}
+
+export interface PageUser extends User {
+  sloops: ListSloop[];
 }

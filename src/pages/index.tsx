@@ -3,8 +3,7 @@ import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import { PiArrowRight, PiHeartFill } from "react-icons/pi";
+import { PiArrowRight, PiAsterisk, PiHeartFill } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import Carousel from "~/components/ui/Carousel";
 import SearchInput from "~/components/ui/SearchInput";
@@ -17,21 +16,20 @@ import {
   calcSloopColours,
   calcTimeOfDay,
 } from "~/utils/calc";
-import { type CompleteSloop } from "~/utils/types";
+import { type ListSloop } from "~/utils/types";
 
 interface SloopCardProps {
-  sloop: CompleteSloop;
+  sloop: ListSloop;
   width: number;
 }
 
 const SloopCard: React.FC<SloopCardProps> = ({ sloop, width }) => {
-  const router = useRouter();
   const { data: session } = useSession();
   return (
-    <div
+    <Link
       style={{ width: width / 3 }}
-      onClick={() => void router.push(`/sloop/${sloop.id}`)}
-      className="cursor-pointer rounded-md border border-gray-300 bg-gray-200 p-2"
+      href={`/sloop/${sloop.id}`}
+      className="rounded-md border border-gray-300 bg-gray-200 p-2"
     >
       <div className="mb-2 aspect-square overflow-hidden rounded-md">
         <Avatar
@@ -53,13 +51,13 @@ const SloopCard: React.FC<SloopCardProps> = ({ sloop, width }) => {
       <div className="mt-2 flex items-center gap-4 text-xs sm:text-sm">
         <p className="flex-1 truncate">{calcRelativeTime(sloop.updatedAt)}</p>
         <p className="flex items-center gap-2">
-          {sloop.likes.length.toLocaleString(undefined, {
+          {sloop._count.likes.toLocaleString(undefined, {
             notation: "compact",
           })}
           <PiHeartFill className="text-base sm:text-lg" />
         </p>
       </div>
-    </div>
+    </Link>
   );
 };
 
@@ -97,6 +95,22 @@ const Home: NextPage = () => {
         </Link>
         <SearchInput />
         <div ref={containerRef} className="mt-2 flex flex-1 flex-col gap-6">
+          <section className="relative flex aspect-video w-full items-end overflow-hidden rounded-md p-4 text-primary">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute bottom-0 left-0 h-full w-full object-cover"
+            >
+              <source src="/sloopy-hero.mp4" />
+            </video>
+            <div className="anim-grain top-0 opacity-10" />
+            <h1 className="z-10 -mb-1.5 w-3/4 font-display text-2xl font-semibold">
+              Embrace your own unique sound.
+            </h1>
+            <PiAsterisk className="absolute right-3 top-3 animate-[spin_10s_linear_infinite] text-4xl" />
+          </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Most Recent
@@ -104,11 +118,17 @@ const Home: NextPage = () => {
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
-            <Carousel>
-              {sloops.map((sloop, index) => (
-                <SloopCard key={index} sloop={sloop} width={width} />
-              ))}
-            </Carousel>
+            {sloops.length > 0 ? (
+              <Carousel>
+                {sloops.map((sloop, index) => (
+                  <SloopCard key={index} sloop={sloop} width={width} />
+                ))}
+              </Carousel>
+            ) : (
+              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
+                No Sloop Results
+              </p>
+            )}
           </section>
         </div>
       </div>

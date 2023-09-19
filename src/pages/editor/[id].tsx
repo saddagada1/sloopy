@@ -34,8 +34,8 @@ import EditLoopModal from "~/components/sloops/EditLoopModal";
 import {
   type UpdateSloopInput,
   type Loop,
-  type CompleteUser,
-  type CompleteSloop,
+  type PageUser,
+  type PageSloop,
 } from "~/utils/types";
 import { useElementSize } from "usehooks-ts";
 import EditSloopModal from "~/components/sloops/EditSloopModal";
@@ -95,29 +95,38 @@ const Editor: NextPage = ({}) => {
       const response = await updateSloop({
         ...data,
         ...editor.generalInfo,
-        artists: data.artists as string[],
         loops: editor.loops,
         isPrivate: publish === undefined ? data.isPrivate : !publish,
       });
       ctx.setQueryData(
         [["sloops", "get"], { input: { id: data.id }, type: "query" }],
-        (cachedData: CompleteSloop | undefined) => {
+        (cachedData: PageSloop | undefined) => {
           if (!cachedData) return;
           return {
             ...response,
-            likes: cachedData.likes,
+            _count: cachedData._count,
+          };
+        }
+      );
+      ctx.setQueryData(
+        [["sloops", "getUserSloop"], { input: { id: data.id }, type: "query" }],
+        (cachedData: PageSloop | undefined) => {
+          if (!cachedData) return;
+          return {
+            ...response,
+            _count: cachedData._count,
           };
         }
       );
       ctx.setQueryData(
         [["users", "getSessionUser"], { type: "query" }],
-        (cachedData: CompleteUser | undefined) => {
+        (cachedData: PageUser | undefined) => {
           if (!cachedData) return;
           return {
             ...cachedData,
             sloops: cachedData.sloops.map((sloop) => {
               if (sloop.id === response.id) {
-                return response;
+                return { ...response, _count: { likes: sloop._count.likes } };
               }
               return sloop;
             }),
@@ -196,28 +205,68 @@ const Editor: NextPage = ({}) => {
       <AnimatePresence>
         {saveSloop && (
           <Modal setVisible={setSaveSloop}>
-            <LoadingButton
-              className="flex h-14 w-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 font-display text-base font-bold sm:text-lg"
-              loading={updatingSloop && !!variables?.isPrivate}
-              disabled={updatingSloop}
-              onClick={() => {
-                setDisabled(true);
-                void handleSaveSloop({ publish: false, url: "/profile" });
-              }}
-            >
-              Save & Exit
-            </LoadingButton>
-            <div className="mt-4 border-t border-gray-300 pt-4">
-              <StyledLoadingButton
-                label="Save & Publish"
-                loading={updatingSloop && !variables?.isPrivate}
-                disabled={updatingSloop}
-                onClick={() => {
-                  setDisabled(true);
-                  void handleSaveSloop({ publish: true, url: "/profile" });
-                }}
-              />
-            </div>
+            {data.isPrivate ? (
+              <>
+                <LoadingButton
+                  className="flex h-14 w-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 font-display text-base font-bold sm:text-lg"
+                  loading={updatingSloop && !!variables?.isPrivate}
+                  disabled={updatingSloop}
+                  onClick={() => {
+                    setDisabled(true);
+                    void handleSaveSloop({
+                      publish: false,
+                      url: "/profile?tab=private",
+                    });
+                  }}
+                >
+                  Save & Exit
+                </LoadingButton>
+                <div className="mt-4 border-t border-gray-300 pt-4">
+                  <StyledLoadingButton
+                    label="Save & Publish"
+                    loading={updatingSloop && !variables?.isPrivate}
+                    disabled={updatingSloop}
+                    onClick={() => {
+                      setDisabled(true);
+                      void handleSaveSloop({
+                        publish: true,
+                        url: "/profile?tab=published",
+                      });
+                    }}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <LoadingButton
+                  className="flex h-14 w-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 font-display text-base font-bold sm:text-lg"
+                  loading={updatingSloop && !!variables?.isPrivate}
+                  disabled={updatingSloop}
+                  onClick={() => {
+                    setDisabled(true);
+                    void handleSaveSloop({
+                      publish: false,
+                      url: "/profile?tab=private",
+                    });
+                  }}
+                >
+                  Save & Make Private
+                </LoadingButton>
+                <div className="mt-4 border-t border-gray-300 pt-4">
+                  <StyledLoadingButton
+                    label="Save & Exit"
+                    loading={updatingSloop && !variables?.isPrivate}
+                    disabled={updatingSloop}
+                    onClick={() => {
+                      setDisabled(true);
+                      void handleSaveSloop({
+                        url: "/profile?tab=published",
+                      });
+                    }}
+                  />
+                </div>
+              </>
+            )}
           </Modal>
         )}
       </AnimatePresence>

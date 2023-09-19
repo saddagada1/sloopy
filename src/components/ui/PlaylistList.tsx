@@ -18,13 +18,13 @@ const PlaylistList: React.FC<PlaylistListProps> = ({
   const router = useRouter();
   const [imageContainerRef, { width }] = useElementSize();
   return (
-    <ul ref={imageContainerRef} className="w-full">
+    <ul ref={imageContainerRef} className="w-full flex-1">
       {playlists.map((playlist, index) => {
         return (
           <li
             key={playlist.id}
             className={clsx(
-              "flex",
+              "flex cursor-pointer",
               index !== playlists.length - 1 &&
                 "mb-2 border-b border-gray-300 pb-2"
             )}
