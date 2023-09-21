@@ -4,19 +4,22 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useElementSize } from "usehooks-ts";
 import Carousel from "~/components/ui/Carousel";
-import SafeImage from "~/components/ui/SafeImage";
 import SearchInput from "~/components/ui/SearchInput";
 import TrackList from "~/components/ui/TrackList";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { type Search as SpotifySearch } from "~/contexts/Spotify";
-import Link from "next/link";
 import { api } from "~/utils/api";
 import SloopList from "~/components/ui/SloopList";
-import { pitchClassColours } from "~/utils/constants";
 import { type ListSloop } from "~/utils/types";
 import { type Artist } from "@prisma/client";
+import NoData from "~/components/ui/NoData";
+import AlbumCard from "~/components/ui/AlbumCard";
+import PlaylistCard from "~/components/ui/PlaylistCard";
+import ArtistCard from "~/components/ui/ArtistCard";
+import UserCard from "~/components/ui/UserCard";
+import clsx from "clsx";
 
 interface SpotifyResultsProps {
   results: SpotifySearch;
@@ -37,27 +40,11 @@ const SpotifyResults: React.FC<SpotifyResultsProps> = ({ results, width }) => {
           {results.artists.items.length > 0 ? (
             <Carousel>
               {results.artists.items.map((artist, index) => (
-                <Link
-                  key={index}
-                  style={{ width: width / 3 }}
-                  href={`/artist/${artist.id}`}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-full"
-                    url={artist.images[0]?.url}
-                    alt={artist.name}
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {artist.name}
-                  </p>
-                </Link>
+                <ArtistCard key={index} width={width} artist={artist} />
               ))}
             </Carousel>
           ) : (
-            <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-              No Artist Results
-            </p>
+            <NoData>No Artist Results</NoData>
           )}
         </section>
       )}
@@ -72,28 +59,11 @@ const SpotifyResults: React.FC<SpotifyResultsProps> = ({ results, width }) => {
           {results.albums.items.length > 0 ? (
             <Carousel>
               {results.albums.items.map((album, index) => (
-                <Link
-                  key={index}
-                  style={{ width: width / 3 }}
-                  href={`/album/${album.id}`}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={album.images[0]?.url}
-                    alt={album.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {album.name}
-                  </p>
-                </Link>
+                <AlbumCard key={index} width={width} album={album} />
               ))}
             </Carousel>
           ) : (
-            <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-              No Album Results
-            </p>
+            <NoData>No Album Results</NoData>
           )}
         </section>
       )}
@@ -108,28 +78,11 @@ const SpotifyResults: React.FC<SpotifyResultsProps> = ({ results, width }) => {
           {results.playlists.items.length > 0 ? (
             <Carousel>
               {results.playlists.items.map((playlist, index) => (
-                <Link
-                  key={index}
-                  style={{ width: width / 3 }}
-                  href={`/playlist/${playlist.id}`}
-                >
-                  <SafeImage
-                    className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                    url={playlist.images[0]?.url}
-                    alt={playlist.name}
-                    square
-                    width={width / 3}
-                  />
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {playlist.name}
-                  </p>
-                </Link>
+                <PlaylistCard key={index} width={width} playlist={playlist} />
               ))}
             </Carousel>
           ) : (
-            <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-              No Playlist Results
-            </p>
+            <NoData>No Playlist Results</NoData>
           )}
         </section>
       )}
@@ -144,9 +97,7 @@ const SpotifyResults: React.FC<SpotifyResultsProps> = ({ results, width }) => {
           {results.tracks.items.length > 0 ? (
             <TrackList tracks={results.tracks.items} />
           ) : (
-            <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-              No Track Results
-            </p>
+            <NoData>No Track Results</NoData>
           )}
         </section>
       )}
@@ -176,30 +127,11 @@ const SloopyResults: React.FC<SloopyResultsProps> = ({ results, width }) => {
         {results.users.length > 0 ? (
           <Carousel>
             {results.users.map((user, index) => (
-              <Link
-                key={index}
-                style={{ width: width / 3 }}
-                href={`/${user.username}`}
-              >
-                <SafeImage
-                  className="relative mb-2 aspect-square overflow-hidden rounded-full"
-                  url={user.image}
-                  alt={user.username}
-                  width={width / 3}
-                  colours={Object.keys(pitchClassColours).map(
-                    (key) => pitchClassColours[parseInt(key)]!
-                  )}
-                />
-                <p className="truncate text-sm font-semibold sm:text-base">
-                  {user.username}
-                </p>
-              </Link>
+              <UserCard key={index} width={width} user={user} />
             ))}
           </Carousel>
         ) : (
-          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-            No User Results
-          </p>
+          <NoData>No User Results</NoData>
         )}
       </section>
       <section>
@@ -212,30 +144,11 @@ const SloopyResults: React.FC<SloopyResultsProps> = ({ results, width }) => {
         {results.artists.length > 0 ? (
           <Carousel>
             {results.artists.map((artist, index) => (
-              <Link
-                key={index}
-                style={{ width: width / 3 }}
-                href={`/${artist.name}`}
-              >
-                <SafeImage
-                  className="relative mb-2 aspect-square overflow-hidden rounded-full"
-                  url={artist.image}
-                  alt={artist.name}
-                  width={width / 3}
-                  colours={Object.keys(pitchClassColours).map(
-                    (key) => pitchClassColours[parseInt(key)]!
-                  )}
-                />
-                <p className="truncate text-sm font-semibold sm:text-base">
-                  {artist.name}
-                </p>
-              </Link>
+              <ArtistCard key={index} width={width} artist={artist} />
             ))}
           </Carousel>
         ) : (
-          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-            No Artist Results
-          </p>
+          <NoData>No Artist Results</NoData>
         )}
       </section>
       <section>
@@ -248,9 +161,7 @@ const SloopyResults: React.FC<SloopyResultsProps> = ({ results, width }) => {
         {results.sloops.length > 0 ? (
           <SloopList sloops={results.sloops} />
         ) : (
-          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-            No Sloop Results
-          </p>
+          <NoData>No Sloop Results</NoData>
         )}
       </section>
     </>
@@ -314,7 +225,7 @@ const Search: NextPage = ({}) => {
           defaultValue={router.query.q as string | undefined}
           tab={router.query.tab as string | undefined}
         />
-        <div className="mb-4 flex gap-2 text-center font-display text-base font-semibold text-primary sm:text-lg">
+        <div className="mb-4 flex gap-2 text-center font-display text-base font-semibold sm:text-lg">
           <button
             onClick={() =>
               void router.replace(
@@ -323,7 +234,12 @@ const Search: NextPage = ({}) => {
                 { shallow: true }
               )
             }
-            className="flex-1 rounded-md bg-secondary px-2 py-2.5"
+            className={clsx(
+              "flex-1 rounded-md px-2 py-2.5",
+              router.query.tab === "sloopy"
+                ? "bg-secondary text-primary"
+                : "border border-gray-300 bg-gray-200"
+            )}
           >
             Sloopy
           </button>
@@ -335,7 +251,12 @@ const Search: NextPage = ({}) => {
                 { shallow: true }
               )
             }
-            className="flex-1 rounded-md bg-secondary px-2 py-2.5"
+            className={clsx(
+              "flex-1 rounded-md px-2 py-2.5",
+              router.query.tab === "spotify"
+                ? "bg-secondary text-primary"
+                : "border border-gray-300 bg-gray-200"
+            )}
           >
             Spotify
           </button>
@@ -347,9 +268,7 @@ const Search: NextPage = ({}) => {
             ) : sloopySearch ? (
               <SloopyResults results={sloopySearch} width={width} />
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                Unable To Search Sloopy
-              </p>
+              <NoData>Unable To Search Sloopy. Please Refresh.</NoData>
             )
           ) : router.query.tab === "spotify" ? (
             fetchingSpotifySearch ? (
@@ -357,9 +276,7 @@ const Search: NextPage = ({}) => {
             ) : spotifySearch ? (
               <SpotifyResults results={spotifySearch.data} width={width} />
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                Unable To Search Spotify
-              </p>
+              <NoData>Unable To Search Spotify. Please Refresh.</NoData>
             )
           ) : (
             <ErrorView />
@@ -369,4 +286,5 @@ const Search: NextPage = ({}) => {
     </>
   );
 };
+
 export default Search;

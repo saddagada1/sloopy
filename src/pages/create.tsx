@@ -170,9 +170,8 @@ const Create: NextPage = ({}) => {
                 tempo: analysis.track.tempo,
                 timeSignature: analysis.track.time_signature,
               });
-              void router.replace(`/editor/${response.id}`);
+              void router.replace(`/editor/${response}`);
             } catch (error) {
-              console.log(error);
               if (error instanceof TRPCClientError) {
                 toast.error(`Error: ${error.message}`);
                 if (error.message.includes("Verify")) {

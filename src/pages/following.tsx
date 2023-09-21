@@ -1,56 +1,50 @@
-import clsx from "clsx";
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import { PiArrowLeft, PiArrowRight } from "react-icons/pi";
+import { useState } from "react";
+import NoData from "~/components/ui/NoData";
+import Pagination from "~/components/ui/Pagination";
 import UserList from "~/components/ui/UserList";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import { api } from "~/utils/api";
+import { paginationLimit } from "~/utils/constants";
 
 const Following: NextPage = ({}) => {
-  const router = useRouter();
   const { data: session } = useSession();
-  const {
-    data: user,
-    isLoading: fetchingUser,
-    error: userError,
-  } = api.users.getSessionUser.useQuery();
+  const [page, setPage] = useState(0);
   const {
     data: following,
     isLoading: fetchingFollowing,
     error: followingError,
-  } = api.users.getUserFollowing.useQuery({
-    offset: router.query.offset ? parseInt(router.query.offset as string) : 0,
-  });
+    fetchNextPage,
+  } = api.users.getFollowing.useInfiniteQuery(
+    {
+      limit: paginationLimit,
+    },
+    {
+      getNextPageParam: (page) => page.next,
+    }
+  );
+  const data = following?.pages[page];
 
-  const handleNext = () => {
-    if (!user || !following) return;
-    if (!(user._count.following - following.offset > following.limit)) return;
-    void router.push(
-      `/following?offset=${following.offset + following.limit}`,
-      undefined,
-      { shallow: true }
-    );
+  const handleNext = async () => {
+    if (!following?.pages[page + 1]) {
+      await fetchNextPage();
+    }
+    setPage((prev) => prev + 1);
   };
 
   const handlePrevious = () => {
-    if (!user || !following) return;
-    if (!(following.offset - following.limit > 0)) return;
-    void router.push(
-      `/following?offset=${following.offset - following.limit}`,
-      undefined,
-      { shallow: true }
-    );
+    setPage((prev) => prev - 1);
   };
 
-  if (fetchingUser || fetchingFollowing) {
+  if (fetchingFollowing) {
     return <Loading />;
   }
 
-  if ((!user || userError) ?? (!following || followingError)) {
+  if (!following || followingError) {
     return <ErrorView />;
   }
 
@@ -66,45 +60,18 @@ const Following: NextPage = ({}) => {
         <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
           {session?.user.name ?? session?.user.username}
         </h1>
-        {user._count.following > 0 ? (
-          <>
-            <UserList users={following.items.map(({ followed }) => followed)} />
-            <div className="mt-2 flex items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
-              <p className="flex-1">
-                {Math.round(
-                  (user._count.following / following.limit) *
-                    (following.offset / user._count.following)
-                ) + 1}
-              </p>
-              <button
-                onClick={() => handlePrevious()}
-                disabled={!(following.offset - following.limit > 0)}
-                className={clsx(
-                  !(following.offset - following.limit > 0) && "text-gray-300"
-                )}
-              >
-                <PiArrowLeft />
-              </button>
-              <button
-                onClick={() => handleNext()}
-                disabled={
-                  !(user._count.following - following.offset > following.limit)
-                }
-                className={clsx(
-                  !(
-                    user._count.following - following.offset >
-                    following.limit
-                  ) && "text-gray-300"
-                )}
-              >
-                <PiArrowRight />
-              </button>
-            </div>
-          </>
+        {data ? (
+          <Pagination
+            page={page}
+            hasNext={!!following.pages[page]?.next}
+            hasPrevious={!!following.pages[page - 1]}
+            onClickNext={() => void handleNext()}
+            onClickPrevious={() => handlePrevious()}
+          >
+            <UserList users={data.items.map(({ followed }) => followed)} />
+          </Pagination>
         ) : (
-          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-            Not Following Anyone
-          </p>
+          <NoData>Not Following Anyone</NoData>
         )}
       </div>
     </>

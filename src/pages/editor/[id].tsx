@@ -23,7 +23,7 @@ import Player from "~/components/sloops/Player";
 import { AnimatePresence } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import CreateLoopModal from "~/components/sloops/CreateLoopModal";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { fetchChords } from "~/utils/helpers";
 import Chord from "~/components/sloops/Chord";
 import LoopTimeline from "~/components/sloops/LoopTimeline";
@@ -31,12 +31,7 @@ import { useEditorContext } from "~/contexts/Editor";
 import { WaveSpinner } from "react-spinners-kit";
 import clsx from "clsx";
 import EditLoopModal from "~/components/sloops/EditLoopModal";
-import {
-  type UpdateSloopInput,
-  type Loop,
-  type PageUser,
-  type PageSloop,
-} from "~/utils/types";
+import { type UpdateSloopInput, type Loop } from "~/utils/types";
 import { useElementSize } from "usehooks-ts";
 import EditSloopModal from "~/components/sloops/EditSloopModal";
 import { useSaveBeforeRouteChange } from "~/utils/hooks";
@@ -78,7 +73,7 @@ const Editor: NextPage = ({}) => {
     variables,
   } = api.sloops.update.useMutation();
   const { route, setRoute, disabled, setDisabled } = useSaveBeforeRouteChange();
-  const ctx = useQueryClient();
+  const t3 = api.useContext();
 
   const handleSaveSloop = async ({
     publish,
@@ -98,41 +93,21 @@ const Editor: NextPage = ({}) => {
         loops: editor.loops,
         isPrivate: publish === undefined ? data.isPrivate : !publish,
       });
-      ctx.setQueryData(
-        [["sloops", "get"], { input: { id: data.id }, type: "query" }],
-        (cachedData: PageSloop | undefined) => {
-          if (!cachedData) return;
-          return {
-            ...response,
-            _count: cachedData._count,
-          };
-        }
-      );
-      ctx.setQueryData(
-        [["sloops", "getUserSloop"], { input: { id: data.id }, type: "query" }],
-        (cachedData: PageSloop | undefined) => {
-          if (!cachedData) return;
-          return {
-            ...response,
-            _count: cachedData._count,
-          };
-        }
-      );
-      ctx.setQueryData(
-        [["users", "getSessionUser"], { type: "query" }],
-        (cachedData: PageUser | undefined) => {
-          if (!cachedData) return;
-          return {
-            ...cachedData,
-            sloops: cachedData.sloops.map((sloop) => {
-              if (sloop.id === response.id) {
-                return { ...response, _count: { likes: sloop._count.likes } };
-              }
-              return sloop;
-            }),
-          };
-        }
-      );
+      t3.sloops.get.setData({ id: data.id }, (cachedData) => {
+        if (!cachedData) return;
+        return {
+          ...response,
+          ...cachedData,
+        };
+      });
+      t3.sloops.getUserSloop.setData({ id: data.id }, (cachedData) => {
+        if (!cachedData) return;
+        return {
+          ...response,
+          ...cachedData,
+        };
+      });
+      await t3.users.getSessionUser.reset();
       toast.remove(updateProgress);
       localStorage.removeItem(`sloop`);
       toast.success("Sloop Saved!", { duration: 4000 });
@@ -180,7 +155,6 @@ const Editor: NextPage = ({}) => {
   useEffect(() => {
     if (!route) return;
     void handleSaveSloop({ url: route });
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
 

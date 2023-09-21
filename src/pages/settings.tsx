@@ -204,7 +204,41 @@ const Settings: NextPage = ({}) => {
             values: GeneralValues,
             { setErrors, resetForm }: FormikHelpers<GeneralValues>
           ) => {
-            if (calcTrimmedString(values.username) !== "") {
+            if (
+              calcTrimmedString(values.username) !== "" &&
+              calcTrimmedString(values.email) !== ""
+            ) {
+              try {
+                const responseUsername = await changeUsername({
+                  username: calcTrimmedString(values.username),
+                });
+                const responseEmail = await changeEmail({
+                  email: calcTrimmedString(values.email),
+                });
+                if (!responseUsername.user || !responseEmail.user) {
+                  setErrors(
+                    toErrorMap(
+                      (responseUsername.errors ?? []).concat(
+                        responseEmail.errors ?? []
+                      )
+                    )
+                  );
+                  return;
+                }
+                await updateSession();
+                toast.success("Successfully Updated General");
+                resetForm();
+              } catch (error) {
+                if (error instanceof TRPCClientError) {
+                  toast.error(`Error: ${error.message}`);
+                }
+                return;
+              }
+            }
+            if (
+              calcTrimmedString(values.username) !== "" &&
+              calcTrimmedString(values.email) === ""
+            ) {
               try {
                 const response = await changeUsername({
                   username: calcTrimmedString(values.username),
@@ -223,7 +257,10 @@ const Settings: NextPage = ({}) => {
                 return;
               }
             }
-            if (calcTrimmedString(values.email) !== "") {
+            if (
+              calcTrimmedString(values.username) === "" &&
+              calcTrimmedString(values.email) !== ""
+            ) {
               try {
                 const response = await changeEmail({
                   email: calcTrimmedString(values.email),
@@ -358,7 +395,29 @@ const Settings: NextPage = ({}) => {
             values: AboutValues,
             { resetForm }: FormikHelpers<AboutValues>
           ) => {
-            if (calcTrimmedString(values.name) !== "") {
+            if (
+              calcTrimmedString(values.name) !== "" &&
+              calcTrimmedString(values.bio) !== ""
+            ) {
+              try {
+                await changeName({
+                  name: calcTrimmedString(values.name),
+                });
+                await changeBio({ bio: calcTrimmedString(values.bio) });
+                await updateSession();
+                toast.success("Successfully Updated About");
+                resetForm();
+              } catch (error) {
+                if (error instanceof TRPCClientError) {
+                  toast.error(`Error: ${error.message}`);
+                }
+                return;
+              }
+            }
+            if (
+              calcTrimmedString(values.name) !== "" &&
+              calcTrimmedString(values.bio) === ""
+            ) {
               try {
                 await changeName({
                   name: calcTrimmedString(values.name),
@@ -373,7 +432,10 @@ const Settings: NextPage = ({}) => {
                 return;
               }
             }
-            if (calcTrimmedString(values.bio) !== "") {
+            if (
+              calcTrimmedString(values.bio) !== "" &&
+              calcTrimmedString(values.name) === ""
+            ) {
               try {
                 await changeBio({ bio: calcTrimmedString(values.bio) });
                 await updateSession();
@@ -427,4 +489,5 @@ const Settings: NextPage = ({}) => {
     </>
   );
 };
+
 export default WithAuth(Settings);

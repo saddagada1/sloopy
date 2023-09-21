@@ -3,9 +3,12 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import toast from "react-hot-toast";
 import { PiPlusCircle, PiSpotifyLogo } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
+import NoData from "~/components/ui/NoData";
+import Pagination from "~/components/ui/Pagination";
 import SafeImage from "~/components/ui/SafeImage";
 import SloopList from "~/components/ui/SloopList";
 import ErrorView from "~/components/utils/ErrorView";
@@ -13,7 +16,7 @@ import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { api } from "~/utils/api";
-import { mode, pitchClass } from "~/utils/constants";
+import { mode, paginationLimit, pitchClass } from "~/utils/constants";
 
 const Track: NextPage = ({}) => {
   const router = useRouter();
@@ -63,11 +66,30 @@ const Track: NextPage = ({}) => {
       enabled: !!spotify.auth,
     }
   );
+  const [page, setPage] = useState(0);
   const {
     data: sloops,
     isLoading: fetchingSloops,
     error: sloopError,
-  } = api.sloops.getTrackSloops.useQuery({ id: router.query.id as string });
+    fetchNextPage,
+  } = api.sloops.getTrackSloops.useInfiniteQuery(
+    { id: router.query.id as string, limit: paginationLimit },
+    {
+      getNextPageParam: (page) => page.next,
+    }
+  );
+  const data = sloops?.pages[page];
+
+  const handleNext = async () => {
+    if (!sloops?.pages[page + 1]) {
+      await fetchNextPage();
+    }
+    setPage((prev) => prev + 1);
+  };
+
+  const handlePrevious = () => {
+    setPage((prev) => prev - 1);
+  };
 
   if (fetchingTrack || fetchingAnalysis || fetchingSloops) {
     return <Loading />;
@@ -88,7 +110,7 @@ const Track: NextPage = ({}) => {
       </Head>
       <div
         ref={imageContainerRef}
-        className="flex flex-1 flex-col items-center px-4 pb-12 pt-6"
+        className="flex flex-1 flex-col items-center px-4 pb-4 pt-6"
       >
         <SafeImage
           url={track.album.images[0]?.url}
@@ -107,16 +129,13 @@ const Track: NextPage = ({}) => {
         <h1 className="mb-4 w-full truncate text-3xl font-semibold sm:text-4xl">
           {track.name}
         </h1>
-        <div className="mb-4 flex w-full items-end justify-between gap-4 border-b border-gray-300 pb-4">
-          <div className="flex gap-4 text-3xl sm:text-4xl">
-            <Link href={track.uri}>
-              <PiSpotifyLogo />
-            </Link>
-            <Link href={`/create?track_id=${track.id}`}>
-              <PiPlusCircle />
-            </Link>
-          </div>
-          <p className="text-sm text-gray-400 sm:text-base">{sloops.length}</p>
+        <div className="mb-4 flex w-full items-end justify-between gap-4 border-b border-gray-300 pb-4 text-3xl sm:text-4xl">
+          <Link href={track.uri}>
+            <PiSpotifyLogo />
+          </Link>
+          <Link href={`/create?track_id=${track.id}`}>
+            <PiPlusCircle />
+          </Link>
         </div>
         <div className="mb-4 flex w-full border-b border-gray-300 pb-4">
           <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
@@ -142,7 +161,21 @@ const Track: NextPage = ({}) => {
             </p>
           </div>
         </div>
-        <SloopList sloops={sloops} />
+
+        {data ? (
+          <Pagination
+            page={page}
+            hasNext={!!sloops.pages[page]?.next}
+            hasPrevious={!!sloops.pages[page - 1]}
+            onClickNext={() => void handleNext()}
+            onClickPrevious={() => handlePrevious()}
+            className="w-full"
+          >
+            <SloopList sloops={data.items} />
+          </Pagination>
+        ) : (
+          <NoData>No loops have been created :(</NoData>
+        )}
       </div>
     </>
   );

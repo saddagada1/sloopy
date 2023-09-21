@@ -1,16 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import clsx from "clsx";
 import type { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
-import { PiArrowLeft, PiArrowRight, PiSpotifyLogo } from "react-icons/pi";
+import { PiSpotifyLogo } from "react-icons/pi";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import PlaylistList from "~/components/ui/PlaylistList";
 import Link from "next/link";
 import ErrorView from "~/components/utils/ErrorView";
+import Pagination from "~/components/ui/Pagination";
+import NoData from "~/components/ui/NoData";
 
 const SavedPlaylists: NextPage = ({}) => {
   const router = useRouter();
@@ -87,34 +88,19 @@ const SavedPlaylists: NextPage = ({}) => {
           </p>
         </div>
         {saved.total > 0 ? (
-          <>
+          <Pagination
+            page={Math.round(
+              (saved.total / saved.limit) * (saved.offset / saved.total)
+            )}
+            onClickNext={() => handleNext()}
+            onClickPrevious={() => handlePrevious()}
+            hasNext={!!saved.next}
+            hasPrevious={!!saved.previous}
+          >
             <PlaylistList playlists={saved.items} />
-            <div className="mt-2 flex items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
-              <p className="flex-1">
-                {Math.round(
-                  (saved.total / saved.limit) * (saved.offset / saved.total)
-                ) + 1}
-              </p>
-              <button
-                onClick={() => handlePrevious()}
-                disabled={!saved.previous}
-                className={clsx(!saved.previous && "text-gray-300")}
-              >
-                <PiArrowLeft />
-              </button>
-              <button
-                onClick={() => handleNext()}
-                disabled={!saved.next}
-                className={clsx(!saved.next && "text-gray-300")}
-              >
-                <PiArrowRight />
-              </button>
-            </div>
-          </>
+          </Pagination>
         ) : (
-          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-            No Saved Playlists
-          </p>
+          <NoData>No Saved Playlists</NoData>
         )}
       </div>
     </>

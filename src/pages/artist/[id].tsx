@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { PiSpotifyLogo } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import Carousel from "~/components/ui/Carousel";
+import NoData from "~/components/ui/NoData";
 import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
 import ErrorView from "~/components/utils/ErrorView";
@@ -148,9 +149,7 @@ const Artist: NextPage = ({}) => {
                 ))}
               </Carousel>
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No Album Results
-              </p>
+              <NoData>No Album Results</NoData>
             )}
           </div>
           <div>
@@ -163,9 +162,7 @@ const Artist: NextPage = ({}) => {
             {artist.tracks.length > 0 ? (
               <TrackList tracks={artist.tracks} />
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No Track Results
-              </p>
+              <NoData>No Track Results</NoData>
             )}
           </div>
           <div>
@@ -196,9 +193,7 @@ const Artist: NextPage = ({}) => {
                 ))}
               </Carousel>
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No Artist Results
-              </p>
+              <NoData>No Artist Results</NoData>
             )}
           </div>
         </div>

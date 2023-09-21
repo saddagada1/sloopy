@@ -1,52 +1,50 @@
-import clsx from "clsx";
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import { PiArrowLeft, PiArrowRight } from "react-icons/pi";
+import { useState } from "react";
+import NoData from "~/components/ui/NoData";
+import Pagination from "~/components/ui/Pagination";
 import SloopList from "~/components/ui/SloopList";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import { api } from "~/utils/api";
+import { paginationLimit } from "~/utils/constants";
 
 const Likes: NextPage = ({}) => {
-  const router = useRouter();
   const { data: session } = useSession();
-  const {
-    data: total,
-    isLoading: fetchingTotal,
-    error: totalError,
-  } = api.users.countUserLikes.useQuery();
+  const [page, setPage] = useState(0);
   const {
     data: likes,
     isLoading: fetchingLikes,
     error: likesError,
-  } = api.users.getUserLikes.useQuery({
-    offset: parseInt(router.query.offset as string) ?? 0,
-  });
+    fetchNextPage,
+  } = api.users.getLikes.useInfiniteQuery(
+    {
+      limit: paginationLimit,
+    },
+    {
+      getNextPageParam: (page) => page.next,
+    }
+  );
+  const data = likes?.pages[page];
 
-  const handleNext = () => {
-    if (!total || !likes) return;
-    if (!(total - likes.offset > likes.limit)) return;
-    void router.push(`/likes?offset=${likes.offset + likes.limit}`, undefined, {
-      shallow: true,
-    });
+  const handleNext = async () => {
+    if (!likes?.pages[page + 1]) {
+      await fetchNextPage();
+    }
+    setPage((prev) => prev + 1);
   };
 
   const handlePrevious = () => {
-    if (!total || !likes) return;
-    if (!(likes.offset - likes.limit > 0)) return;
-    void router.push(`/likes?offset=${likes.offset - likes.limit}`, undefined, {
-      shallow: true,
-    });
+    setPage((prev) => prev - 1);
   };
 
-  if (fetchingTotal || fetchingLikes) {
+  if (fetchingLikes) {
     return <Loading />;
   }
 
-  if ((!total || totalError) ?? (!likes || likesError)) {
+  if (!likes || likesError) {
     return <ErrorView />;
   }
 
@@ -62,37 +60,19 @@ const Likes: NextPage = ({}) => {
         <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
           {session?.user.name ?? session?.user.username}
         </h1>
-        {total > 0 ? (
-          <>
-            <SloopList sloops={likes.items.map(({ sloop }) => sloop)} />
-            <div className="mt-2 flex items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
-              <p className="flex-1">
-                {Math.round((total / likes.limit) * (likes.offset / total)) + 1}
-              </p>
-              <button
-                onClick={() => handlePrevious()}
-                disabled={!(likes.offset - likes.limit > 0)}
-                className={clsx(
-                  !(likes.offset - likes.limit > 0) && "text-gray-300"
-                )}
-              >
-                <PiArrowLeft />
-              </button>
-              <button
-                onClick={() => handleNext()}
-                disabled={!(total - likes.offset > likes.limit)}
-                className={clsx(
-                  !(total - likes.offset > likes.limit) && "text-gray-300"
-                )}
-              >
-                <PiArrowRight />
-              </button>
-            </div>
-          </>
+        {data ? (
+          <Pagination
+            page={page}
+            hasNext={!!likes.pages[page]?.next}
+            hasPrevious={!!likes.pages[page - 1]}
+            onClickNext={() => void handleNext()}
+            onClickPrevious={() => handlePrevious()}
+            className="mt-4"
+          >
+            <SloopList sloops={data.items.map(({ sloop }) => sloop)} />
+          </Pagination>
         ) : (
-          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-            No Likes
-          </p>
+          <NoData>No Likes</NoData>
         )}
       </div>
     </>

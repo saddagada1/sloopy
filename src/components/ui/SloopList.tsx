@@ -17,7 +17,7 @@ const SloopList: React.FC<SloopListProps> = ({ sloops, profile }) => {
   const [imageContainerRef, { width }] = useElementSize();
 
   return (
-    <ul ref={imageContainerRef} className="flex w-full flex-col gap-2">
+    <ul ref={imageContainerRef} className="flex w-full flex-1 flex-col gap-2">
       {sloops.map((sloop, index) => (
         <li
           className="flex cursor-pointer gap-4 rounded-lg border border-gray-300 bg-gray-200 p-2"

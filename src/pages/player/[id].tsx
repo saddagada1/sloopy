@@ -50,13 +50,24 @@ const SloopPlayer: NextPage = ({}) => {
   });
   const { mutateAsync: updatePlays } =
     api.sloops.createOrUpdatePlay.useMutation();
+  const t3 = api.useContext();
   const [containerRef, { width: containerWidth }] = useElementSize();
   const voicingRef = useRef<HTMLDivElement>(null!);
+
+  const handleUpdatePlays = async (id: string) => {
+    try {
+      await updatePlays({ id: id });
+      await t3.sloops.get.reset();
+      await t3.sloops.getUserSloop.reset();
+    } catch (error) {
+      return;
+    }
+  };
 
   useEffect(() => {
     if (!data) return;
     playerCtx.initialize(data);
-    session?.user.id !== data.userId && void updatePlays({ id: data.id });
+    session?.user.id !== data.userId && void handleUpdatePlays(data.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 

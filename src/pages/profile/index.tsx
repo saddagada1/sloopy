@@ -12,6 +12,7 @@ import ErrorView from "~/components/utils/ErrorView";
 import SloopList from "~/components/ui/SloopList";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
+import clsx from "clsx";
 
 const Profile: NextPage = ({}) => {
   const router = useRouter();
@@ -116,14 +117,19 @@ const Profile: NextPage = ({}) => {
             </p>
           </div>
         )}
-        <div className="my-4 flex gap-2 border-t border-gray-300 pt-4 text-center font-display text-base font-semibold text-primary sm:text-lg">
+        <div className="my-4 flex gap-2 border-t border-gray-300 pt-4 text-center font-display text-base font-semibold sm:text-lg">
           <button
             onClick={() =>
               void router.replace(`/profile?tab=published`, undefined, {
                 shallow: true,
               })
             }
-            className="flex-1 rounded-md bg-secondary px-2 py-2.5"
+            className={clsx(
+              "flex-1 rounded-md px-2 py-2.5",
+              router.query.tab !== "private"
+                ? "bg-secondary text-primary"
+                : "border border-gray-300 bg-gray-200"
+            )}
           >
             Published
           </button>
@@ -133,7 +139,12 @@ const Profile: NextPage = ({}) => {
                 shallow: true,
               })
             }
-            className="flex-1 rounded-md bg-secondary px-2 py-2.5"
+            className={clsx(
+              "flex-1 rounded-md px-2 py-2.5",
+              router.query.tab === "private"
+                ? "bg-secondary text-primary"
+                : "border border-gray-300 bg-gray-200"
+            )}
           >
             Private
           </button>

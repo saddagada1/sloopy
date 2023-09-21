@@ -12,14 +12,8 @@ import {
   sendForgotPasswordEmail,
 } from "~/utils/resend";
 import { v4 } from "uuid";
-import { Redis } from "@upstash/redis";
-import { env } from "~/env.mjs";
 import { FORGOT_PASSWORD_PREFIX, VERIFY_EMAIL_PREFIX } from "~/utils/constants";
-
-const redis = new Redis({
-  url: env.UPSTASH_REDIS_REST_URL,
-  token: env.UPSTASH_REDIS_REST_TOKEN,
-});
+import { redis } from "~/utils/upstash";
 
 export const usersRouter = createTRPCRouter({
   getSessionUser: protectedProcedure.query(async ({ ctx }) => {
@@ -79,7 +73,7 @@ export const usersRouter = createTRPCRouter({
             _count: {
               select: { followers: true, following: true },
             },
-            followers: { where: { followedId: ctx.session?.user.id } },
+            followers: { where: { followerId: ctx.session?.user.id } },
           },
         });
         return user;
@@ -91,22 +85,14 @@ export const usersRouter = createTRPCRouter({
       }
     }),
 
-  countUserLikes: protectedProcedure.query(async ({ ctx }) => {
-    try {
-      const likes = await ctx.prisma.like.count({
-        where: { userId: ctx.session.user.id },
-      });
-      return likes;
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Could Not Count Likes",
-      });
-    }
-  }),
-
-  getUserLikes: protectedProcedure
-    .input(z.object({ offset: z.number(), limit: z.number().optional() }))
+  getLikes: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+      })
+    )
     .query(async ({ input, ctx }) => {
       try {
         const likes = await ctx.prisma.like.findMany({
@@ -114,12 +100,19 @@ export const usersRouter = createTRPCRouter({
           include: {
             sloop: { include: { _count: { select: { likes: true } } } },
           },
-          skip: input.offset,
-          take: input.limit ?? 100,
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { id: input.cursor } : undefined,
+          orderBy: {
+            createdAt: "desc",
+          },
         });
+        let next: typeof input.cursor = undefined;
+        if (likes.length > input.limit) {
+          next = likes.pop()?.id;
+        }
         return {
-          offset: input.offset,
-          limit: input.limit ?? 100,
+          next: next,
           items: likes,
         };
       } catch (error) {
@@ -130,8 +123,14 @@ export const usersRouter = createTRPCRouter({
       }
     }),
 
-  getUserFollowers: protectedProcedure
-    .input(z.object({ offset: z.number(), limit: z.number().optional() }))
+  getFollowers: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+      })
+    )
     .query(async ({ input, ctx }) => {
       try {
         const followers = await ctx.prisma.follow.findMany({
@@ -139,12 +138,19 @@ export const usersRouter = createTRPCRouter({
           include: {
             follower: { select: { name: true, image: true, username: true } },
           },
-          skip: input.offset,
-          take: input.limit ?? 100,
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { id: input.cursor } : undefined,
+          orderBy: {
+            createdAt: "desc",
+          },
         });
+        let next: typeof input.cursor = undefined;
+        if (followers.length > input.limit) {
+          next = followers.pop()?.id;
+        }
         return {
-          offset: input.offset,
-          limit: input.limit ?? 100,
+          next: next,
           items: followers,
         };
       } catch (error) {
@@ -155,8 +161,14 @@ export const usersRouter = createTRPCRouter({
       }
     }),
 
-  getUserFollowing: protectedProcedure
-    .input(z.object({ offset: z.number(), limit: z.number().optional() }))
+  getFollowing: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+      })
+    )
     .query(async ({ input, ctx }) => {
       try {
         const following = await ctx.prisma.follow.findMany({
@@ -164,12 +176,19 @@ export const usersRouter = createTRPCRouter({
           include: {
             followed: { select: { name: true, image: true, username: true } },
           },
-          skip: input.offset,
-          take: input.limit ?? 100,
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { id: input.cursor } : undefined,
+          orderBy: {
+            createdAt: "desc",
+          },
         });
+        let next: typeof input.cursor = undefined;
+        if (following.length > input.limit) {
+          next = following.pop()?.id;
+        }
         return {
-          offset: input.offset,
-          limit: input.limit ?? 100,
+          next: next,
           items: following,
         };
       } catch (error) {
@@ -180,27 +199,12 @@ export const usersRouter = createTRPCRouter({
       }
     }),
 
-  countLikes: publicProcedure
-    .input(z.object({ username: z.string() }))
-    .query(async ({ ctx, input }) => {
-      try {
-        const likes = await ctx.prisma.like.count({
-          where: { user: { username: input.username } },
-        });
-        return likes;
-      } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Could Not Count User Likes",
-        });
-      }
-    }),
-
-  getLikes: publicProcedure
+  getUserLikes: publicProcedure
     .input(
       z.object({
-        offset: z.number(),
-        limit: z.number().optional(),
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
         username: z.string(),
       })
     )
@@ -211,12 +215,19 @@ export const usersRouter = createTRPCRouter({
           include: {
             sloop: { include: { _count: { select: { likes: true } } } },
           },
-          skip: input.offset,
-          take: input.limit ?? 100,
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { id: input.cursor } : undefined,
+          orderBy: {
+            createdAt: "desc",
+          },
         });
+        let next: typeof input.cursor = undefined;
+        if (likes.length > input.limit) {
+          next = likes.pop()?.id;
+        }
         return {
-          offset: input.offset,
-          limit: input.limit ?? 100,
+          next: next,
           items: likes,
         };
       } catch (error) {
@@ -227,11 +238,12 @@ export const usersRouter = createTRPCRouter({
       }
     }),
 
-  getFollowers: publicProcedure
+  getUserFollowers: publicProcedure
     .input(
       z.object({
-        offset: z.number(),
-        limit: z.number().optional(),
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
         username: z.string(),
       })
     )
@@ -242,12 +254,19 @@ export const usersRouter = createTRPCRouter({
           include: {
             follower: { select: { name: true, image: true, username: true } },
           },
-          skip: input.offset,
-          take: input.limit ?? 100,
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { id: input.cursor } : undefined,
+          orderBy: {
+            createdAt: "desc",
+          },
         });
+        let next: typeof input.cursor = undefined;
+        if (followers.length > input.limit) {
+          next = followers.pop()?.id;
+        }
         return {
-          offset: input.offset,
-          limit: input.limit ?? 100,
+          next: next,
           items: followers,
         };
       } catch (error) {
@@ -258,11 +277,12 @@ export const usersRouter = createTRPCRouter({
       }
     }),
 
-  getFollowing: publicProcedure
+  getUserFollowing: publicProcedure
     .input(
       z.object({
-        offset: z.number(),
-        limit: z.number().optional(),
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
         username: z.string(),
       })
     )
@@ -273,12 +293,19 @@ export const usersRouter = createTRPCRouter({
           include: {
             followed: { select: { name: true, image: true, username: true } },
           },
-          skip: input.offset,
-          take: input.limit ?? 100,
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { id: input.cursor } : undefined,
+          orderBy: {
+            createdAt: "desc",
+          },
         });
+        let next: typeof input.cursor = undefined;
+        if (following.length > input.limit) {
+          next = following.pop()?.id;
+        }
         return {
-          offset: input.offset,
-          limit: input.limit ?? 100,
+          next: next,
           items: following,
         };
       } catch (error) {

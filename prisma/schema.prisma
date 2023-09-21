@@ -8,16 +8,16 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 model Sloop {
-  id            String   @id @default(cuid())
-  name          String   @db.Text
-  description   String   @db.Text
+  id            String       @id @default(cuid())
+  name          String       @db.Text
+  description   String       @db.Text
   trackId       String
-  trackName     String   @db.Text
+  trackName     String       @db.Text
   artists       Artist[]
   duration      Float
   key           Int
@@ -25,14 +25,15 @@ model Sloop {
   tempo         Float
   timeSignature Int
   loops         Json
-  isPrivate     Boolean  @default(true)
+  isPrivate     Boolean      @default(true)
   userId        String
-  userUsername  String   @db.VarChar(255)
-  user          User     @relation(fields: [userId, userUsername], references: [id, username], onDelete: Cascade)
+  userUsername  String       @db.VarChar(255)
+  user          User         @relation(fields: [userId, userUsername], references: [id, username], onDelete: Cascade)
   likes         Like[]
   plays         Play[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  rankedSloop   RankedSloop?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([userId])
   @@index([trackId])
@@ -46,25 +47,26 @@ model Sloop {
 }
 
 model Artist {
-  id         String   @id @default(cuid())
-  spotifyId  String   @unique
-  name       String   @db.Text
-  image      String?  @db.Text
-  sloops     Sloop[]  
-  createdAt  DateTime @default(now())
+  id           String        @id @default(cuid())
+  spotifyId    String        @unique
+  name         String        @db.Text
+  image        String?       @db.Text
+  sloops       Sloop[]
+  rankedArtist RankedArtist?
+  createdAt    DateTime      @default(now())
 
   @@index([spotifyId])
   @@fulltext([name])
 }
 
 model Play {
-  id         String   @id @default(cuid())
-  sloopId    String
-  userId     String
-  sloop      Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  sloopId   String
+  userId    String
+  sloop     Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([sloopId, userId])
   @@index([sloopId])
@@ -72,16 +74,141 @@ model Play {
 }
 
 model Like {
-  id         String   @id @default(cuid())
-  sloopId    String
-  userId     String
-  sloop      Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  sloopId   String
+  userId    String
+  sloop     Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   @@unique([sloopId, userId])
   @@index([sloopId])
   @@index([userId])
+}
+
+model SloopPlayCount {
+  id        String      @id @default(cuid())
+  sloopId   String
+  sloop     RankedSloop @relation(fields: [sloopId], references: [sloopId], onDelete: Cascade)
+  playCount Int
+  createdAt DateTime    @default(now())
+
+  @@index([sloopId])
+  @@index([playCount])
+}
+
+model SloopRank {
+  id        String      @id @default(cuid())
+  sloopId   String
+  sloop     RankedSloop @relation(fields: [sloopId], references: [sloopId], onDelete: Cascade)
+  rank      Float
+  createdAt DateTime    @default(now())
+
+  @@index([sloopId])
+  @@index([rank])
+}
+
+model SloopLikeCount {
+  id        String      @id @default(cuid())
+  sloopId   String
+  sloop     RankedSloop @relation(fields: [sloopId], references: [sloopId], onDelete: Cascade)
+  likeCount Int
+  createdAt DateTime    @default(now())
+
+  @@index([sloopId])
+  @@index([likeCount])
+}
+
+model SloopLikeRank {
+  id        String      @id @default(cuid())
+  sloopId   String
+  sloop     RankedSloop @relation(fields: [sloopId], references: [sloopId], onDelete: Cascade)
+  likeRank  Float
+  createdAt DateTime    @default(now())
+
+  @@index([sloopId])
+  @@index([likeRank])
+}
+
+model RankedSloop {
+  sloopId        String           @id
+  sloop          Sloop            @relation(fields: [sloopId], references: [id], onDelete: Cascade)
+  plays          Int              @default(0)
+  likes          Int              @default(0)
+  rank           Float            @default(0)
+  likeRank       Float            @default(0)
+  pastRanks      SloopRank[]
+  pastPlayCounts SloopPlayCount[]
+  pastLikeRanks  SloopLikeRank[]
+  pastLikeCounts SloopLikeCount[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([sloopId])
+  @@index([rank])
+  @@index([likeRank])
+}
+
+model ArtistPlayCount {
+  id        String       @id @default(cuid())
+  artistId  String
+  artist    RankedArtist @relation(fields: [artistId], references: [artistId], onDelete: Cascade)
+  playCount Int
+  createdAt DateTime     @default(now())
+
+  @@index([artistId])
+  @@index([playCount])
+}
+
+model ArtistRank {
+  id        String       @id @default(cuid())
+  artistId  String
+  artist    RankedArtist @relation(fields: [artistId], references: [artistId], onDelete: Cascade)
+  rank      Float
+  createdAt DateTime     @default(now())
+
+  @@index([artistId])
+  @@index([rank])
+}
+
+model ArtistLikeCount {
+  id        String       @id @default(cuid())
+  artistId  String
+  artist    RankedArtist @relation(fields: [artistId], references: [artistId], onDelete: Cascade)
+  likeCount Int
+  createdAt DateTime     @default(now())
+
+  @@index([artistId])
+  @@index([likeCount])
+}
+
+model ArtistLikeRank {
+  id        String       @id @default(cuid())
+  artistId  String
+  artist    RankedArtist @relation(fields: [artistId], references: [artistId], onDelete: Cascade)
+  likeRank  Float
+  createdAt DateTime     @default(now())
+
+  @@index([artistId])
+  @@index([likeRank])
+}
+
+model RankedArtist {
+  artistId       String            @id
+  artist         Artist            @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  plays          Int               @default(0)
+  likes          Int               @default(0)
+  rank           Float             @default(0)
+  likeRank       Float             @default(0)
+  pastRanks      ArtistRank[]
+  pastPlayCounts ArtistPlayCount[]
+  pastLikeRanks  ArtistLikeRank[]
+  pastLikeCounts ArtistLikeCount[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([artistId])
+  @@index([rank])
 }
 
 model Follow {

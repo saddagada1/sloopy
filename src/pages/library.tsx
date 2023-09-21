@@ -9,10 +9,14 @@ import Loading from "~/components/utils/Loading";
 import toast from "react-hot-toast";
 import WithAuth from "~/components/utils/WithAuth";
 import Carousel from "~/components/ui/Carousel";
-import SafeImage from "~/components/ui/SafeImage";
 import { useElementSize } from "usehooks-ts";
 import ErrorView from "~/components/utils/ErrorView";
 import SearchInput from "~/components/ui/SearchInput";
+import NoData from "~/components/ui/NoData";
+import AlbumCard from "~/components/ui/AlbumCard";
+import PlaylistCard from "~/components/ui/PlaylistCard";
+import ArtistCard from "~/components/ui/ArtistCard";
+import TrackCard from "~/components/ui/TrackCard";
 
 const useLibrary = () => {
   const spotify = useSpotifyContext();
@@ -216,27 +220,11 @@ const Library: NextPage = () => {
             {library.topArtists.items.length > 0 ? (
               <Carousel>
                 {library.topArtists.items.map((artist, index) => (
-                  <Link
-                    key={index}
-                    style={{ width: width / 3 }}
-                    href={`/artist/${artist.id}`}
-                  >
-                    <SafeImage
-                      className="relative mb-2 aspect-square overflow-hidden rounded-full"
-                      url={artist.images[0]?.url}
-                      alt={artist.name}
-                      width={width / 3}
-                    />
-                    <p className="truncate text-sm font-semibold sm:text-base">
-                      {artist.name}
-                    </p>
-                  </Link>
+                  <ArtistCard key={index} width={width} artist={artist} />
                 ))}
               </Carousel>
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No Artist Results
-              </p>
+              <NoData>No Artist Results</NoData>
             )}
           </section>
           <section>
@@ -249,28 +237,11 @@ const Library: NextPage = () => {
             {library.topTracks.items.length > 0 ? (
               <Carousel>
                 {library.topTracks.items.map((track, index) => (
-                  <Link
-                    key={index}
-                    style={{ width: width / 3 }}
-                    href={`/track/${track.id}`}
-                  >
-                    <SafeImage
-                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                      url={track.album.images[0]?.url}
-                      alt={track.name}
-                      square
-                      width={width / 3}
-                    />
-                    <p className="truncate text-sm font-semibold sm:text-base">
-                      {track.name}
-                    </p>
-                  </Link>
+                  <TrackCard key={index} width={width} track={track} />
                 ))}
               </Carousel>
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No Track Results
-              </p>
+              <NoData>No Track Results</NoData>
             )}
           </section>
           <section>
@@ -283,28 +254,11 @@ const Library: NextPage = () => {
             {library.savedAlbums.items.length > 0 ? (
               <Carousel>
                 {library.savedAlbums.items.map((item, index) => (
-                  <Link
-                    key={index}
-                    style={{ width: width / 3 }}
-                    href={`/album/${item.album.id}`}
-                  >
-                    <SafeImage
-                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                      url={item.album.images[0]?.url}
-                      alt={item.album.name}
-                      square
-                      width={width / 3}
-                    />
-                    <p className="truncate text-sm font-semibold sm:text-base">
-                      {item.album.name}
-                    </p>
-                  </Link>
+                  <AlbumCard key={index} width={width} album={item.album} />
                 ))}
               </Carousel>
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No Album Results
-              </p>
+              <NoData>No Album Results</NoData>
             )}
           </section>
           <section>
@@ -317,28 +271,11 @@ const Library: NextPage = () => {
             {library.savedPlaylists.items.length > 0 ? (
               <Carousel>
                 {library.savedPlaylists.items.map((playlist, index) => (
-                  <Link
-                    key={index}
-                    style={{ width: width / 3 }}
-                    href={`/playlist/${playlist.id}`}
-                  >
-                    <SafeImage
-                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                      url={playlist.images[0]?.url}
-                      alt={playlist.name}
-                      square
-                      width={width / 3}
-                    />
-                    <p className="truncate text-sm font-semibold sm:text-base">
-                      {playlist.name}
-                    </p>
-                  </Link>
+                  <PlaylistCard key={index} width={width} playlist={playlist} />
                 ))}
               </Carousel>
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No Playlist Results
-              </p>
+              <NoData>No Playlist Results</NoData>
             )}
           </section>
           <section>
@@ -351,28 +288,11 @@ const Library: NextPage = () => {
             {library.newReleases.albums.items.length > 0 ? (
               <Carousel>
                 {library.newReleases.albums.items.map((album, index) => (
-                  <Link
-                    key={index}
-                    style={{ width: width / 3 }}
-                    href={`/album/${album.id}`}
-                  >
-                    <SafeImage
-                      className="relative mb-2 aspect-square overflow-hidden rounded-md"
-                      url={album.images[0]?.url}
-                      alt={album.name}
-                      square
-                      width={width / 3}
-                    />
-                    <p className="truncate text-sm font-semibold sm:text-base">
-                      {album.name}
-                    </p>
-                  </Link>
+                  <AlbumCard key={index} width={width} album={album} />
                 ))}
               </Carousel>
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No New Releases
-              </p>
+              <NoData>No New Releases</NoData>
             )}
           </section>
         </div>

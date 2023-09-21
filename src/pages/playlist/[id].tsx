@@ -1,13 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import clsx from "clsx";
 import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
-import { PiArrowLeft, PiArrowRight, PiSpotifyLogo } from "react-icons/pi";
+import { PiSpotifyLogo } from "react-icons/pi";
 import { type Track } from "spotify-types";
 import { useElementSize } from "usehooks-ts";
+import NoData from "~/components/ui/NoData";
+import Pagination from "~/components/ui/Pagination";
 import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
 import ErrorView from "~/components/utils/ErrorView";
@@ -139,37 +140,22 @@ const Playlist: NextPage = ({}) => {
           </p>
         </div>
         {playlistTracks.total > 0 ? (
-          <>
+          <Pagination
+            page={Math.round(
+              (playlistTracks.total / playlistTracks.limit) *
+                (playlistTracks.offset / playlistTracks.total)
+            )}
+            onClickNext={() => handleNext()}
+            onClickPrevious={() => handlePrevious()}
+            hasNext={!!playlistTracks.next}
+            hasPrevious={!!playlistTracks.previous}
+          >
             <TrackList
               tracks={playlistTracks.items.map((item) => item.track as Track)}
             />
-            <div className="mt-2 flex w-full items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
-              <p className="flex-1">
-                {Math.round(
-                  (playlistTracks.total / playlistTracks.limit) *
-                    (playlistTracks.offset / playlistTracks.total)
-                ) + 1}
-              </p>
-              <button
-                onClick={() => handlePrevious()}
-                disabled={!playlistTracks.previous}
-                className={clsx(!playlistTracks.previous && "text-gray-300")}
-              >
-                <PiArrowLeft />
-              </button>
-              <button
-                onClick={() => handleNext()}
-                disabled={!playlistTracks.next}
-                className={clsx(!playlistTracks.next && "text-gray-300")}
-              >
-                <PiArrowRight />
-              </button>
-            </div>
-          </>
+          </Pagination>
         ) : (
-          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-            Empty Playlist
-          </p>
+          <NoData>Empty Playlist</NoData>
         )}
       </div>
     </>

@@ -61,6 +61,12 @@ export const FORGOT_PASSWORD_PREFIX = "forgot-password:";
 
 export const VERIFY_EMAIL_PREFIX = "verify-email:";
 
+export const TRENDING_TOPIC = "update-ranks";
+
+export const FAVOURITES_TOPIC = "update-like-ranks";
+
+export const paginationLimit = 50;
+
 export const domain = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://192.168.0.151:3000";

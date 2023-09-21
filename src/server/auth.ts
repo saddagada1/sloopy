@@ -18,6 +18,7 @@ import Cookies from "cookies";
 import { randomUUID } from "crypto";
 import { encode, decode } from "next-auth/jwt";
 import { type LinkedAccount } from "@prisma/client";
+import { calcUsername } from "~/utils/calc";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -92,15 +93,9 @@ export const authOptions = (
 
             const cookies = new Cookies(req, res);
 
-            cookies.set(
-              env.NODE_ENV === "production"
-                ? "__Secure-next-auth.session-token"
-                : "next-auth.session-token",
-              sessionToken,
-              {
-                expires: sessionExpiry,
-              }
-            );
+            cookies.set("next-auth.session-token", sessionToken, {
+              expires: sessionExpiry,
+            });
           }
         }
 
@@ -135,6 +130,17 @@ export const authOptions = (
         };
       },
     },
+    cookies: {
+      sessionToken: {
+        name: "next-auth.session-token",
+        options: {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          secure: env.NODE_ENV === "production",
+        },
+      },
+    },
     adapter: PrismaAdapter(prisma),
     session: {
       strategy: "database",
@@ -150,11 +156,7 @@ export const authOptions = (
           req.method === "POST"
         ) {
           const cookies = new Cookies(req, res);
-          const cookie = cookies.get(
-            env.NODE_ENV === "production"
-              ? "__Secure-next-auth.session-token"
-              : "next-auth.session-token"
-          );
+          const cookie = cookies.get("next-auth.session-token");
 
           if (cookie) {
             return cookie;
@@ -241,10 +243,7 @@ export const authOptions = (
             id: profile.sub,
             name: profile.name,
             bio: null,
-            username:
-              profile.email.split("@")[0]?.slice(0, 5) +
-                Math.random().toString(36).slice(2, 10) ??
-              profile.sub.slice(0, 13),
+            username: calcUsername(profile.email),
             email: profile.email,
             verified: true,
             image: null,
@@ -259,10 +258,7 @@ export const authOptions = (
             id: profile.id,
             name: profile.name as string,
             bio: null,
-            username:
-              (profile.email as string).split("@")[0]?.slice(0, 5) +
-                Math.random().toString(36).slice(2, 10) ??
-              profile.id.slice(0, 13),
+            username: calcUsername(profile.email as string),
             email: profile.email as string,
             verified: true,
             image: null,

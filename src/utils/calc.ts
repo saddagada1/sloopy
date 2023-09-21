@@ -55,3 +55,37 @@ export const calcSloopColours = (sloop: Sloop) => {
 export const calcTrimmedString = (str: string) => {
   return str.replace(/\s+/g, " ").trim();
 };
+
+export const calcUsername = (email?: string) => {
+  return (
+    email?.split("@")[0]?.slice(0, 5) +
+      Math.random().toString(36).slice(2, 10) ??
+    Math.random().toString(36).slice(0, 13)
+  );
+};
+
+export const calcPastDate = (range: number) => {
+  const now = new Date().getTime();
+  return new Date(now - range);
+};
+
+export const calcRank = (initial: number, values: number[]) => {
+  let rank = 0;
+  if (values.length > 0) {
+    const mean =
+      values.reduce((previous, current) => previous + current, 0) /
+      values.length;
+    const distances = values.map((value) =>
+      Math.pow(Math.abs(value - mean), 2)
+    );
+    const quotient =
+      values.length > 1
+        ? distances.reduce((previous, current) => previous + current, 0) /
+          (values.length - 1)
+        : distances.reduce((previous, current) => previous + current, 0);
+    const deviation = Math.sqrt(quotient);
+    rank = deviation !== 0 ? initial - mean / deviation : initial - mean;
+    //console.log(mean, distances, quotient, deviation, rank);
+  }
+  return rank;
+};

@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import clsx from "clsx";
 import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
-import { PiArrowLeft, PiArrowRight, PiSpotifyLogo } from "react-icons/pi";
+import { PiSpotifyLogo } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
+import NoData from "~/components/ui/NoData";
+import Pagination from "~/components/ui/Pagination";
 import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
 import ErrorView from "~/components/utils/ErrorView";
@@ -117,37 +118,20 @@ const Album: NextPage = ({}) => {
           </p>
         </div>
         {album.tracks.total > 0 ? (
-          <>
-            <TrackList tracks={album.tracks.items} numbered />
-            {album.tracks.total > album.tracks.items.length && (
-              <div className="mt-2 flex w-full items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl">
-                <p className="flex-1">
-                  {Math.round(
-                    (album.tracks.total / album.tracks.limit) *
-                      (album.tracks.offset / album.tracks.total)
-                  ) + 1}
-                </p>
-                <button
-                  onClick={() => handlePrevious()}
-                  disabled={!album.tracks.previous}
-                  className={clsx(!album.tracks.previous && "text-gray-300")}
-                >
-                  <PiArrowLeft />
-                </button>
-                <button
-                  onClick={() => handleNext()}
-                  disabled={!album.tracks.next}
-                  className={clsx(!album.tracks.next && "text-gray-300")}
-                >
-                  <PiArrowRight />
-                </button>
-              </div>
+          <Pagination
+            page={Math.round(
+              (album.tracks.total / album.tracks.limit) *
+                (album.tracks.offset / album.tracks.total)
             )}
-          </>
+            onClickNext={() => handleNext()}
+            onClickPrevious={() => handlePrevious()}
+            hasNext={!!album.tracks.next}
+            hasPrevious={!!album.tracks.previous}
+          >
+            <TrackList tracks={album.tracks.items} numbered />
+          </Pagination>
         ) : (
-          <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-            How Is This Even An Album
-          </p>
+          <NoData>How Is This Even An Album</NoData>
         )}
       </div>
     </>

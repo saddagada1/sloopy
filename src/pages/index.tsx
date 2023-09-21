@@ -1,80 +1,135 @@
-import Avatar from "boring-avatars";
+import { useMutation } from "@tanstack/react-query";
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
-import { PiArrowRight, PiAsterisk, PiHeartFill } from "react-icons/pi";
+import { PiArrowRight, PiAsterisk } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
+import ArtistCard from "~/components/ui/ArtistCard";
 import Carousel from "~/components/ui/Carousel";
+import NoData from "~/components/ui/NoData";
 import SearchInput from "~/components/ui/SearchInput";
+import SloopCard from "~/components/ui/SloopCard";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import { api } from "~/utils/api";
-import {
-  calcRelativeTime,
-  calcSloopColours,
-  calcTimeOfDay,
-} from "~/utils/calc";
-import { type ListSloop } from "~/utils/types";
+import { calcTimeOfDay } from "~/utils/calc";
+import { paginationLimit } from "~/utils/constants";
+import { fetchTrends } from "~/utils/helpers";
 
-interface SloopCardProps {
-  sloop: ListSloop;
-  width: number;
-}
-
-const SloopCard: React.FC<SloopCardProps> = ({ sloop, width }) => {
-  const { data: session } = useSession();
-  return (
-    <Link
-      style={{ width: width / 3 }}
-      href={`/sloop/${sloop.id}`}
-      className="rounded-md border border-gray-300 bg-gray-200 p-2"
-    >
-      <div className="mb-2 aspect-square overflow-hidden rounded-md">
-        <Avatar
-          size={width / 3}
-          name={sloop.name}
-          variant="pixel"
-          square
-          colors={calcSloopColours(sloop)}
-        />
-      </div>
-      <p className="truncate text-sm font-semibold sm:text-base">
-        {sloop.name}
-      </p>
-      <p className="truncate text-xs sm:text-sm">
-        {sloop.userId === session?.user.id
-          ? session.user.username
-          : sloop.userUsername}
-      </p>
-      <div className="mt-2 flex items-center gap-4 text-xs sm:text-sm">
-        <p className="flex-1 truncate">{calcRelativeTime(sloop.updatedAt)}</p>
-        <p className="flex items-center gap-2">
-          {sloop._count.likes.toLocaleString(undefined, {
-            notation: "compact",
-          })}
-          <PiHeartFill className="text-base sm:text-lg" />
-        </p>
-      </div>
-    </Link>
+const useHome = () => {
+  const homeFetchOptions = {
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    staleTime: 1000 * 60 * 5,
+  };
+  const {
+    data: trendingArtists,
+    isLoading: fetchingTrendingArtists,
+    error: trendingArtistsError,
+  } = api.sloops.getTrendingArtists.useQuery(
+    { limit: paginationLimit },
+    homeFetchOptions
   );
+  const {
+    data: trendingSloops,
+    isLoading: fetchingTrendingSloops,
+    error: trendingSloopsError,
+  } = api.sloops.getTrendingSloops.useQuery(
+    { limit: paginationLimit },
+    homeFetchOptions
+  );
+  const {
+    data: favouriteArtists,
+    isLoading: fetchingFavouriteArtists,
+    error: favouriteArtistsError,
+  } = api.sloops.getFavouriteArtists.useQuery(
+    { limit: paginationLimit },
+    homeFetchOptions
+  );
+  const {
+    data: favouriteSloops,
+    isLoading: fetchingFavouriteSloops,
+    error: favouriteSloopsError,
+  } = api.sloops.getFavouriteSloops.useQuery(
+    { limit: paginationLimit },
+    homeFetchOptions
+  );
+  const {
+    data: mostRecent,
+    isLoading: fetchingMostRecent,
+    error: mostRecentError,
+  } = api.sloops.getMostRecent.useQuery(
+    { limit: paginationLimit },
+    homeFetchOptions
+  );
+
+  if (
+    fetchingTrendingArtists ||
+    fetchingTrendingSloops ||
+    fetchingFavouriteArtists ||
+    fetchingFavouriteSloops ||
+    fetchingMostRecent
+  ) {
+    return { data: undefined, isLoading: true, error: undefined };
+  }
+
+  if (
+    !trendingArtists ||
+    !trendingSloops ||
+    !favouriteArtists ||
+    !favouriteSloops ||
+    !mostRecent
+  ) {
+    return {
+      data: undefined,
+      isLoading: false,
+      error: "Error: Could Not Fetch Library Data",
+    };
+  }
+
+  if (
+    trendingArtistsError ??
+    trendingSloopsError ??
+    favouriteArtistsError ??
+    favouriteSloopsError ??
+    mostRecentError
+  ) {
+    return {
+      data: undefined,
+      isLoading: false,
+      error: "Error: Could Not Fetch Library Data",
+    };
+  }
+
+  return {
+    data: {
+      trendingArtists,
+      trendingSloops,
+      favouriteArtists,
+      favouriteSloops,
+      mostRecent,
+    },
+    isLoading: false,
+    error: undefined,
+  };
 };
 
 const Home: NextPage = () => {
   const { data: session } = useSession();
   const [containerRef, { width }] = useElementSize();
-  const {
-    data: sloops,
-    isLoading: fetchingSloops,
-    error: sloopsError,
-  } = api.sloops.getAll.useQuery();
+  const { data: home, isLoading: fetchingHome, error: homeError } = useHome();
+  const { mutateAsync: updateRanks } = useMutation(async () => {
+    await fetchTrends();
+  });
 
-  if (fetchingSloops) {
+  if (fetchingHome) {
     return <Loading />;
   }
 
-  if (!sloops || sloopsError) {
+  if (!home || homeError) {
     return <ErrorView />;
   }
 
@@ -95,7 +150,10 @@ const Home: NextPage = () => {
         </Link>
         <SearchInput />
         <div ref={containerRef} className="mt-2 flex flex-1 flex-col gap-6">
-          <section className="relative flex aspect-video w-full items-end overflow-hidden rounded-md p-4 text-primary">
+          <section
+            onClick={() => void updateRanks()}
+            className="relative flex aspect-video w-full items-end overflow-hidden rounded-md p-4 text-primary"
+          >
             <video
               autoPlay
               loop
@@ -113,21 +171,87 @@ const Home: NextPage = () => {
           </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
+              Trending Artists
+              <Link href="/saved/albums">
+                <PiArrowRight className="text-gray-400" />
+              </Link>
+            </h3>
+            {home.trendingArtists.items.length > 0 ? (
+              <Carousel>
+                {home.trendingArtists.items.map(({ artist }, index) => (
+                  <ArtistCard key={index} width={width} artist={artist} />
+                ))}
+              </Carousel>
+            ) : (
+              <NoData>No Trending Artists</NoData>
+            )}
+          </section>
+          <section>
+            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
+              Trending Sloops
+              <Link href="/saved/albums">
+                <PiArrowRight className="text-gray-400" />
+              </Link>
+            </h3>
+            {home.trendingSloops.items.length > 0 ? (
+              <Carousel>
+                {home.trendingSloops.items.map(({ sloop }, index) => (
+                  <SloopCard key={index} sloop={sloop} width={width} />
+                ))}
+              </Carousel>
+            ) : (
+              <NoData>No Trending Sloops</NoData>
+            )}
+          </section>
+          <section>
+            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
+              Favourite Artists
+              <Link href="/saved/albums">
+                <PiArrowRight className="text-gray-400" />
+              </Link>
+            </h3>
+            {home.favouriteArtists.items.length > 0 ? (
+              <Carousel>
+                {home.favouriteArtists.items.map(({ artist }, index) => (
+                  <ArtistCard key={index} width={width} artist={artist} />
+                ))}
+              </Carousel>
+            ) : (
+              <NoData>No Favourite Artists</NoData>
+            )}
+          </section>
+          <section>
+            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
+              Favourite Sloops
+              <Link href="/saved/albums">
+                <PiArrowRight className="text-gray-400" />
+              </Link>
+            </h3>
+            {home.favouriteSloops.items.length > 0 ? (
+              <Carousel>
+                {home.favouriteSloops.items.map(({ sloop }, index) => (
+                  <SloopCard key={index} sloop={sloop} width={width} />
+                ))}
+              </Carousel>
+            ) : (
+              <NoData>No Favourite Sloops</NoData>
+            )}
+          </section>
+          <section>
+            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Most Recent
               <Link href="/saved/albums">
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
-            {sloops.length > 0 ? (
+            {home.mostRecent.items.length > 0 ? (
               <Carousel>
-                {sloops.map((sloop, index) => (
+                {home.mostRecent.items.map((sloop, index) => (
                   <SloopCard key={index} sloop={sloop} width={width} />
                 ))}
               </Carousel>
             ) : (
-              <p className="mx-12 text-center font-display text-base text-gray-400 sm:text-lg">
-                No Sloop Results
-              </p>
+              <NoData>No Recent Sloops</NoData>
             )}
           </section>
         </div>

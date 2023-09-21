@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
 import Avatar from "boring-avatars";
 import { AnimatePresence, motion } from "framer-motion";
@@ -28,13 +28,13 @@ import { api } from "~/utils/api";
 import { calcRelativeTime, calcSloopColours } from "~/utils/calc";
 import { mode, pitchClass, pitchClassColours } from "~/utils/constants";
 import { fetchChords } from "~/utils/helpers";
-import { type Paging, type Loop, type ListSloop } from "~/utils/types";
+import { type Loop } from "~/utils/types";
 
 const Sloop: NextPage = ({}) => {
   const router = useRouter();
   const { data: session } = useSession();
   const [containerRef, { width }] = useElementSize();
-  const ctx = useQueryClient();
+  const t3 = api.useContext();
   const [previewLoop, setPreviewLoop] = useState(0);
   const [showShare, setShowShare] = useState(false);
   const {
@@ -68,36 +68,18 @@ const Sloop: NextPage = ({}) => {
     }
     try {
       const response = await like({ id: sloop.id });
-      ctx.setQueryData(
-        [["sloops", "get"], { input: { id: sloop.id }, type: "query" }],
-        (cachedData: typeof sloop | undefined) => {
-          if (!cachedData) return;
-          return {
-            ...cachedData,
-            _count: {
-              ...cachedData._count,
-              likes: cachedData._count.likes + 1,
-            },
-            likes: [response],
-          };
-        }
-      );
-      ctx.setQueryData(
-        [["users", "getUserLikes"], { input: { offset: 0 }, type: "query" }],
-        (cachedData: Paging<ListSloop> | undefined) => {
-          if (!cachedData) return;
-          return {
-            ...cachedData,
-            items: [
-              {
-                ...sloop,
-                _count: { likes: sloop._count.likes + 1 },
-              },
-              ...cachedData.items,
-            ],
-          };
-        }
-      );
+      t3.sloops.get.setData({ id: sloop.id }, (cachedData) => {
+        if (!cachedData) return;
+        return {
+          ...cachedData,
+          _count: {
+            ...cachedData._count,
+            likes: cachedData._count.likes + 1,
+          },
+          likes: [response],
+        };
+      });
+      await t3.users.getLikes.reset();
     } catch (error) {
       if (error instanceof TRPCClientError) {
         toast.error(`Error: ${error.message}`);
@@ -114,24 +96,18 @@ const Sloop: NextPage = ({}) => {
     }
     try {
       await unlike({ id: sloop.id });
-      ctx.setQueryData(
-        [["sloops", "get"], { input: { id: sloop.id }, type: "query" }],
-        (cachedData: typeof sloop | undefined) => {
-          if (!cachedData) return;
-          return {
-            ...cachedData,
-            _count: {
-              ...cachedData._count,
-              likes: cachedData._count.likes - 1,
-            },
-            likes: [],
-          };
-        }
-      );
-      void ctx.invalidateQueries([
-        ["users", "getUserLikes"],
-        { type: "query" },
-      ]);
+      t3.sloops.get.setData({ id: sloop.id }, (cachedData) => {
+        if (!cachedData) return;
+        return {
+          ...cachedData,
+          _count: {
+            ...cachedData._count,
+            likes: cachedData._count.likes - 1,
+          },
+          likes: [],
+        };
+      });
+      await t3.users.getLikes.reset();
     } catch (error) {
       if (error instanceof TRPCClientError) {
         toast.error(`Error: ${error.message}`);
