@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { TRPCClientError } from "@trpc/client";
 import { useRouter } from "next/router";
 import { signIn } from "next-auth/react";
+import WithoutAuth from "~/components/utils/WithoutAuth";
 
 interface ResetPasswordValues {
   password: string;
@@ -110,4 +111,4 @@ const ResetPassword: NextPage = ({}) => {
   );
 };
 
-export default ResetPassword;
+export default WithoutAuth(ResetPassword);

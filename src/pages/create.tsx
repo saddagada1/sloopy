@@ -157,6 +157,7 @@ const Create: NextPage = ({}) => {
                 ...values,
                 trackId: track.id,
                 trackName: track.name,
+                trackImage: track.album.images[0]?.url ?? "",
                 artists: artists.artists.map((artist) => {
                   return {
                     spotifyId: artist.id,

@@ -7,7 +7,6 @@ export const searchRouter = createTRPCRouter({
     .input(
       z.object({
         query: z.string(),
-        limit: z.number().optional(),
       })
     )
     .query(async ({ input, ctx }) => {
@@ -28,7 +27,7 @@ export const searchRouter = createTRPCRouter({
             username: true,
             image: true,
           },
-          take: input.limit ?? 50,
+          take: 50,
         });
         const artists = await ctx.prisma.artist.findMany({
           where: {
@@ -39,13 +38,50 @@ export const searchRouter = createTRPCRouter({
           include: {
             sloops: {
               include: {
-                _count: {
+                rankedSloop: {
                   select: { likes: true },
+                },
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+                track: {
+                  select: {
+                    name: true,
+                  },
                 },
               },
             },
           },
-          take: input.limit ?? 50,
+          take: 50,
+        });
+        const tracks = await ctx.prisma.track.findMany({
+          where: {
+            name: {
+              search: `${input.query}*`,
+            },
+          },
+          include: {
+            sloops: {
+              include: {
+                rankedSloop: {
+                  select: { likes: true },
+                },
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+                track: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+          take: 50,
         });
         const sloops = await ctx.prisma.sloop.findMany({
           where: {
@@ -56,26 +92,35 @@ export const searchRouter = createTRPCRouter({
             description: {
               search: `${input.query}*`,
             },
-            trackName: {
-              search: `${input.query}*`,
-            },
             userUsername: {
               search: `${input.query}*`,
             },
           },
           include: {
-            _count: {
+            rankedSloop: {
               select: { likes: true },
             },
+            artists: {
+              select: {
+                name: true,
+              },
+            },
+            track: {
+              select: {
+                name: true,
+              },
+            },
           },
-          take: input.limit ?? 50,
+          take: 50,
         });
         return {
           users,
           artists,
+          tracks,
           sloops: [
             ...sloops,
             artists.flatMap((artist) => artist.sloops),
+            tracks.flatMap((track) => track.sloops),
           ].flat(),
         };
       } catch (error) {

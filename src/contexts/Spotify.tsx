@@ -139,7 +139,11 @@ interface SpotifyProviderProps {
 }
 
 const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
-  const { data: session, update: updateSession } = useSession();
+  const {
+    data: session,
+    status: sessionStatus,
+    update: updateSession,
+  } = useSession();
   const router = useRouter();
   const [auth, setAuth] = useState<SpotifyAuth | null>(null);
   const { mutateAsync: linkSpotifyAccount } =
@@ -623,9 +627,9 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    if (!session || auth) return;
+    if (sessionStatus === "loading" || auth) return;
 
-    const credentials = session.user.linkedAccounts.find(
+    const credentials = session?.user.linkedAccounts.find(
       (account) => account.provider === "spotify"
     );
 

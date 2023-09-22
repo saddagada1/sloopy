@@ -1,8 +1,7 @@
 import Avatar from "boring-avatars";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { PiHeartFill } from "react-icons/pi";
-import { calcRelativeTime, calcSloopColours } from "~/utils/calc";
+import { calcSloopColours } from "~/utils/calc";
 import { type ListSloop } from "~/utils/types";
 
 interface SloopCardProps {
@@ -11,39 +10,34 @@ interface SloopCardProps {
 }
 
 const SloopCard: React.FC<SloopCardProps> = ({ width, sloop }) => {
-  const { data: session } = useSession();
   return (
-    <Link
-      style={{ width: width / 3 }}
-      href={`/sloop/${sloop.id}`}
-      className="rounded-md border border-gray-300 bg-gray-200 p-2"
-    >
-      <div className="mb-2 aspect-square overflow-hidden rounded-md">
+    <Link style={{ width: width * 0.3 }} href={`/sloop/${sloop.id}`}>
+      <div className="relative mb-2 aspect-square overflow-hidden rounded-md">
         <Avatar
-          size={width / 3}
+          size={width * 0.3}
           name={sloop.name}
-          variant="pixel"
+          variant="marble"
           square
           colors={calcSloopColours(sloop)}
         />
-      </div>
-      <p className="truncate text-sm font-semibold sm:text-base">
-        {sloop.name}
-      </p>
-      <p className="truncate text-xs sm:text-sm">
-        {sloop.userId === session?.user.id
-          ? session.user.username
-          : sloop.userUsername}
-      </p>
-      <div className="mt-2 flex items-center gap-4 text-xs sm:text-sm">
-        <p className="flex-1 truncate">{calcRelativeTime(sloop.updatedAt)}</p>
-        <p className="flex items-center gap-2">
-          {sloop._count.likes.toLocaleString(undefined, {
+        <p className="absolute right-0 top-0 flex items-center gap-2 rounded-es-lg bg-secondary px-2 py-0.5 text-xs text-primary sm:text-sm">
+          {sloop.rankedSloop?.likes.toLocaleString(undefined, {
             notation: "compact",
           })}
-          <PiHeartFill className="text-base sm:text-lg" />
+          <PiHeartFill className="text-sm sm:text-base" />
         </p>
       </div>
+      <p className="mb-1 truncate text-sm font-semibold sm:text-base">
+        {sloop.name}
+      </p>
+      <p className="truncate text-xs font-medium text-gray-400 sm:text-sm">
+        {sloop.track.name}
+      </p>
+      <p className="truncate text-[0.7rem] text-gray-400 sm:text-[0.825rem]">
+        {sloop.artists.map((artist, index) =>
+          index === sloop.artists.length - 1 ? artist.name : `${artist.name}, `
+        )}
+      </p>
     </Link>
   );
 };

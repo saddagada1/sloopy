@@ -17,7 +17,7 @@ model Sloop {
   name          String       @db.Text
   description   String       @db.Text
   trackId       String
-  trackName     String       @db.Text
+  track         Track        @relation(fields: [trackId], references: [id], onDelete: Cascade)
   artists       Artist[]
   duration      Float
   key           Int
@@ -41,28 +41,38 @@ model Sloop {
   @@index([userId, userUsername])
   @@fulltext([name])
   @@fulltext([description])
-  @@fulltext([trackName])
   @@fulltext([userUsername], map: "userUsername-fulltext")
-  @@fulltext([name, description, trackName, userUsername])
+  @@fulltext([name, description, userUsername])
 }
 
-model Artist {
-  id           String        @id @default(cuid())
-  spotifyId    String        @unique
+model Track {
+  id           String        @id
   name         String        @db.Text
   image        String?       @db.Text
   sloops       Sloop[]
+  artists      Artist[]
+  createdAt    DateTime      @default(now())
+
+  @@fulltext([name])
+}
+
+model Artist {
+  id           String        @id
+  name         String        @db.Text
+  image        String?       @db.Text
+  sloops       Sloop[]
+  tracks       Track[]
   rankedArtist RankedArtist?
   createdAt    DateTime      @default(now())
 
-  @@index([spotifyId])
   @@fulltext([name])
 }
 
 model Play {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   sloopId   String
-  userId    String
+  userId    String 
+  count     Int      @default(0)
   sloop     Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -74,7 +84,7 @@ model Play {
 }
 
 model Like {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   sloopId   String
   userId    String
   sloop     Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
@@ -212,7 +222,7 @@ model RankedArtist {
 }
 
 model Follow {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   followedId String
   followerId String
   followed   User     @relation("followers", fields: [followedId], references: [id], onDelete: Cascade)
@@ -285,6 +295,8 @@ model User {
   sessions       Session[]
   linkedAccounts LinkedAccount[]
   sloops         Sloop[]
+  followersCount Int             @default(0)
+  followingCount Int             @default(0)
   followers      Follow[]        @relation("followers")
   following      Follow[]        @relation("following")
   likes          Like[]

@@ -18,15 +18,24 @@ import {
   PiPencilSimpleLine,
   PiPlayFill,
   PiShareNetwork,
+  PiTrash,
 } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import Chord from "~/components/sloops/Chord";
+import LoadingButton from "~/components/ui/LoadingButton";
+import Modal from "~/components/ui/Modal";
 import Popover from "~/components/ui/Popover";
+import StyledTitle from "~/components/ui/form/StyledTitle";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { api } from "~/utils/api";
 import { calcRelativeTime, calcSloopColours } from "~/utils/calc";
-import { mode, pitchClass, pitchClassColours } from "~/utils/constants";
+import {
+  mode,
+  paginationLimit,
+  pitchClass,
+  pitchClassColours,
+} from "~/utils/constants";
 import { fetchChords } from "~/utils/helpers";
 import { type Loop } from "~/utils/types";
 
@@ -59,6 +68,9 @@ const Sloop: NextPage = ({}) => {
     api.sloops.like.useMutation();
   const { mutateAsync: unlike, isLoading: deletingLike } =
     api.sloops.unlike.useMutation();
+  const [showDelete, setShowDelete] = useState(false);
+  const { mutateAsync: deleteSloop, isLoading: deletingSloop } =
+    api.sloops.delete.useMutation();
 
   const handleLike = async () => {
     if (!sloop) return;
@@ -72,13 +84,32 @@ const Sloop: NextPage = ({}) => {
         if (!cachedData) return;
         return {
           ...cachedData,
-          _count: {
-            ...cachedData._count,
-            likes: cachedData._count.likes + 1,
-          },
+          rankedSloop: cachedData.rankedSloop
+            ? {
+                ...cachedData.rankedSloop,
+                likes: cachedData.rankedSloop.likes + 1,
+              }
+            : null,
           likes: [response],
         };
       });
+      t3.sloops.getUserSloops.setData(
+        { username: sloop.userUsername, limit: paginationLimit },
+        (cachedData) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            items: cachedData.items.map((item) => {
+              if (item.id === sloop.id) {
+                if (item.rankedSloop) {
+                  item.rankedSloop.likes = item.rankedSloop.likes + 1;
+                }
+              }
+              return item;
+            }),
+          };
+        }
+      );
       await t3.users.getLikes.reset();
     } catch (error) {
       if (error instanceof TRPCClientError) {
@@ -100,13 +131,32 @@ const Sloop: NextPage = ({}) => {
         if (!cachedData) return;
         return {
           ...cachedData,
-          _count: {
-            ...cachedData._count,
-            likes: cachedData._count.likes - 1,
-          },
+          rankedSloop: cachedData.rankedSloop
+            ? {
+                ...cachedData.rankedSloop,
+                likes: cachedData.rankedSloop.likes - 1,
+              }
+            : null,
           likes: [],
         };
       });
+      t3.sloops.getUserSloops.setData(
+        { username: sloop.userUsername, limit: paginationLimit },
+        (cachedData) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            items: cachedData.items.map((item) => {
+              if (item.id === sloop.id) {
+                if (item.rankedSloop) {
+                  item.rankedSloop.likes = item.rankedSloop.likes - 1;
+                }
+              }
+              return item;
+            }),
+          };
+        }
+      );
       await t3.users.getLikes.reset();
     } catch (error) {
       if (error instanceof TRPCClientError) {
@@ -114,6 +164,11 @@ const Sloop: NextPage = ({}) => {
       }
       return;
     }
+  };
+
+  const handleDeleteSloop = async (id: string) => {
+    await deleteSloop({ id: id });
+    setShowDelete(false);
   };
 
   if (fetchingSloop || fetchingChords) {
@@ -131,6 +186,32 @@ const Sloop: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {sloop.name}</title>
       </Head>
+      {showDelete && (
+        <Modal>
+          <StyledTitle title="Delete Loop" />
+          <p className="mb-6 font-sans text-sm font-medium sm:text-base">
+            Are you sure you want to delete this loop? This can not be undone.
+          </p>
+          <div className="flex h-14 gap-2">
+            <button
+              className="flex-1 rounded-md border border-gray-300 bg-gray-200"
+              onClick={() => setShowDelete(false)}
+            >
+              Cancel
+            </button>
+            <LoadingButton
+              onClick={() => {
+                void handleDeleteSloop(sloop.id);
+              }}
+              loading={deletingSloop}
+              disabled={deletingSloop}
+              className="flex flex-1 items-center justify-center rounded-md border border-red-500 bg-red-100 text-red-500"
+            >
+              Confirm
+            </LoadingButton>
+          </div>
+        </Modal>
+      )}
       <div
         ref={containerRef}
         className="flex flex-1 flex-col items-center px-4 pb-4 pt-6"
@@ -142,7 +223,7 @@ const Sloop: NextPage = ({}) => {
           <Avatar
             size={width * 0.6}
             name={sloop.name}
-            variant="pixel"
+            variant="marble"
             square
             colors={calcSloopColours(sloop)}
           />
@@ -203,6 +284,11 @@ const Sloop: NextPage = ({}) => {
               )}
             </AnimatePresence>
           </button>
+          {session?.user.id === sloop.userId && (
+            <button className="rounded-md border border-red-500 bg-red-100 p-2 text-red-500">
+              <PiTrash />
+            </button>
+          )}
         </div>
         {sloop.description !== "" && (
           <div className="mb-4 flex w-full flex-col items-start gap-1 border-b border-gray-300 pb-4">
@@ -220,7 +306,7 @@ const Sloop: NextPage = ({}) => {
               Plays
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {sloop._count.plays.toLocaleString(undefined, {
+              {sloop.rankedSloop?.plays.toLocaleString(undefined, {
                 notation: "compact",
               })}
             </p>
@@ -230,7 +316,7 @@ const Sloop: NextPage = ({}) => {
               Likes
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {sloop._count.likes.toLocaleString(undefined, {
+              {sloop.rankedSloop?.likes.toLocaleString(undefined, {
                 notation: "compact",
               })}
             </p>

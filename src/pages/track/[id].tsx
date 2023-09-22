@@ -13,7 +13,6 @@ import SafeImage from "~/components/ui/SafeImage";
 import SloopList from "~/components/ui/SloopList";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
-import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { api } from "~/utils/api";
 import { mode, paginationLimit, pitchClass } from "~/utils/constants";
@@ -169,7 +168,6 @@ const Track: NextPage = ({}) => {
             hasPrevious={!!sloops.pages[page - 1]}
             onClickNext={() => void handleNext()}
             onClickPrevious={() => handlePrevious()}
-            className="w-full"
           >
             <SloopList sloops={data.items} />
           </Pagination>
@@ -181,4 +179,4 @@ const Track: NextPage = ({}) => {
   );
 };
 
-export default WithAuth(Track);
+export default Track;

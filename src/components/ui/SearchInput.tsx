@@ -32,7 +32,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
               className="ml-2 w-full bg-transparent text-sm font-medium focus:outline-none sm:text-base"
               id="query"
               name="query"
-              placeholder="Search for artists, albums, playlists..."
+              placeholder="Search for tracks, artists, albums..."
               autoComplete="off"
               autoCorrect="off"
             />

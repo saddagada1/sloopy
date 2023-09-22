@@ -14,6 +14,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import { TRPCClientError } from "@trpc/client";
+import WithoutAuth from "~/components/utils/WithoutAuth";
 
 interface RegisterValues {
   email: string;
@@ -129,4 +130,5 @@ const Register: NextPage = ({}) => {
     </>
   );
 };
-export default Register;
+
+export default WithoutAuth(Register);

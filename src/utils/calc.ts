@@ -47,8 +47,8 @@ export const calcSloopColours = (sloop: Sloop) => {
   return [
     pitchClassColours[sloop.key]!,
     mode[sloop.mode] === "Major"
-      ? pitchClassColours[sloop.key - 3 ?? 12 - 3]!
-      : pitchClassColours[sloop.key + 3 ?? -1 + 3]!,
+      ? pitchClassColours[sloop.key - 3]! ?? pitchClassColours[12 - 2]!
+      : pitchClassColours[sloop.key + 3]! ?? pitchClassColours[-1 + 2]!,
   ];
 };
 

@@ -10,6 +10,7 @@ import StyledLink from "~/components/ui/form/StyledLink";
 import OAuthButtons from "~/components/ui/form/OAuthButtons";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/router";
+import WithoutAuth from "~/components/utils/WithoutAuth";
 
 interface LoginValues {
   email: string;
@@ -98,4 +99,4 @@ const Login: NextPage = ({}) => {
   );
 };
 
-export default Login;
+export default WithoutAuth(Login);

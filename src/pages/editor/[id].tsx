@@ -47,8 +47,9 @@ const Editor: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
   const editor = useEditorContext();
-  const { data, isLoading, error } = api.sloops.getUserSloop.useQuery({
+  const { data, isLoading, error } = api.sloops.get.useQuery({
     id: router.query.id as string,
+    getPrivate: true,
   });
   const {
     data: chords,
@@ -100,14 +101,7 @@ const Editor: NextPage = ({}) => {
           ...cachedData,
         };
       });
-      t3.sloops.getUserSloop.setData({ id: data.id }, (cachedData) => {
-        if (!cachedData) return;
-        return {
-          ...response,
-          ...cachedData,
-        };
-      });
-      await t3.users.getSessionUser.reset();
+      await t3.sloops.getSloops.reset();
       toast.remove(updateProgress);
       localStorage.removeItem(`sloop`);
       toast.success("Sloop Saved!", { duration: 4000 });
@@ -178,7 +172,7 @@ const Editor: NextPage = ({}) => {
       </AnimatePresence>
       <AnimatePresence>
         {saveSloop && (
-          <Modal setVisible={setSaveSloop}>
+          <Modal>
             {data.isPrivate ? (
               <>
                 <LoadingButton

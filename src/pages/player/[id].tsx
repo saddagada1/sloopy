@@ -26,12 +26,10 @@ import { useElementSize } from "usehooks-ts";
 import WithAuth from "~/components/utils/WithAuth";
 import LoopButton from "~/components/sloops/LoopButton";
 import ErrorView from "~/components/utils/ErrorView";
-import { useSession } from "next-auth/react";
 
 const SloopPlayer: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
-  const { data: session } = useSession();
   const playerCtx = usePlayerContext();
   const { data, isLoading, error } = api.sloops.get.useQuery({
     id: router.query.id as string,
@@ -56,9 +54,21 @@ const SloopPlayer: NextPage = ({}) => {
 
   const handleUpdatePlays = async (id: string) => {
     try {
-      await updatePlays({ id: id });
-      await t3.sloops.get.reset();
-      await t3.sloops.getUserSloop.reset();
+      const response = await updatePlays({ id: id });
+      if (!(response.updatedAt > response.createdAt)) {
+        t3.sloops.get.setData({ id: id }, (cachedData) => {
+          if (!cachedData) return;
+          return {
+            ...cachedData,
+            rankedSloop: cachedData.rankedSloop
+              ? {
+                  ...cachedData.rankedSloop,
+                  plays: cachedData.rankedSloop.plays + 1,
+                }
+              : null,
+          };
+        });
+      }
     } catch (error) {
       return;
     }
@@ -67,7 +77,7 @@ const SloopPlayer: NextPage = ({}) => {
   useEffect(() => {
     if (!data) return;
     playerCtx.initialize(data);
-    session?.user.id !== data.userId && void handleUpdatePlays(data.id);
+    void handleUpdatePlays(data.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 

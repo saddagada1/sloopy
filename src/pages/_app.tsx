@@ -19,8 +19,17 @@ const MyApp: AppType<{ session: Session | null }> = ({
           toastOptions={{
             className: "font-mono font-medium text-center",
             style: {
-              backgroundColor: "var(--primary-colour)",
-              color: "var(--secondary-colour)",
+              border: "1px",
+              borderStyle: "solid",
+              borderColor: "#eab308",
+              borderRadius: "6px",
+              backgroundColor: "#fef9c3",
+              color: "#eab308",
+              minWidth: "fit-content",
+            },
+            iconTheme: {
+              primary: "#eab308",
+              secondary: "#fef9c3",
             },
             error: {
               style: {

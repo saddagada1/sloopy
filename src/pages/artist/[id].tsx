@@ -12,7 +12,6 @@ import SafeImage from "~/components/ui/SafeImage";
 import TrackList from "~/components/ui/TrackList";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
-import WithAuth from "~/components/utils/WithAuth";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { pitchClassColours } from "~/utils/constants";
 
@@ -202,4 +201,4 @@ const Artist: NextPage = ({}) => {
   );
 };
 
-export default WithAuth(Artist);
+export default Artist;

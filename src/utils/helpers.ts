@@ -13,13 +13,3 @@ export const fetchChords = async (): Promise<
     };
   }
 };
-
-export const fetchTrends = async (): Promise<{
-  ok: boolean;
-  message: string;
-}> => {
-  const response = await axios.get<{ ok: boolean; message: string }>(
-    "/api/trending"
-  );
-  return response.data;
-};

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { type Track } from "spotify-types";
+import { type Track as SpotifyTrack } from "spotify-types";
 import SafeImage from "./SafeImage";
+import { type Track } from "@prisma/client";
 
 interface TrackCardProps {
   width: number;
-  track: Track;
+  track: SpotifyTrack | Track;
 }
 
 const TrackCard: React.FC<TrackCardProps> = ({ width, track }) => {
@@ -12,7 +13,7 @@ const TrackCard: React.FC<TrackCardProps> = ({ width, track }) => {
     <Link style={{ width: width / 3 }} href={`/track/${track.id}`}>
       <SafeImage
         className="relative mb-2 aspect-square overflow-hidden rounded-md"
-        url={track.album.images[0]?.url}
+        url={"album" in track ? track.album.images[0]?.url : track.image}
         alt={track.name}
         square
         width={width / 3}

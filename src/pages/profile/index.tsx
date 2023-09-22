@@ -7,7 +7,7 @@ import { api } from "~/utils/api";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import SafeImage from "~/components/ui/SafeImage";
-import { pitchClassColours } from "~/utils/constants";
+import { paginationLimit, pitchClassColours } from "~/utils/constants";
 import ErrorView from "~/components/utils/ErrorView";
 import SloopList from "~/components/ui/SloopList";
 import { useSession } from "next-auth/react";
@@ -23,12 +23,19 @@ const Profile: NextPage = ({}) => {
     isLoading: fetchingUser,
     error: userError,
   } = api.users.getSessionUser.useQuery();
+  const {
+    data: sloops,
+    isLoading: fetchingSloops,
+    error: sloopsError,
+  } = api.sloops.getSloops.useQuery({
+    limit: paginationLimit,
+  });
 
-  if (fetchingUser) {
+  if (fetchingUser || fetchingSloops) {
     return <Loading />;
   }
 
-  if (!user || userError) {
+  if ((!user || userError) ?? (!sloops || sloopsError)) {
     return <ErrorView />;
   }
 
@@ -37,7 +44,7 @@ const Profile: NextPage = ({}) => {
       <Head>
         <title>Sloopy - Profile</title>
       </Head>
-      <div className="flex flex-1 flex-col px-4 pt-6">
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
           Profile
         </h2>
@@ -74,7 +81,7 @@ const Profile: NextPage = ({}) => {
                   Followers
                 </p>
                 <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user._count.followers.toLocaleString(undefined, {
+                  {user.followersCount.toLocaleString(undefined, {
                     notation: "compact",
                   })}
                 </p>
@@ -87,7 +94,7 @@ const Profile: NextPage = ({}) => {
                   Following
                 </p>
                 <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user._count.following.toLocaleString(undefined, {
+                  {user.followingCount.toLocaleString(undefined, {
                     notation: "compact",
                   })}
                 </p>
@@ -151,7 +158,7 @@ const Profile: NextPage = ({}) => {
         </div>
         <div className="flex-1">
           <SloopList
-            sloops={user.sloops.filter((sloop) =>
+            sloops={sloops.items.filter((sloop) =>
               router.query.tab === "private"
                 ? sloop.isPrivate
                 : !sloop.isPrivate

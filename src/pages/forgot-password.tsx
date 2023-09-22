@@ -10,6 +10,7 @@ import StyledLink from "~/components/ui/form/StyledLink";
 import { api } from "~/utils/api";
 import toast from "react-hot-toast";
 import { TRPCClientError } from "@trpc/client";
+import WithoutAuth from "~/components/utils/WithoutAuth";
 
 const ForgotPassword: NextPage = ({}) => {
   const { mutateAsync: sendForgotPasswordEmail } =
@@ -73,4 +74,5 @@ const ForgotPassword: NextPage = ({}) => {
     </>
   );
 };
-export default ForgotPassword;
+
+export default WithoutAuth(ForgotPassword);

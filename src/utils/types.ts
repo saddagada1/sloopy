@@ -72,11 +72,17 @@ export interface Paging<T> {
 }
 
 export interface ListSloop extends Sloop {
-  _count: { likes: number };
+  rankedSloop: { likes: number } | null;
+  track: {
+    name: string;
+  };
+  artists: {
+    name: string;
+  }[];
 }
 
 export interface PageSloop extends Sloop {
-  _count: { likes: number; plays: number };
+  rankedSloop: { likes: number; plays: number } | null;
 }
 
 export interface Follower extends Follow {

@@ -2,7 +2,7 @@ import { type Like } from "@prisma/client";
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { prisma } from "~/server/db";
 import { calcPastDate, calcRank } from "~/utils/calc";
-import { FAVOURITES_TOPIC } from "~/utils/constants";
+import { LOVED_TOPIC } from "~/utils/constants";
 import { kafka } from "~/utils/upstash";
 
 interface LikeWithArtists extends Like {
@@ -22,7 +22,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const messages = await c.consume({
     consumerGroupId: consumerGroupId,
     instanceId: instanceId,
-    topics: [FAVOURITES_TOPIC],
+    topics: [LOVED_TOPIC],
     autoOffsetReset: "earliest",
     autoCommit: false,
     timeout: 1000 * 60,

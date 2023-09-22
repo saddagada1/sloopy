@@ -35,7 +35,7 @@ export const pitchClassColours: Record<number, string> = {
   0: "#ff0000",
   1: "#ff5200",
   2: "#ffa500",
-  3: " #ffd200",
+  3: "#ffd200",
   4: "#ffff00",
   5: "#66ff00",
   6: "#33ff80",
@@ -63,9 +63,15 @@ export const VERIFY_EMAIL_PREFIX = "verify-email:";
 
 export const TRENDING_TOPIC = "update-ranks";
 
-export const FAVOURITES_TOPIC = "update-like-ranks";
+export const LOVED_TOPIC = "update-like-ranks";
 
 export const paginationLimit = 50;
+
+export const alwaysRefetch = {
+  refetchOnWindowFocus: true,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+};
 
 export const domain = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`

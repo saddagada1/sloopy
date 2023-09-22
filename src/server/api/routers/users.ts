@@ -25,15 +25,24 @@ export const usersRouter = createTRPCRouter({
           image: true,
           username: true,
           bio: true,
+          followersCount: true,
+          followingCount: true,
           sloops: {
             include: {
-              _count: {
+              rankedSloop: {
                 select: { likes: true },
               },
+              artists: {
+                select: {
+                  name: true,
+                },
+              },
+              track: {
+                select: {
+                  name: true,
+                },
+              },
             },
-          },
-          _count: {
-            select: { followers: true, following: true },
           },
         },
       });
@@ -62,16 +71,25 @@ export const usersRouter = createTRPCRouter({
             image: true,
             username: true,
             bio: true,
+            followersCount: true,
+            followingCount: true,
             sloops: {
               where: { isPrivate: false },
               include: {
-                _count: {
+                rankedSloop: {
                   select: { likes: true },
                 },
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+                track: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
-            },
-            _count: {
-              select: { followers: true, following: true },
             },
             followers: { where: { followerId: ctx.session?.user.id } },
           },
@@ -98,7 +116,23 @@ export const usersRouter = createTRPCRouter({
         const likes = await ctx.prisma.like.findMany({
           where: { userId: ctx.session.user.id },
           include: {
-            sloop: { include: { _count: { select: { likes: true } } } },
+            sloop: {
+              include: {
+                rankedSloop: {
+                  select: { likes: true },
+                },
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+                track: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
           },
           skip: input.skip,
           take: input.limit + 1,
@@ -213,7 +247,23 @@ export const usersRouter = createTRPCRouter({
         const likes = await ctx.prisma.like.findMany({
           where: { user: { username: input.username } },
           include: {
-            sloop: { include: { _count: { select: { likes: true } } } },
+            sloop: {
+              include: {
+                rankedSloop: {
+                  select: { likes: true },
+                },
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+                track: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
           },
           skip: input.skip,
           take: input.limit + 1,
@@ -563,8 +613,23 @@ export const usersRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const follow = await ctx.prisma.follow.create({
-          data: { followerId: ctx.session.user.id, followedId: input.id },
+        const follow = await ctx.prisma.$transaction(async () => {
+          const response = await ctx.prisma.follow.create({
+            data: { followerId: ctx.session.user.id, followedId: input.id },
+          });
+          await ctx.prisma.user.update({
+            where: { id: ctx.session.user.id },
+            data: {
+              followingCount: { increment: 1 },
+            },
+          });
+          await ctx.prisma.user.update({
+            where: { id: input.id },
+            data: {
+              followersCount: { increment: 1 },
+            },
+          });
+          return response;
         });
         return follow;
       } catch (error) {
@@ -587,13 +652,27 @@ export const usersRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       try {
-        await ctx.prisma.follow.delete({
-          where: {
-            followedId_followerId: {
-              followedId: input.id,
-              followerId: ctx.session.user.id,
+        await ctx.prisma.$transaction(async () => {
+          await ctx.prisma.follow.delete({
+            where: {
+              followedId_followerId: {
+                followedId: input.id,
+                followerId: ctx.session.user.id,
+              },
             },
-          },
+          });
+          await ctx.prisma.user.update({
+            where: { id: ctx.session.user.id },
+            data: {
+              followingCount: { decrement: 1 },
+            },
+          });
+          await ctx.prisma.user.update({
+            where: { id: input.id },
+            data: {
+              followersCount: { decrement: 1 },
+            },
+          });
         });
       } catch (error) {
         if (error instanceof PrismaClientKnownRequestError) {

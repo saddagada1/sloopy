@@ -28,7 +28,7 @@ const Pagination: React.FC<PaginationProps> = ({
       <div
         {...DetailedHTMLProps}
         className={twMerge(
-          "mt-2 flex items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl",
+          "mt-2 flex w-full items-center gap-4 border-t border-gray-300 pt-6 font-display text-3xl sm:text-4xl",
           DetailedHTMLProps.className
         )}
       >

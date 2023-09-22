@@ -16,7 +16,10 @@ import {
 } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import Chord from "~/components/sloops/Chord";
+import LoadingButton from "~/components/ui/LoadingButton";
+import Modal from "~/components/ui/Modal";
 import Popover from "~/components/ui/Popover";
+import StyledTitle from "~/components/ui/form/StyledTitle";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
@@ -35,8 +38,9 @@ const Sloop: NextPage = ({}) => {
     data: sloop,
     isLoading: fetchingSloop,
     error: sloopError,
-  } = api.sloops.getUserSloop.useQuery({
+  } = api.sloops.get.useQuery({
     id: router.query.id as string,
+    getPrivate: true,
   });
   const {
     data: chords,
@@ -49,6 +53,14 @@ const Sloop: NextPage = ({}) => {
     }
     return response;
   });
+  const [showDelete, setShowDelete] = useState(false);
+  const { mutateAsync: deleteSloop, isLoading: deletingSloop } =
+    api.sloops.delete.useMutation();
+
+  const handleDeleteSloop = async (id: string) => {
+    await deleteSloop({ id: id });
+    setShowDelete(false);
+  };
 
   if (fetchingSloop || fetchingChords) {
     return <Loading />;
@@ -65,6 +77,32 @@ const Sloop: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {sloop.name}</title>
       </Head>
+      {showDelete && (
+        <Modal>
+          <StyledTitle title="Delete Loop" />
+          <p className="mb-6 font-sans text-sm font-medium sm:text-base">
+            Are you sure you want to delete this loop? This can not be undone.
+          </p>
+          <div className="flex h-14 gap-2">
+            <button
+              className="flex-1 rounded-md border border-gray-300 bg-gray-200"
+              onClick={() => setShowDelete(false)}
+            >
+              Cancel
+            </button>
+            <LoadingButton
+              onClick={() => {
+                void handleDeleteSloop(sloop.id);
+              }}
+              loading={deletingSloop}
+              disabled={deletingSloop}
+              className="flex flex-1 items-center justify-center rounded-md border border-red-500 bg-red-100 text-red-500"
+            >
+              Confirm
+            </LoadingButton>
+          </div>
+        </Modal>
+      )}
       <div
         ref={containerRef}
         className="flex flex-1 flex-col items-center px-4 pb-4 pt-6"
@@ -76,7 +114,7 @@ const Sloop: NextPage = ({}) => {
           <Avatar
             size={width * 0.6}
             name={sloop.name}
-            variant="pixel"
+            variant="marble"
             square
             colors={calcSloopColours(sloop)}
           />
@@ -136,7 +174,7 @@ const Sloop: NextPage = ({}) => {
               Plays
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {sloop._count.plays.toLocaleString(undefined, {
+              {sloop.rankedSloop?.plays.toLocaleString(undefined, {
                 notation: "compact",
               })}
             </p>
@@ -146,7 +184,7 @@ const Sloop: NextPage = ({}) => {
               Likes
             </p>
             <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {sloop._count.likes.toLocaleString(undefined, {
+              {sloop.rankedSloop?.likes.toLocaleString(undefined, {
                 notation: "compact",
               })}
             </p>

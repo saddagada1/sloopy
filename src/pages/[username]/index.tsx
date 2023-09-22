@@ -7,7 +7,11 @@ import { useElementSize } from "usehooks-ts";
 import { api } from "~/utils/api";
 import Loading from "~/components/utils/Loading";
 import SafeImage from "~/components/ui/SafeImage";
-import { pitchClassColours } from "~/utils/constants";
+import {
+  alwaysRefetch,
+  paginationLimit,
+  pitchClassColours,
+} from "~/utils/constants";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import { TRPCClientError } from "@trpc/client";
@@ -25,8 +29,19 @@ const User: NextPage = ({}) => {
     data: user,
     isLoading: fetchingUser,
     error: userError,
-  } = api.users.getUserByUsername.useQuery({
+  } = api.users.getUserByUsername.useQuery(
+    {
+      username: router.query.username as string,
+    },
+    alwaysRefetch
+  );
+  const {
+    data: sloops,
+    isLoading: fetchingSloops,
+    error: sloopsError,
+  } = api.sloops.getUserSloops.useQuery({
     username: router.query.username as string,
+    limit: paginationLimit,
   });
   const { mutateAsync: follow, isLoading: creatingFollow } =
     api.users.follow.useMutation();
@@ -47,23 +62,30 @@ const User: NextPage = ({}) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            _count: {
-              ...cachedData._count,
-              followers: cachedData._count.followers + 1,
-            },
+            followersCount: cachedData.followersCount + 1,
             followers: [response],
           };
         }
       );
-      await t3.users.getUserFollowers.reset();
+      const userFollowers = t3.users.getUserFollowers.getInfiniteData({
+        username: user.username,
+        limit: paginationLimit,
+      });
+      if (userFollowers) {
+        userFollowers.pages.map(
+          (page) =>
+            void t3.users.getUserFollowers.reset({
+              username: user.username,
+              limit: paginationLimit,
+              cursor: page.next,
+            })
+        );
+      }
       t3.users.getSessionUser.setData(undefined, (cachedData) => {
         if (!cachedData) return;
         return {
           ...cachedData,
-          _count: {
-            ...cachedData._count,
-            following: cachedData._count.following + 1,
-          },
+          followingCount: cachedData.followingCount + 1,
         };
       });
       await t3.users.getFollowing.reset();
@@ -89,23 +111,30 @@ const User: NextPage = ({}) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            _count: {
-              ...cachedData._count,
-              followers: cachedData._count.followers - 1,
-            },
+            followersCount: cachedData.followersCount - 1,
             followers: [],
           };
         }
       );
-      await t3.users.getUserFollowers.reset();
+      const userFollowers = t3.users.getUserFollowers.getInfiniteData({
+        username: user.username,
+        limit: paginationLimit,
+      });
+      if (userFollowers) {
+        userFollowers.pages.map(
+          (page) =>
+            void t3.users.getUserFollowers.reset({
+              username: user.username,
+              limit: paginationLimit,
+              cursor: page.next,
+            })
+        );
+      }
       t3.users.getSessionUser.setData(undefined, (cachedData) => {
         if (!cachedData) return;
         return {
           ...cachedData,
-          _count: {
-            ...cachedData._count,
-            following: cachedData._count.following - 1,
-          },
+          followingCount: cachedData.followingCount - 1,
         };
       });
       await t3.users.getFollowing.reset();
@@ -117,11 +146,11 @@ const User: NextPage = ({}) => {
     }
   };
 
-  if (fetchingUser) {
+  if (fetchingUser || fetchingSloops) {
     return <Loading />;
   }
 
-  if (!user || userError) {
+  if ((!user || userError) ?? (!sloops || sloopsError)) {
     return <ErrorView />;
   }
 
@@ -130,7 +159,7 @@ const User: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {`${user.username}'s Profile`}</title>
       </Head>
-      <div className="flex flex-1 flex-col px-4 pt-6">
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">User</h2>
         <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
           {user.username}
@@ -165,7 +194,7 @@ const User: NextPage = ({}) => {
                   Followers
                 </p>
                 <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user._count.followers.toLocaleString(undefined, {
+                  {user.followersCount.toLocaleString(undefined, {
                     notation: "compact",
                   })}
                 </p>
@@ -178,7 +207,7 @@ const User: NextPage = ({}) => {
                   Following
                 </p>
                 <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user._count.following.toLocaleString(undefined, {
+                  {user.followingCount.toLocaleString(undefined, {
                     notation: "compact",
                   })}
                 </p>
@@ -234,7 +263,7 @@ const User: NextPage = ({}) => {
           </div>
         )}
         <div className="mt-4 flex-1 border-t border-gray-300 pt-4">
-          <SloopList sloops={user.sloops} />
+          <SloopList sloops={sloops.items} />
         </div>
       </div>
     </>

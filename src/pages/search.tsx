@@ -13,13 +13,14 @@ import { type Search as SpotifySearch } from "~/contexts/Spotify";
 import { api } from "~/utils/api";
 import SloopList from "~/components/ui/SloopList";
 import { type ListSloop } from "~/utils/types";
-import { type Artist } from "@prisma/client";
+import { type Track, type Artist } from "@prisma/client";
 import NoData from "~/components/ui/NoData";
 import AlbumCard from "~/components/ui/AlbumCard";
 import PlaylistCard from "~/components/ui/PlaylistCard";
 import ArtistCard from "~/components/ui/ArtistCard";
 import UserCard from "~/components/ui/UserCard";
 import clsx from "clsx";
+import TrackCard from "~/components/ui/TrackCard";
 
 interface SpotifyResultsProps {
   results: SpotifySearch;
@@ -108,6 +109,7 @@ const SpotifyResults: React.FC<SpotifyResultsProps> = ({ results, width }) => {
 interface SloopyResultsProps {
   results: {
     users: { username: string; image: string | null }[];
+    tracks: Track[];
     artists: Artist[];
     sloops: ListSloop[];
   };
@@ -151,6 +153,25 @@ const SloopyResults: React.FC<SloopyResultsProps> = ({ results, width }) => {
           <NoData>No Artist Results</NoData>
         )}
       </section>
+      {results.tracks && (
+        <section>
+          <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
+            Tracks
+            <p className="text-base text-gray-400 sm:text-lg">
+              {results.tracks.length}
+            </p>
+          </h3>
+          {results.tracks.length > 0 ? (
+            <Carousel>
+              {results.tracks.map((track, index) => (
+                <TrackCard key={index} width={width} track={track} />
+              ))}
+            </Carousel>
+          ) : (
+            <NoData>No Track Results</NoData>
+          )}
+        </section>
+      )}
       <section>
         <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
           Sloops

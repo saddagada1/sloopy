@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import {
   fetchCurrentSpotifyUser,
   fetchSpotifyClientCredentials,
@@ -121,7 +125,7 @@ export const spotifyRouter = createTRPCRouter({
       }
     }),
 
-  fetchSpotifyAuth: protectedProcedure.mutation(async () => {
+  fetchSpotifyAuth: publicProcedure.mutation(async () => {
     const spotifyCredentials = await fetchSpotifyClientCredentials();
     if (!spotifyCredentials.ok) {
       throw new TRPCError({

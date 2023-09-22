@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { type Dispatch, type SetStateAction } from "react";
 
 interface ModalProps {
-  setVisible: Dispatch<SetStateAction<boolean>>;
+  setVisible?: Dispatch<SetStateAction<boolean>>;
   disabled?: boolean;
   children?: React.ReactNode;
 }
@@ -14,7 +14,7 @@ const Modal: React.FC<ModalProps> = ({ setVisible, disabled, children }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.5 }}
         exit={{ opacity: 0 }}
-        onClick={() => !disabled && setVisible(false)}
+        onClick={() => !disabled && setVisible && setVisible(false)}
         className="absolute h-full w-full bg-secondary opacity-50"
       />
       <motion.div
