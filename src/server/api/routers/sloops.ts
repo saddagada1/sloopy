@@ -29,6 +29,7 @@ const zodArtist = z.object({
 });
 
 const createSloopInput = z.object({
+  type: z.string(),
   name: z.string(),
   description: z.string().max(500),
   trackId: z.string(),
@@ -77,6 +78,7 @@ export const sloopsRouter = createTRPCRouter({
                   update: {},
                   create: {
                     id: artist.spotifyId,
+                    type: sloopInput.type,
                     image: artist.image,
                     name: artist.name,
                   },
@@ -99,6 +101,7 @@ export const sloopsRouter = createTRPCRouter({
             update: {},
             create: {
               id: trackId,
+              type: sloopInput.type,
               name: trackName,
               image: trackImage,
               artists: { connect: artists },
@@ -171,8 +174,17 @@ export const sloopsRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const sloop = await ctx.prisma.sloop.delete({
-          where: { id: input.id, userId: ctx.session.user.id },
+        const sloop = await ctx.prisma.$transaction(async () => {
+          const response = await ctx.prisma.sloop.delete({
+            where: { id: input.id, userId: ctx.session.user.id },
+          });
+          await ctx.prisma.user.update({
+            where: { id: ctx.session.user.id },
+            data: {
+              sloopsCount: { decrement: 1 },
+            },
+          });
+          return response;
         });
         return sloop;
       } catch (error) {
@@ -877,7 +889,6 @@ export const sloopsRouter = createTRPCRouter({
         const sloop = await ctx.prisma.sloop.findUnique({
           where: {
             id: input.id,
-            userId: ctx.session?.user.id,
             isPrivate: !!input.getPrivate,
           },
           include: {

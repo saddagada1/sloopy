@@ -9,9 +9,11 @@ import EditorProvider from "~/contexts/Editor";
 import { useEffect, useState } from "react";
 import { api } from "~/utils/api";
 import { type UpdateSloopInput } from "~/utils/types";
-import toast from "react-hot-toast";
 import Link from "next/link";
 import PlayerProvider from "~/contexts/Player";
+import { AnimatePresence } from "framer-motion";
+import Modal from "./ui/Modal";
+import StyledTitle from "./ui/form/StyledTitle";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const syne = Syne({
@@ -21,51 +23,26 @@ const syne = Syne({
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { status: sessionStatus } = useSession();
-  const [unsavedData, setUnsavedData] = useState(true);
+  const [unsavedData, setUnsavedData] = useState(false);
+  const [unsavedSloop, setUnsavedSloop] = useState<UpdateSloopInput | null>(
+    null
+  );
   const { mutateAsync: saveSloop } = api.sloops.update.useMutation();
   const router = useRouter();
 
-  useEffect(() => {
-    const handleUnsaved = async (data: UpdateSloopInput) => {
-      try {
-        await saveSloop(data);
-        localStorage.removeItem("sloop");
-        setUnsavedData(false);
-      } catch (error) {
-        toast.error(
-          (t) => (
-            <div>
-              {`You Have An Unsaved Sloop. `}
-              <Link
-                href={`/editor/${data.id}?unsaved=true`}
-                onClick={() => toast.dismiss(t.id)}
-                className="underline"
-              >
-                Click Here To Save
-              </Link>
-              {` Or Your Data Will Be Lost! `}
-              <button
-                className="underline"
-                onClick={() => {
-                  localStorage.removeItem("sloop");
-                  toast.dismiss(t.id);
-                }}
-              >
-                Click Here To Ignore.
-              </button>
-            </div>
-          ),
-          { duration: Infinity }
-        );
-        setUnsavedData(false);
-      }
-    };
+  const handleUnsavedSloop = (discard: boolean) => {
+    if (discard) {
+      localStorage.removeItem("sloop");
+    }
+    setUnsavedData(false);
+    setUnsavedSloop(null);
+  };
 
+  useEffect(() => {
     const sloop = localStorage.getItem("sloop");
     if (sloop) {
-      void handleUnsaved(JSON.parse(sloop) as UpdateSloopInput);
-    } else {
-      setUnsavedData(false);
+      setUnsavedData(true);
+      setUnsavedSloop(JSON.parse(sloop) as UpdateSloopInput);
     }
   }, [saveSloop]);
 
@@ -78,6 +55,32 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <div
         className={`${syne.variable} ${inter.variable} flex min-h-screen flex-col font-sans text-secondary`}
       >
+        <AnimatePresence>
+          {unsavedData && unsavedSloop && (
+            <Modal disabled={true} setVisible={setUnsavedData}>
+              <StyledTitle title="Unsaved Changes" />
+              <p className="mb-6 font-sans text-sm font-medium sm:text-base">
+                There is a sloop with unsaved changes. Would you like to
+                continue editing the sloop or discard the changes.
+              </p>
+              <div className="flex h-14 gap-2 font-display text-base font-bold sm:text-lg">
+                <button
+                  className="w-full rounded-md border border-red-500 bg-red-100 text-red-500"
+                  onClick={() => handleUnsavedSloop(true)}
+                >
+                  Discard
+                </button>
+                <Link
+                  onClick={() => handleUnsavedSloop(false)}
+                  className="flex w-full items-center justify-center rounded-md bg-secondary text-primary"
+                  href={`/editor/${unsavedSloop.id}?private=${unsavedSloop.isPrivate}&unsaved=true`}
+                >
+                  Edit Sloop
+                </Link>
+              </div>
+            </Modal>
+          )}
+        </AnimatePresence>
         {router.pathname.includes("editor") ? (
           <main className="flex flex-1 flex-col">
             <EditorProvider>

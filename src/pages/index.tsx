@@ -223,9 +223,12 @@ const Home: NextPage = () => {
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
           {calcTimeOfDay()}
         </h2>
-        <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
+        <Link
+          href={session ? "/profile" : "/"}
+          className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl"
+        >
           {session ? session.user.name ?? session.user.username : "Welcome"}
-        </h1>
+        </Link>
         <SearchInput />
         <div ref={containerRef} className="mt-2 flex flex-1 flex-col gap-6">
           {sessionStatus !== "authenticated" ? (

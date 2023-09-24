@@ -141,7 +141,7 @@ const Settings: NextPage = ({}) => {
                   </>
                 )
               }
-              style="bg-gray-200 mb-4"
+              className="mb-4 border border-gray-300 bg-gray-200"
             />
             <StyledLoadingButton
               onClick={() => void handleSpotifyAccountChange()}

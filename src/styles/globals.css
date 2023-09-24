@@ -13,6 +13,10 @@ body {
   color: var(--secondary-colour);
 }
 
+* {
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0) !important;
+}
+
 *::selection {
   background-color: var(--secondary-colour);
   color: var(--primary-colour);

@@ -1,5 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import NoData from "~/components/ui/NoData";
@@ -58,10 +59,13 @@ const Likes: NextPage = ({}) => {
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
           Likes
         </h2>
-        <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
+        <Link
+          href={`/${router.query.username as string}`}
+          className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl"
+        >
           {router.query.username as string}
-        </h1>
-        {data ? (
+        </Link>
+        {data && data.items.length > 0 ? (
           <Pagination
             page={page}
             hasNext={!!likes.pages[page]?.next}

@@ -161,7 +161,7 @@ const Track: NextPage = ({}) => {
           </div>
         </div>
 
-        {data ? (
+        {data && data.items.length > 0 ? (
           <Pagination
             page={page}
             hasNext={!!sloops.pages[page]?.next}
@@ -172,7 +172,7 @@ const Track: NextPage = ({}) => {
             <SloopList sloops={data.items} />
           </Pagination>
         ) : (
-          <NoData>No loops have been created :(</NoData>
+          <NoData>No sloops have been created :(</NoData>
         )}
       </div>
     </>

@@ -155,6 +155,7 @@ const Create: NextPage = ({}) => {
             try {
               const response = await createSloop({
                 ...values,
+                type: "spotify",
                 trackId: track.id,
                 trackName: track.name,
                 trackImage: track.album.images[0]?.url,

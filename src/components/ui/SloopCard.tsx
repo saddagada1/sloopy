@@ -11,7 +11,10 @@ interface SloopCardProps {
 
 const SloopCard: React.FC<SloopCardProps> = ({ width, sloop }) => {
   return (
-    <Link style={{ width: width * 0.3 }} href={`/sloop/${sloop.id}`}>
+    <Link
+      style={{ width: width * 0.3 }}
+      href={`/sloop/${sloop.id}?private=${sloop.isPrivate}`}
+    >
       <div className="relative mb-2 aspect-square overflow-hidden rounded-md">
         <Avatar
           size={width * 0.3}

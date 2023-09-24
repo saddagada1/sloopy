@@ -188,9 +188,12 @@ const Library: NextPage = () => {
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
           Library
         </h2>
-        <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
+        <Link
+          href="/profile"
+          className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl"
+        >
           {session?.user.name ?? session?.user.username}
-        </h1>
+        </Link>
         <SearchInput tab="spotify" />
         <div className="mb-4 flex gap-2 text-center font-display text-base font-semibold text-primary sm:text-lg">
           <Link

@@ -1,27 +1,28 @@
-import clsx from "clsx";
+import { type DetailedHTMLProps, type HTMLAttributes } from "react";
+import { twMerge } from "tailwind-merge";
 
-interface LabelValueBarProps {
+interface LabelValueBarProps
+  extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   label: string;
   value: string | JSX.Element;
-  style?: string;
 }
 
 const LabelValueBar: React.FC<LabelValueBarProps> = ({
   label,
   value,
-  style,
+  ...DetailedHTMLProps
 }) => {
+  const { className, ...props } = DetailedHTMLProps;
   return (
     <div
-      className={clsx(
-        "flex flex-1 items-center justify-between rounded-md px-2 py-1 font-semibold",
-        style ?? ""
+      className={twMerge(
+        "flex flex-1 items-center justify-between gap-2 rounded-md px-2 py-1 font-semibold",
+        className
       )}
+      {...props}
     >
-      <p className="flex flex-1 text-sm sm:text-base">{value}</p>
-      <label htmlFor="label" className="font-display text-base sm:text-lg">
-        {label}
-      </label>
+      <p className="font-display text-base capitalize sm:text-lg">{label}</p>
+      <p className="flex text-sm capitalize sm:text-base">{value}</p>
     </div>
   );
 };

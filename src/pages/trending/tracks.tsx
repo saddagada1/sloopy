@@ -56,7 +56,7 @@ const TrendingTracks: NextPage = ({}) => {
         <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
           Tracks
         </h1>
-        {data ? (
+        {data && data.items.length > 0 ? (
           <Pagination
             page={page}
             hasNext={!!tracks.pages[page]?.next}

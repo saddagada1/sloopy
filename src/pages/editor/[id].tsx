@@ -42,6 +42,7 @@ import LoopButton from "~/components/sloops/LoopButton";
 import ErrorView from "~/components/utils/ErrorView";
 import chordsData from "public/chords.json";
 import { useSession } from "next-auth/react";
+import StyledTitle from "~/components/ui/form/StyledTitle";
 
 const chords = chordsData as unknown as Chords;
 
@@ -65,6 +66,7 @@ const Editor: NextPage = ({}) => {
     isLoading: updatingSloop,
     variables,
   } = api.sloops.update.useMutation();
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
   const { route, setRoute, disabled, setDisabled } = useSaveBeforeRouteChange();
   const t3 = api.useContext();
 
@@ -140,7 +142,7 @@ const Editor: NextPage = ({}) => {
 
   useEffect(() => {
     if (!route) return;
-    void handleSaveSloop({ url: route });
+    setUnsavedChanges(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
 
@@ -160,6 +162,46 @@ const Editor: NextPage = ({}) => {
             sloopInfo={editor.generalInfo}
             onEdit={(values) => editor.setGeneralInfo(values)}
           />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {unsavedChanges && route && (
+          <Modal
+            disabled={true}
+            onOutsideClick={() => {
+              setRoute(null);
+              setUnsavedChanges(false);
+            }}
+            setVisible={setUnsavedChanges}
+          >
+            <StyledTitle title="Unsaved Changes" />
+            <p className="mb-6 font-sans text-sm font-medium sm:text-base">
+              There may be unsaved changes. Would you like to save these changes
+              before leaving?
+            </p>
+            <div className="flex gap-2">
+              <button
+                className="h-14 w-full rounded-md border border-red-500 bg-red-100 font-display text-base font-bold text-red-500 sm:text-lg"
+                onClick={() => {
+                  localStorage.removeItem(`sloop`);
+                  void router.push(route);
+                }}
+              >
+                {"Don't Save"}
+              </button>
+              <StyledLoadingButton
+                label="Save Changes"
+                loading={updatingSloop && !variables?.isPrivate}
+                disabled={updatingSloop}
+                onClick={() => {
+                  setDisabled(true);
+                  void handleSaveSloop({
+                    url: route,
+                  });
+                }}
+              />
+            </div>
+          </Modal>
         )}
       </AnimatePresence>
       <AnimatePresence>

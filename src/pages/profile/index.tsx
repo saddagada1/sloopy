@@ -13,7 +13,13 @@ import SloopList from "~/components/ui/SloopList";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import clsx from "clsx";
-import { useEffect, useRef, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 import { AnimatePresence } from "framer-motion";
 import Modal from "~/components/ui/Modal";
 import StyledTitle from "~/components/ui/form/StyledTitle";
@@ -21,27 +27,22 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import LoadingButton from "~/components/ui/LoadingButton";
 import axios from "axios";
+import NoData from "~/components/ui/NoData";
+import ScrollPagination from "~/components/ui/ScrollPagination";
 
-const Profile: NextPage = ({}) => {
-  const router = useRouter();
-  const [imageContainerRef, { height }] = useElementSize();
-  const [changeProfileImage, setChangeProfileImage] = useState(false);
+interface ProfileImageModalProps {
+  setVisible: Dispatch<SetStateAction<boolean>>;
+  height: number;
+}
+
+const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
+  setVisible,
+  height,
+}) => {
+  const { data: session, update: updateSession } = useSession();
   const [profileImage, setProfileImage] = useState<File>();
   const profileImageRef = useRef<HTMLInputElement>(null!);
-  const { data: session, update: updateSession } = useSession();
-  const {
-    data: user,
-    isLoading: fetchingUser,
-    error: userError,
-  } = api.users.getSessionUser.useQuery();
-  const {
-    data: sloops,
-    isLoading: fetchingSloops,
-    error: sloopsError,
-  } = api.sloops.getSloops.useQuery({
-    limit: paginationLimit,
-  });
-  const { mutateAsync: uploadProfileImage, isLoading: uploadingProfileImage } =
+  const { mutateAsync: changeProfileImage, isLoading: changingProfileImage } =
     api.users.changeImage.useMutation();
   const { mutateAsync: deleteProfileImage } =
     api.users.deleteImage.useMutation();
@@ -63,7 +64,7 @@ const Profile: NextPage = ({}) => {
   const handleSaveProfileImage = async () => {
     if (!profileImage) return;
     try {
-      const url = await uploadProfileImage();
+      const url = await changeProfileImage();
       const response = await axios.put(url, profileImage);
       if (response.status !== 200) {
         toast.error("Error: Could Not Change Profile Image");
@@ -73,7 +74,7 @@ const Profile: NextPage = ({}) => {
     } catch (error) {
       toast.error("Error: Could Not Change Profile Image");
     }
-    setChangeProfileImage(false);
+    setVisible(false);
   };
 
   const handleDeleteProfileImage = async () => {
@@ -84,12 +85,112 @@ const Profile: NextPage = ({}) => {
     } catch (error) {
       toast.error("Error: Could Not Delete Profile Image");
     }
-    setChangeProfileImage(false);
+    setVisible(false);
   };
 
-  useEffect(() => {
-    setProfileImage(undefined);
-  }, [changeProfileImage]);
+  return (
+    <Modal setVisible={setVisible}>
+      <StyledTitle title="Profile Image" />
+      <div className="mb-6 flex flex-col items-center">
+        <input
+          className="hidden"
+          ref={profileImageRef}
+          type="file"
+          name="file"
+          onChange={(e) =>
+            e.target.files && handleProfileImageUpload(e.target.files[0])
+          }
+        />
+        <button
+          style={{ height: height }}
+          onClick={() =>
+            profileImageRef.current && profileImageRef.current.click()
+          }
+          className="relative flex aspect-square flex-col items-center justify-center gap-1 overflow-hidden rounded-full border border-dashed border-secondary text-base text-gray-400 sm:text-lg"
+        >
+          {!profileImage && !session?.user.image ? (
+            <>
+              <PiCamera className="text-xl sm:text-2xl" />
+              <p>Select</p>
+            </>
+          ) : (
+            <Image
+              src={
+                profileImage
+                  ? URL.createObjectURL(profileImage)
+                  : session?.user.image ?? ""
+              }
+              alt="Profile Image Preview"
+              fill
+              className="object-cover"
+            />
+          )}
+        </button>
+      </div>
+      <div className="relative mt-2 flex h-14 w-full gap-2 font-display text-base font-bold sm:text-lg">
+        {session?.user.image && (
+          <button
+            onClick={() => void handleDeleteProfileImage()}
+            className="flex aspect-square items-center justify-center rounded-md border border-red-500 bg-red-100 text-2xl text-red-500 sm:text-3xl"
+          >
+            <PiTrash />
+          </button>
+        )}
+        <button
+          onClick={() => setVisible(false)}
+          className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200"
+        >
+          Cancel
+        </button>
+        <LoadingButton
+          onClick={() => void handleSaveProfileImage()}
+          loading={changingProfileImage}
+          disabled={changingProfileImage}
+          className="flex flex-1 items-center justify-center rounded-md bg-secondary text-primary"
+        >
+          Save
+        </LoadingButton>
+      </div>
+    </Modal>
+  );
+};
+
+const Profile: NextPage = ({}) => {
+  const router = useRouter();
+  const [imageContainerRef, { height }] = useElementSize();
+  const [changeProfileImage, setChangeProfileImage] = useState(false);
+  const { data: session } = useSession();
+  const {
+    data: user,
+    isLoading: fetchingUser,
+    error: userError,
+  } = api.users.getSessionUser.useQuery();
+  const {
+    data: sloops,
+    isLoading: fetchingSloops,
+    isFetching: fetchingNext,
+    error: sloopsError,
+    fetchNextPage,
+    hasNextPage,
+  } = api.sloops.getSloops.useInfiniteQuery(
+    {
+      limit: paginationLimit,
+    },
+    {
+      getNextPageParam: (page) => page.next,
+    }
+  );
+  const data = useMemo(() => {
+    if (router.query.tab === "private") {
+      return sloops?.pages
+        .flatMap((page) => page.items)
+        .filter((sloop) => sloop.isPrivate);
+    } else {
+      return sloops?.pages
+        .flatMap((page) => page.items)
+        .filter((sloop) => !sloop.isPrivate);
+    }
+  }, [sloops, router.query.tab]);
 
   if (fetchingUser || fetchingSloops) {
     return <Loading />;
@@ -106,69 +207,10 @@ const Profile: NextPage = ({}) => {
       </Head>
       <AnimatePresence>
         {changeProfileImage && (
-          <Modal setVisible={setChangeProfileImage}>
-            <StyledTitle title="Profile Image" />
-            <div className="mb-6 flex flex-col items-center">
-              <input
-                className="hidden"
-                ref={profileImageRef}
-                type="file"
-                name="file"
-                onChange={(e) =>
-                  e.target.files && handleProfileImageUpload(e.target.files[0])
-                }
-              />
-              <button
-                style={{ height: height }}
-                onClick={() =>
-                  profileImageRef.current && profileImageRef.current.click()
-                }
-                className="relative flex aspect-square flex-col items-center justify-center gap-1 overflow-hidden rounded-full border border-dashed border-secondary text-base text-gray-400 sm:text-lg"
-              >
-                {!profileImage && !session?.user.image ? (
-                  <>
-                    <PiCamera className="text-xl sm:text-2xl" />
-                    <p>Select</p>
-                  </>
-                ) : (
-                  <Image
-                    src={
-                      profileImage
-                        ? URL.createObjectURL(profileImage)
-                        : session?.user.image ?? ""
-                    }
-                    alt="Profile Image Preview"
-                    fill
-                    className="object-cover"
-                  />
-                )}
-              </button>
-            </div>
-            <div className="relative mt-2 flex h-14 w-full gap-2 font-display text-base font-bold sm:text-lg">
-              {session?.user.image && (
-                <button
-                  onClick={() => void handleDeleteProfileImage()}
-                  className="flex aspect-square items-center justify-center rounded-md border border-red-500 bg-red-100 text-2xl text-red-500 sm:text-3xl"
-                >
-                  <PiTrash />
-                </button>
-              )}
-              <button
-                onClick={() => setChangeProfileImage(false)}
-                className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200"
-              >
-                Cancel
-              </button>
-              <LoadingButton
-                onClick={() => void handleSaveProfileImage()}
-                loading={uploadingProfileImage}
-                disabled={uploadingProfileImage}
-                className="flex flex-1 items-center justify-center rounded-md bg-secondary text-primary"
-              >
-                Save
-              </LoadingButton>
-            </div>
-          </Modal>
+          <ProfileImageModal
+            setVisible={setChangeProfileImage}
+            height={height}
+          />
         )}
       </AnimatePresence>
       <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
@@ -282,16 +324,21 @@ const Profile: NextPage = ({}) => {
             Private
           </button>
         </div>
-        <div className="flex-1">
-          <SloopList
-            sloops={sloops.items.filter((sloop) =>
-              router.query.tab === "private"
-                ? sloop.isPrivate
-                : !sloop.isPrivate
-            )}
-            profile
-          />
-        </div>
+        {data && data.length > 0 ? (
+          <ScrollPagination
+            onClickNext={() => void fetchNextPage()}
+            hasNext={!!hasNextPage}
+            fetchingNext={fetchingNext}
+          >
+            <SloopList sloops={data} profile />
+          </ScrollPagination>
+        ) : (
+          <NoData>
+            {sloops.pages[0] && sloops.pages[0]?.items.length > 0
+              ? "No Sloops"
+              : "No sloops have been created :("}
+          </NoData>
+        )}
       </div>
     </>
   );

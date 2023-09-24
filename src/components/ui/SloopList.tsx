@@ -34,7 +34,7 @@ const SloopList: React.FC<SloopListProps> = ({ sloops, profile }) => {
         >
           <div
             style={{ width: width * 0.2 }}
-            className="aspect-square overflow-hidden rounded-md"
+            className="relative aspect-square overflow-hidden rounded-md"
           >
             <Avatar
               size={width * 0.2}
@@ -52,7 +52,7 @@ const SloopList: React.FC<SloopListProps> = ({ sloops, profile }) => {
               {sloop.name}
             </p>
             <div>
-              <p className="truncate text-sm font-medium leading-tight text-gray-400 sm:text-base">
+              <p className="truncate text-sm font-medium text-gray-400 sm:text-base">
                 {sloop.track.name}
               </p>
               <p className="truncate text-xs leading-tight text-gray-400 sm:text-sm">

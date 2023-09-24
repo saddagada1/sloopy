@@ -28,6 +28,7 @@ import { mode, pitchClass, pitchClassColours } from "~/utils/constants";
 import { type Chords, type Loop } from "~/utils/types";
 import chordsData from "public/chords.json";
 import SafeImage from "~/components/ui/SafeImage";
+import NoData from "~/components/ui/NoData";
 
 const chords = chordsData as unknown as Chords;
 
@@ -320,11 +321,7 @@ const Sloop: NextPage = ({}) => {
             </div>
           </>
         ) : (
-          <div className="flex w-full flex-1 items-center justify-center">
-            <p className="w-2/3 px-1 text-center font-display text-base text-gray-300 sm:text-lg">
-              No loops have been created :(
-            </p>
-          </div>
+          <NoData>No loops have been created :(</NoData>
         )}
       </div>
     </>

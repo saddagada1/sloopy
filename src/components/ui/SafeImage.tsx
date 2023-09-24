@@ -1,12 +1,40 @@
 import Avatar from "boring-avatars";
 import { pitchClassColours } from "~/utils/constants";
 import Image from "next/image";
+import { type DetailedHTMLProps, type HTMLAttributes, useState } from "react";
+import clsx from "clsx";
+import { twMerge } from "tailwind-merge";
 
-interface SafeImageProps {
+interface LoadingImageProps {
+  url: string;
+  alt: string;
+  width: number;
+}
+
+const LoadingImage: React.FC<LoadingImageProps> = ({ url, alt, width }) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      <Image
+        src={url}
+        alt={alt}
+        sizes={`${width}px`}
+        fill
+        className={clsx("object-cover", !loaded && "opacity-0")}
+        onLoadingComplete={() => setLoaded(true)}
+      />
+      {!loaded && (
+        <div className="absolute h-full w-full animate-pulse bg-gray-200" />
+      )}
+    </>
+  );
+};
+
+interface SafeImageProps
+  extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   url?: string | null;
   alt: string;
   width: number;
-  className: string;
   square?: boolean;
   colours?: string[];
 }
@@ -15,20 +43,19 @@ const SafeImage: React.FC<SafeImageProps> = ({
   url,
   alt,
   width,
-  className,
   square,
   colours,
+  ...DetailedHTMLProps
 }) => {
+  const { className, ...props } = DetailedHTMLProps;
   return (
-    <div style={{ width }} className={className}>
+    <div
+      style={{ width }}
+      {...props}
+      className={twMerge("relative", className)}
+    >
       {url ? (
-        <Image
-          src={url}
-          alt={alt}
-          sizes={`${width}px`}
-          fill
-          className="object-cover"
-        />
+        <LoadingImage url={url} alt={alt} width={width} />
       ) : (
         <Avatar
           size={width}

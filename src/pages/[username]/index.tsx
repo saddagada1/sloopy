@@ -15,6 +15,9 @@ import LoadingButton from "~/components/ui/LoadingButton";
 import ErrorView from "~/components/utils/ErrorView";
 import SloopList from "~/components/ui/SloopList";
 import IsSessionUser from "~/components/utils/IsSessionUser";
+import { useMemo } from "react";
+import ScrollPagination from "~/components/ui/ScrollPagination";
+import NoData from "~/components/ui/NoData";
 
 const User: NextPage = ({}) => {
   const router = useRouter();
@@ -31,11 +34,23 @@ const User: NextPage = ({}) => {
   const {
     data: sloops,
     isLoading: fetchingSloops,
+    isFetching: fetchingNext,
     error: sloopsError,
-  } = api.sloops.getUserSloops.useQuery({
-    username: router.query.username as string,
-    limit: paginationLimit,
-  });
+    fetchNextPage,
+    hasNextPage,
+  } = api.sloops.getUserSloops.useInfiniteQuery(
+    {
+      username: router.query.username as string,
+      limit: paginationLimit,
+    },
+    {
+      getNextPageParam: (page) => page.next,
+    }
+  );
+  const data = useMemo(() => {
+    return sloops?.pages.flatMap((page) => page.items);
+  }, [sloops]);
+
   const { mutateAsync: follow, isLoading: creatingFollow } =
     api.users.follow.useMutation();
   const { mutateAsync: unfollow, isLoading: deletingFollow } =
@@ -255,9 +270,17 @@ const User: NextPage = ({}) => {
             </p>
           </div>
         )}
-        <div className="mt-4 flex-1 border-t border-gray-300 pt-4">
-          <SloopList sloops={sloops.items} />
-        </div>
+        {data && data.length > 0 ? (
+          <ScrollPagination
+            onClickNext={() => void fetchNextPage()}
+            hasNext={!!hasNextPage}
+            fetchingNext={fetchingNext}
+          >
+            <SloopList sloops={data} />
+          </ScrollPagination>
+        ) : (
+          <NoData>No sloops have been created :(</NoData>
+        )}
       </div>
     </>
   );

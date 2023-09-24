@@ -82,7 +82,7 @@ const useSpotifyArtist = () => {
     isLoading: fetchingRelated,
     error: relatedError,
   } = useQuery(
-    ["artistTopTracks", router.query.id],
+    ["artistRelatedArtists", router.query.id],
     async () => {
       const id = router.query.id;
       if (typeof id !== "string") {
