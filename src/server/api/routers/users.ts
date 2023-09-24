@@ -14,6 +14,7 @@ import {
 import { v4 } from "uuid";
 import { FORGOT_PASSWORD_PREFIX, VERIFY_EMAIL_PREFIX } from "~/utils/constants";
 import { redis } from "~/utils/upstash";
+import { deleteObject, getObject, uploadObject } from "~/utils/s3";
 
 export const usersRouter = createTRPCRouter({
   getSessionUser: protectedProcedure.query(async ({ ctx }) => {
@@ -25,25 +26,9 @@ export const usersRouter = createTRPCRouter({
           image: true,
           username: true,
           bio: true,
+          sloopsCount: true,
           followersCount: true,
           followingCount: true,
-          sloops: {
-            include: {
-              rankedSloop: {
-                select: { likes: true },
-              },
-              artists: {
-                select: {
-                  name: true,
-                },
-              },
-              track: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
         },
       });
       return user;
@@ -71,29 +56,16 @@ export const usersRouter = createTRPCRouter({
             image: true,
             username: true,
             bio: true,
+            sloopsCount: true,
             followersCount: true,
             followingCount: true,
-            sloops: {
-              where: { isPrivate: false },
-              include: {
-                rankedSloop: {
-                  select: { likes: true },
-                },
-                artists: {
-                  select: {
-                    name: true,
-                  },
-                },
-                track: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-            },
             followers: { where: { followerId: ctx.session?.user.id } },
           },
         });
+        if (user?.image) {
+          const url = await getObject(user.image);
+          user.image = url;
+        }
         return user;
       } catch (error) {
         throw new TRPCError({
@@ -445,6 +417,46 @@ export const usersRouter = createTRPCRouter({
         });
       }
     }),
+
+  changeImage: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      let image: string;
+      if (ctx.session.user.image) {
+        image = ctx.session.user.image;
+      } else {
+        image = v4();
+      }
+      await ctx.prisma.user.update({
+        where: { id: ctx.session.user.id },
+        data: { image: image },
+      });
+      const url = await uploadObject(image);
+      return url;
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could Not Update Profile Image",
+      });
+    }
+  }),
+
+  deleteImage: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      if (!ctx.session.user.image) {
+        throw "No Image";
+      }
+      await ctx.prisma.user.update({
+        where: { id: ctx.session.user.id },
+        data: { image: null },
+      });
+      await deleteObject(ctx.session.user.image);
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could Not Delete Profile Image",
+      });
+    }
+  }),
 
   changeUsername: protectedProcedure
     .input(

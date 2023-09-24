@@ -1,5 +1,4 @@
 import Avatar from "boring-avatars";
-import { rand } from "~/utils/calc";
 import { pitchClassColours } from "~/utils/constants";
 import Image from "next/image";
 
@@ -37,10 +36,10 @@ const SafeImage: React.FC<SafeImageProps> = ({
           variant="marble"
           square={square}
           colors={
-            colours ?? [
-              pitchClassColours[rand(0, 5)]!,
-              pitchClassColours[rand(6, 11)]!,
-            ]
+            colours ??
+            Object.keys(pitchClassColours).map(
+              (key) => pitchClassColours[parseInt(key)]!
+            )
           }
         />
       )}

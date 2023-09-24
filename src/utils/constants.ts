@@ -1,3 +1,5 @@
+import { env } from "~/env.mjs";
+
 export const primaryColour = "#f2f2f2";
 export const secondaryColour = "#151515";
 export const accentColour = "#d1d5db";
@@ -57,6 +59,10 @@ export const genericSpotifyError = {
   status: 500,
 };
 
+export const CHORDS_OBJECT_NAME = "chords.json";
+
+export const SLOOPY_HERO_OBJECT_NAME = "sloopy-hero.mp4";
+
 export const FORGOT_PASSWORD_PREFIX = "forgot-password:";
 
 export const VERIFY_EMAIL_PREFIX = "verify-email:";
@@ -71,8 +77,9 @@ export const alwaysRefetch = {
   refetchOnWindowFocus: true,
   refetchOnMount: true,
   refetchOnReconnect: true,
+  staleTime: 1000 * 60 * 5,
 };
 
 export const domain = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://192.168.0.151:3000";
+  ? `https://${env.NEXT_PUBLIC_PRODUCTION_URL}`
+  : "http://localhost:3000";

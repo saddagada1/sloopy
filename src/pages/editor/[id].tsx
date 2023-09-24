@@ -23,15 +23,13 @@ import Player from "~/components/sloops/Player";
 import { AnimatePresence } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import CreateLoopModal from "~/components/sloops/CreateLoopModal";
-import { useQuery } from "@tanstack/react-query";
-import { fetchChords } from "~/utils/helpers";
 import Chord from "~/components/sloops/Chord";
 import LoopTimeline from "~/components/sloops/LoopTimeline";
 import { useEditorContext } from "~/contexts/Editor";
 import { WaveSpinner } from "react-spinners-kit";
 import clsx from "clsx";
 import EditLoopModal from "~/components/sloops/EditLoopModal";
-import { type UpdateSloopInput, type Loop } from "~/utils/types";
+import { type UpdateSloopInput, type Loop, type Chords } from "~/utils/types";
 import { useElementSize } from "usehooks-ts";
 import EditSloopModal from "~/components/sloops/EditSloopModal";
 import { useSaveBeforeRouteChange } from "~/utils/hooks";
@@ -42,25 +40,19 @@ import LoadingButton from "~/components/ui/LoadingButton";
 import WithAuth from "~/components/utils/WithAuth";
 import LoopButton from "~/components/sloops/LoopButton";
 import ErrorView from "~/components/utils/ErrorView";
+import chordsData from "public/chords.json";
+import { useSession } from "next-auth/react";
+
+const chords = chordsData as Chords;
 
 const Editor: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
+  const { data: session } = useSession();
   const editor = useEditorContext();
   const { data, isLoading, error } = api.sloops.get.useQuery({
     id: router.query.id as string,
-    getPrivate: true,
-  });
-  const {
-    data: chords,
-    isLoading: fetchingChords,
-    error: chordsError,
-  } = useQuery(["chords"], async () => {
-    const response = await fetchChords();
-    if (!response.ok) {
-      throw new Error("Failed To Fetch Chords");
-    }
-    return response;
+    getPrivate: router.query.private === "true" ? true : undefined,
   });
   const [createLoop, setCreateLoop] = useState(false);
   const [editLoop, setEditLoop] = useState<Loop | null>(null);
@@ -152,9 +144,9 @@ const Editor: NextPage = ({}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
 
-  if (isLoading || fetchingChords || !spotify.auth) return <Loading />;
+  if (isLoading || !spotify.auth) return <Loading />;
 
-  if ((!data || error) ?? (!chords || chordsError)) return <ErrorView />;
+  if (!data || error) return <ErrorView />;
 
   return (
     <>
@@ -172,7 +164,7 @@ const Editor: NextPage = ({}) => {
       </AnimatePresence>
       <AnimatePresence>
         {saveSloop && (
-          <Modal>
+          <Modal setVisible={setSaveSloop}>
             {data.isPrivate ? (
               <>
                 <LoadingButton
@@ -208,27 +200,27 @@ const Editor: NextPage = ({}) => {
               <>
                 <LoadingButton
                   className="flex h-14 w-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 font-display text-base font-bold sm:text-lg"
-                  loading={updatingSloop && !!variables?.isPrivate}
+                  loading={updatingSloop && !variables?.isPrivate}
                   disabled={updatingSloop}
                   onClick={() => {
                     setDisabled(true);
                     void handleSaveSloop({
-                      publish: false,
-                      url: "/profile?tab=private",
+                      url: "/profile?tab=published",
                     });
                   }}
                 >
-                  Save & Make Private
+                  Save & Exit
                 </LoadingButton>
                 <div className="mt-4 border-t border-gray-300 pt-4">
                   <StyledLoadingButton
-                    label="Save & Exit"
-                    loading={updatingSloop && !variables?.isPrivate}
+                    label="Save & Make Private"
+                    loading={updatingSloop && !!variables?.isPrivate}
                     disabled={updatingSloop}
                     onClick={() => {
                       setDisabled(true);
                       void handleSaveSloop({
-                        url: "/profile?tab=published",
+                        publish: false,
+                        url: "/profile?tab=private",
                       });
                     }}
                   />
@@ -242,7 +234,7 @@ const Editor: NextPage = ({}) => {
         {createLoop && (
           <CreateLoopModal
             setVisible={setCreateLoop}
-            chords={chords.data}
+            chords={chords}
             onCreate={(loop) => editor.createLoop(loop)}
           />
         )}
@@ -252,7 +244,7 @@ const Editor: NextPage = ({}) => {
           <EditLoopModal
             loop={editLoop}
             setLoop={setEditLoop}
-            chords={chords.data}
+            chords={chords}
             onEdit={(loop) => editor.updateLoop(loop)}
           />
         )}
@@ -417,7 +409,7 @@ const Editor: NextPage = ({}) => {
               {editor.playingLoop && (
                 <p className="-translate-y-1 text-xs sm:text-sm">
                   {`${editor.playingLoop.voicing + 1}/${
-                    chords.data[editor.playingLoop.chord]?.length
+                    chords[editor.playingLoop.chord]?.length
                   }`}
                 </p>
               )}
@@ -441,7 +433,7 @@ const Editor: NextPage = ({}) => {
                 }
                 className="no-scrollbar absolute flex h-full w-[90%] snap-x snap-mandatory overflow-x-scroll"
               >
-                {chords.data[editor.playingLoop.chord]?.map((chord, index) => (
+                {chords[editor.playingLoop.chord]?.map((chord, index) => (
                   <div
                     key={index}
                     className="h-full w-full flex-shrink-0 snap-start snap-always"
@@ -484,11 +476,19 @@ const Editor: NextPage = ({}) => {
           width={containerWidth}
           context={editor}
         />
-        <Player
-          trackId={data.trackId}
-          duration={data.duration}
-          context={editor}
-        />
+        {session?.user.canPlaySpotify ? (
+          <Player
+            trackId={data.trackId}
+            duration={data.duration}
+            context={editor}
+          />
+        ) : (
+          <div className="flex h-[68px] items-center justify-center p-2">
+            <p className="h-fit rounded border border-red-500 bg-red-200 p-1 text-xs text-red-500 sm:text-sm">
+              Spotify Premium Required
+            </p>
+          </div>
+        )}
       </div>
     </>
   );

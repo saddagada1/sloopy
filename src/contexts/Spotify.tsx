@@ -627,7 +627,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    if (sessionStatus === "loading" || auth) return;
+    if (sessionStatus === "loading") return;
 
     const credentials = session?.user.linkedAccounts.find(
       (account) => account.provider === "spotify"
@@ -645,7 +645,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, auth]);
+  }, [sessionStatus, session]);
 
   return (
     <SpotifyContext.Provider

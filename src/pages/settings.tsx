@@ -27,7 +27,7 @@ import { useSpotifyContext } from "~/contexts/Spotify";
 import { env } from "~/env.mjs";
 import { api } from "~/utils/api";
 import { calcTrimmedString } from "~/utils/calc";
-import { spotifyScopes } from "~/utils/constants";
+import { domain, spotifyScopes } from "~/utils/constants";
 import { toErrorMap } from "~/utils/toErrorMap";
 
 interface GeneralValues {
@@ -92,7 +92,7 @@ const Settings: NextPage = ({}) => {
       const state = Math.random().toString(36);
       localStorage.setItem("spotify_state", state);
       void router.push(
-        `https://accounts.spotify.com/authorize?response_type=code&client_id=${env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID}&scope=${spotifyScopes}&redirect_uri=http://localhost:3000/settings&state=${state}`
+        `https://accounts.spotify.com/authorize?response_type=code&client_id=${env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID}&scope=${spotifyScopes}&redirect_uri=${domain}/settings&state=${state}`
       );
       return;
     } else {

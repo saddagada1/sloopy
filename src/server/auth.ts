@@ -19,6 +19,7 @@ import { randomUUID } from "crypto";
 import { encode, decode } from "next-auth/jwt";
 import { type LinkedAccount } from "@prisma/client";
 import { calcUsername } from "~/utils/calc";
+import { getObject } from "~/utils/s3";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -105,6 +106,10 @@ export const authOptions = (
         const linkedAccounts = await prisma.linkedAccount.findMany({
           where: { userId: user.id },
         });
+        if (user.image) {
+          const url = await getObject(user.image);
+          user.image = url;
+        }
         return {
           ...session,
           user: {
@@ -113,6 +118,7 @@ export const authOptions = (
             email: user.email,
             verified: user.verified,
             username: user.username,
+            image: user.image,
             bio: user.bio,
             linkedAccounts: linkedAccounts,
             spotifyLinked: linkedAccounts.find(
@@ -140,6 +146,13 @@ export const authOptions = (
           secure: env.NODE_ENV === "production",
         },
       },
+    },
+    pages: {
+      signIn: "/login",
+      signOut: "/login",
+      error: "/login",
+      verifyRequest: "/login",
+      newUser: "/login",
     },
     adapter: PrismaAdapter(prisma),
     session: {

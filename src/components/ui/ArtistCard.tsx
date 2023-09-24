@@ -10,7 +10,7 @@ interface ArtistCardProps {
 
 const ArtistCard: React.FC<ArtistCardProps> = ({ width, artist }) => {
   return (
-    <Link style={{ width: width / 3 }} href={`/artist/${artist.id}`}>
+    <Link style={{ width: width / 3 }} href={`/artist/${artist.id}?tab=sloopy`}>
       <SafeImage
         className="relative mb-2 aspect-square overflow-hidden rounded-full"
         url={"images" in artist ? artist.images[0]?.url : artist.image}

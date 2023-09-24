@@ -37,6 +37,11 @@ export const env = createEnv({
     UPSTASH_KAFKA_REST_URL: z.string().min(1),
     UPSTASH_KAFKA_REST_USERNAME: z.string().min(1),
     UPSTASH_KAFKA_REST_PASSWORD: z.string().min(1),
+
+    S3_NAME: z.string().min(1),
+    S3_REGION: z.string().min(1),
+    S3_ACCESS_KEY: z.string().min(1),
+    S3_ACCESS_KEY_SECRET: z.string().min(1),
   },
 
   /**
@@ -46,6 +51,7 @@ export const env = createEnv({
    */
   client: {
     NEXT_PUBLIC_SPOTIFY_CLIENT_ID: z.string().min(1),
+    NEXT_PUBLIC_PRODUCTION_URL: z.string().min(1),
   },
 
   /**
@@ -62,6 +68,7 @@ export const env = createEnv({
     FACEBOOK_CLIENT_ID: process.env.FACEBOOK_CLIENT_ID,
     FACEBOOK_CLIENT_SECRET: process.env.FACEBOOK_CLIENT_SECRET,
     NEXT_PUBLIC_SPOTIFY_CLIENT_ID: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
+    NEXT_PUBLIC_PRODUCTION_URL: process.env.NEXT_PUBLIC_PRODUCTION_URL,
     SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID,
     SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
@@ -70,6 +77,10 @@ export const env = createEnv({
     UPSTASH_KAFKA_REST_URL: process.env.UPSTASH_KAFKA_REST_URL,
     UPSTASH_KAFKA_REST_USERNAME: process.env.UPSTASH_KAFKA_REST_USERNAME,
     UPSTASH_KAFKA_REST_PASSWORD: process.env.UPSTASH_KAFKA_REST_PASSWORD,
+    S3_NAME: process.env.S3_NAME,
+    S3_REGION: process.env.S3_REGION,
+    S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
+    S3_ACCESS_KEY_SECRET: process.env.S3_ACCESS_KEY_SECRET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.

@@ -51,6 +51,7 @@ model Track {
   image        String?       @db.Text
   sloops       Sloop[]
   artists      Artist[]
+  rankedTrack  RankedTrack?
   createdAt    DateTime      @default(now())
 
   @@fulltext([name])
@@ -157,6 +158,68 @@ model RankedSloop {
   @@index([sloopId])
   @@index([rank])
   @@index([likeRank])
+}
+
+model TrackPlayCount {
+  id        String       @id @default(cuid())
+  trackId   String
+  track     RankedTrack @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
+  playCount Int
+  createdAt DateTime     @default(now())
+
+  @@index([trackId])
+  @@index([playCount])
+}
+
+model TrackRank {
+  id        String       @id @default(cuid())
+  trackId   String
+  track     RankedTrack @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
+  rank      Float
+  createdAt DateTime     @default(now())
+
+  @@index([trackId])
+  @@index([rank])
+}
+
+model TrackLikeCount {
+  id        String       @id @default(cuid())
+  trackId   String
+  track     RankedTrack @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
+  likeCount Int
+  createdAt DateTime     @default(now())
+
+  @@index([trackId])
+  @@index([likeCount])
+}
+
+model TrackLikeRank {
+  id        String       @id @default(cuid())
+  trackId   String
+  track     RankedTrack @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
+  likeRank  Float
+  createdAt DateTime     @default(now())
+
+  @@index([trackId])
+  @@index([likeRank])
+}
+
+model RankedTrack {
+  trackId        String            @id
+  track          Track             @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  plays          Int               @default(0)
+  likes          Int               @default(0)
+  rank           Float             @default(0)
+  likeRank       Float             @default(0)
+  pastRanks      TrackRank[]
+  pastPlayCounts TrackPlayCount[]
+  pastLikeRanks  TrackLikeRank[]
+  pastLikeCounts TrackLikeCount[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([trackId])
+  @@index([rank])
 }
 
 model ArtistPlayCount {
@@ -294,6 +357,7 @@ model User {
   accounts       Account[]
   sessions       Session[]
   linkedAccounts LinkedAccount[]
+  sloopsCount    Int             @default(0)
   sloops         Sloop[]
   followersCount Int             @default(0)
   followingCount Int             @default(0)

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { getObject } from "~/utils/s3";
 
 export const searchRouter = createTRPCRouter({
   all: publicProcedure
@@ -29,6 +30,14 @@ export const searchRouter = createTRPCRouter({
           },
           take: 50,
         });
+        const usersWithImages = await Promise.all(
+          users.map(async (user) => {
+            if (user.image) {
+              user.image = await getObject(user.image);
+            }
+            return user;
+          })
+        );
         const artists = await ctx.prisma.artist.findMany({
           where: {
             name: {
@@ -114,7 +123,7 @@ export const searchRouter = createTRPCRouter({
           take: 50,
         });
         return {
-          users,
+          users: usersWithImages,
           artists,
           tracks,
           sloops: [

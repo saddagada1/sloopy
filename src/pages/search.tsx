@@ -21,6 +21,7 @@ import ArtistCard from "~/components/ui/ArtistCard";
 import UserCard from "~/components/ui/UserCard";
 import clsx from "clsx";
 import TrackCard from "~/components/ui/TrackCard";
+import { useMemo } from "react";
 
 interface SpotifyResultsProps {
   results: SpotifySearch;
@@ -117,6 +118,13 @@ interface SloopyResultsProps {
 }
 
 const SloopyResults: React.FC<SloopyResultsProps> = ({ results, width }) => {
+  const sloops = useMemo(() => {
+    return results.sloops.filter(
+      (dup, index) =>
+        index <= results.sloops.findIndex((original) => original.id === dup.id)
+    );
+  }, [results.sloops]);
+
   return (
     <>
       <section>
@@ -179,8 +187,8 @@ const SloopyResults: React.FC<SloopyResultsProps> = ({ results, width }) => {
             {results.sloops.length}
           </p>
         </h3>
-        {results.sloops.length > 0 ? (
-          <SloopList sloops={results.sloops} />
+        {sloops.length > 0 ? (
+          <SloopList sloops={sloops} />
         ) : (
           <NoData>No Sloop Results</NoData>
         )}

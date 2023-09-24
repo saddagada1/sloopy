@@ -7,11 +7,7 @@ import { useElementSize } from "usehooks-ts";
 import { api } from "~/utils/api";
 import Loading from "~/components/utils/Loading";
 import SafeImage from "~/components/ui/SafeImage";
-import {
-  alwaysRefetch,
-  paginationLimit,
-  pitchClassColours,
-} from "~/utils/constants";
+import { paginationLimit, pitchClassColours } from "~/utils/constants";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import { TRPCClientError } from "@trpc/client";
@@ -29,12 +25,9 @@ const User: NextPage = ({}) => {
     data: user,
     isLoading: fetchingUser,
     error: userError,
-  } = api.users.getUserByUsername.useQuery(
-    {
-      username: router.query.username as string,
-    },
-    alwaysRefetch
-  );
+  } = api.users.getUserByUsername.useQuery({
+    username: router.query.username as string,
+  });
   const {
     data: sloops,
     isLoading: fetchingSloops,
@@ -181,7 +174,7 @@ const User: NextPage = ({}) => {
                   Sloops
                 </p>
                 <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user.sloops.length.toLocaleString(undefined, {
+                  {user.sloopsCount.toLocaleString(undefined, {
                     notation: "compact",
                   })}
                 </p>

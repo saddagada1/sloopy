@@ -5,11 +5,14 @@ import { calcPastDate, calcRank } from "~/utils/calc";
 import { LOVED_TOPIC } from "~/utils/constants";
 import { kafka } from "~/utils/upstash";
 
-interface LikeWithArtists extends Like {
+interface LikeWithRelations extends Like {
   sloop: {
     artists: {
       id: string;
     }[];
+    track: {
+      id: string;
+    };
   };
 }
 
@@ -29,7 +32,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   });
 
   const likes = messages.map(
-    (like) => JSON.parse(like.value) as LikeWithArtists
+    (like) => JSON.parse(like.value) as LikeWithRelations
   );
 
   //sloops
@@ -42,7 +45,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     const exists = await prisma.sloop.findUnique({ where: { id: sloop } });
     if (!exists) continue;
 
-    let rankedSloop = await prisma.rankedSloop.findUnique({
+    const rankedSloop = await prisma.rankedSloop.findUnique({
       where: { sloopId: sloop },
       include: {
         pastLikeCounts: {
@@ -51,16 +54,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
         },
       },
     });
-    if (!rankedSloop) {
-      rankedSloop = await prisma.rankedSloop.create({
-        data: { sloopId: sloop },
-        include: {
-          pastLikeCounts: {
-            select: { likeCount: true },
-          },
-        },
-      });
-    }
+    if (!rankedSloop) continue;
 
     const rank = calcRank(
       countedLikes[sloop]!,
@@ -85,6 +79,52 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     }
   }
 
+  //tracks
+  const tracks = likes.map((like) => like.sloop.track);
+  const countedTrackLikes = tracks.reduce((previous, current) => {
+    previous[current.id] = (previous[current.id] ?? 0) + 1;
+    return previous;
+  }, {} as Record<string, number>);
+  console.log(countedTrackLikes);
+  for (const track of Object.keys(countedTrackLikes)) {
+    const exists = await prisma.track.findUnique({ where: { id: track } });
+    if (!exists) continue;
+
+    const rankedTrack = await prisma.rankedTrack.findUnique({
+      where: { trackId: track },
+      include: {
+        pastLikeCounts: {
+          where: { createdAt: { gt: calcPastDate(historyRange) } },
+          select: { likeCount: true },
+        },
+      },
+    });
+
+    if (!rankedTrack) continue;
+
+    const rank = calcRank(
+      countedTrackLikes[track]!,
+      rankedTrack.pastLikeCounts.map(({ likeCount }) => likeCount)
+    );
+    const likes = rankedTrack.likes;
+    try {
+      await prisma.$transaction(async () => {
+        await prisma.rankedTrack.update({
+          where: { trackId: track },
+          data: { likeRank: rank, likes: likes + countedTrackLikes[track]! },
+        });
+        await prisma.trackLikeRank.create({
+          data: { trackId: track, likeRank: rank },
+        });
+        await prisma.trackLikeCount.create({
+          data: { trackId: track, likeCount: countedTrackLikes[track]! },
+        });
+      });
+    } catch (error) {
+      continue;
+    }
+  }
+
   //artists
   const artists = likes.flatMap((like) => like.sloop.artists);
   const countedArtistLikes = artists.reduce((previous, current) => {
@@ -96,7 +136,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     const exists = await prisma.artist.findUnique({ where: { id: artist } });
     if (!exists) continue;
 
-    let rankedArtist = await prisma.rankedArtist.findUnique({
+    const rankedArtist = await prisma.rankedArtist.findUnique({
       where: { artistId: artist },
       include: {
         pastLikeCounts: {
@@ -106,16 +146,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    if (!rankedArtist) {
-      rankedArtist = await prisma.rankedArtist.create({
-        data: { artistId: artist },
-        include: {
-          pastLikeCounts: {
-            select: { likeCount: true },
-          },
-        },
-      });
-    }
+    if (!rankedArtist) continue;
 
     const rank = calcRank(
       countedArtistLikes[artist]!,

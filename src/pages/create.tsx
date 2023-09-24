@@ -157,7 +157,7 @@ const Create: NextPage = ({}) => {
                 ...values,
                 trackId: track.id,
                 trackName: track.name,
-                trackImage: track.album.images[0]?.url ?? "",
+                trackImage: track.album.images[0]?.url,
                 artists: artists.artists.map((artist) => {
                   return {
                     spotifyId: artist.id,
@@ -171,7 +171,7 @@ const Create: NextPage = ({}) => {
                 tempo: analysis.track.tempo,
                 timeSignature: analysis.track.time_signature,
               });
-              void router.replace(`/editor/${response}`);
+              void router.replace(`/editor/${response}?private=true`);
             } catch (error) {
               if (error instanceof TRPCClientError) {
                 toast.error(`Error: ${error.message}`);

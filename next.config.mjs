@@ -28,6 +28,10 @@ const config = {
         protocol: "https",
         hostname: "**.spotifycdn.com",
       },
+      {
+        protocol: "https",
+        hostname: "sloopy-dev.s3.us-east-2.amazonaws.com",
+      },
     ],
   },
 };

@@ -56,7 +56,7 @@ const PlaylistList: React.FC<PlaylistListProps> = ({
               style={{ height: width * 0.13 }}
               className="flex flex-col justify-between overflow-hidden"
             >
-              <h3 className="truncate font-display text-lg font-semibold sm:text-xl">
+              <h3 className="truncate text-lg font-semibold leading-tight sm:text-xl">
                 {playlist.name}
               </h3>
               <p className="truncate text-sm text-gray-400 sm:text-base">

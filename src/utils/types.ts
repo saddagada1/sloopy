@@ -1,4 +1,4 @@
-import { type Follow, type Sloop, type User } from "@prisma/client";
+import { type Track, type Follow, type Sloop, type User } from "@prisma/client";
 import { type ErrorResponse } from "spotify-types";
 
 export interface SpotifyErrorResponse extends ErrorResponse {
@@ -66,8 +66,7 @@ export interface UpdateSloopInput {
 }
 
 export interface Paging<T> {
-  offset: number;
-  paging: number;
+  next?: string;
   items: T[];
 }
 
@@ -79,6 +78,24 @@ export interface ListSloop extends Sloop {
   artists: {
     name: string;
   }[];
+}
+
+export interface ListTrack extends Track {
+  artists: {
+    name: string;
+  }[];
+}
+
+export interface ListUser {
+  name: string | null;
+  image: string | null;
+  username: string;
+}
+
+export interface ListArtist {
+  id: string;
+  name: string;
+  image: string | null;
 }
 
 export interface PageSloop extends Sloop {

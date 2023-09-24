@@ -1,6 +1,5 @@
 import Link from "next/link";
 import SafeImage from "./SafeImage";
-import { pitchClassColours } from "~/utils/constants";
 
 interface UserCardProps {
   width: number;
@@ -18,9 +17,6 @@ const UserCard: React.FC<UserCardProps> = ({ width, user }) => {
         url={user.image}
         alt={user.username}
         width={width / 3}
-        colours={Object.keys(pitchClassColours).map(
-          (key) => pitchClassColours[parseInt(key)]!
-        )}
       />
       <p className="truncate text-sm font-semibold sm:text-base">
         {user.username}

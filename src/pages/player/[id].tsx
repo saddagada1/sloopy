@@ -14,37 +14,29 @@ import {
 import { useSpotifyContext } from "~/contexts/Spotify";
 import Player from "~/components/sloops/Player";
 import { useRef, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchChords } from "~/utils/helpers";
 import Chord from "~/components/sloops/Chord";
 import LoopTimeline from "~/components/sloops/LoopTimeline";
 import { usePlayerContext } from "~/contexts/Player";
 import { WaveSpinner } from "react-spinners-kit";
 import clsx from "clsx";
-import { type Loop } from "~/utils/types";
-import { useElementSize } from "usehooks-ts";
+import { type Chords, type Loop } from "~/utils/types";
+import { useEffectOnce, useElementSize } from "usehooks-ts";
 import WithAuth from "~/components/utils/WithAuth";
 import LoopButton from "~/components/sloops/LoopButton";
 import ErrorView from "~/components/utils/ErrorView";
+import chordsData from "public/chords.json";
+import { useSession } from "next-auth/react";
+
+const chords = chordsData as Chords;
 
 const SloopPlayer: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
+  const { data: session } = useSession();
   const playerCtx = usePlayerContext();
   const { data, isLoading, error } = api.sloops.get.useQuery({
     id: router.query.id as string,
-    getPrivate: !!router.query.private,
-  });
-  const {
-    data: chords,
-    isLoading: fetchingChords,
-    error: chordsError,
-  } = useQuery(["chords"], async () => {
-    const response = await fetchChords();
-    if (!response.ok) {
-      throw new Error("Failed To Fetch Chords");
-    }
-    return response;
+    getPrivate: router.query.private === "true" ? true : undefined,
   });
   const { mutateAsync: updatePlays } =
     api.sloops.createOrUpdatePlay.useMutation();
@@ -74,10 +66,13 @@ const SloopPlayer: NextPage = ({}) => {
     }
   };
 
+  useEffectOnce(() => {
+    void handleUpdatePlays(router.query.id as string);
+  });
+
   useEffect(() => {
     if (!data) return;
     playerCtx.initialize(data);
-    void handleUpdatePlays(data.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
@@ -89,9 +84,9 @@ const SloopPlayer: NextPage = ({}) => {
     });
   }, [playerCtx.playingLoop, containerWidth]);
 
-  if (isLoading || fetchingChords || !spotify.auth) return <Loading />;
+  if (isLoading || !spotify.auth) return <Loading />;
 
-  if ((!data || error) ?? (!chords || chordsError)) return <ErrorView />;
+  if (!data || error) return <ErrorView />;
 
   return (
     <>
@@ -242,7 +237,7 @@ const SloopPlayer: NextPage = ({}) => {
               {playerCtx.playingLoop && (
                 <p className="-translate-y-1 text-xs sm:text-sm">
                   {`${playerCtx.playingLoop.voicing + 1}/${
-                    chords.data[playerCtx.playingLoop.chord]?.length
+                    chords[playerCtx.playingLoop.chord]?.length
                   }`}
                 </p>
               )}
@@ -266,16 +261,14 @@ const SloopPlayer: NextPage = ({}) => {
                 }
                 className="no-scrollbar absolute flex h-full w-[90%] snap-x snap-mandatory overflow-x-scroll"
               >
-                {chords.data[playerCtx.playingLoop.chord]!.map(
-                  (chord, index) => (
-                    <div
-                      key={index}
-                      className="h-full w-full flex-shrink-0 snap-start snap-always"
-                    >
-                      <Chord chord={chord} />
-                    </div>
-                  )
-                )}
+                {chords[playerCtx.playingLoop.chord]!.map((chord, index) => (
+                  <div
+                    key={index}
+                    className="h-full w-full flex-shrink-0 snap-start snap-always"
+                  >
+                    <Chord chord={chord} />
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -294,11 +287,19 @@ const SloopPlayer: NextPage = ({}) => {
           context={playerCtx}
           disabled
         />
-        <Player
-          trackId={data.trackId}
-          duration={data.duration}
-          context={playerCtx}
-        />
+        {session?.user.canPlaySpotify ? (
+          <Player
+            trackId={data.trackId}
+            duration={data.duration}
+            context={playerCtx}
+          />
+        ) : (
+          <div className="flex h-[68px] items-center justify-center p-2">
+            <p className="h-fit rounded border border-red-500 bg-red-200 p-1 text-xs text-red-500 sm:text-sm">
+              Spotify Premium Required
+            </p>
+          </div>
+        )}
       </div>
     </>
   );

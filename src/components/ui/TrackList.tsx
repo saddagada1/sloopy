@@ -1,11 +1,15 @@
 import clsx from "clsx";
-import { type SimplifiedTrack, type Track } from "spotify-types";
+import {
+  type SimplifiedTrack as SimplifiedSpotifyTrack,
+  type Track as SpotifyTrack,
+} from "spotify-types";
 import { useRouter } from "next/router";
 import { useElementSize } from "usehooks-ts";
 import SafeImage from "./SafeImage";
+import { type ListTrack } from "~/utils/types";
 
 interface TrackListProps {
-  tracks: Track[] | SimplifiedTrack[];
+  tracks: SpotifyTrack[] | SimplifiedSpotifyTrack[] | ListTrack[];
   noImages?: boolean;
   numbered?: boolean;
 }
@@ -45,7 +49,13 @@ const TrackList: React.FC<TrackListProps> = ({
             )}
             {!noImages && (
               <SafeImage
-                url={"album" in track ? track.album.images[0]?.url : undefined}
+                url={
+                  "album" in track
+                    ? track.album.images[0]?.url
+                    : "image" in track
+                    ? track.image
+                    : undefined
+                }
                 alt={track.name}
                 width={width * 0.13}
                 className="relative mr-4 aspect-square flex-shrink-0 overflow-hidden rounded"
@@ -56,10 +66,10 @@ const TrackList: React.FC<TrackListProps> = ({
               style={{ height: width * 0.13 }}
               className="flex flex-col justify-between overflow-hidden"
             >
-              <p className="truncate text-lg font-semibold sm:text-xl ">
+              <p className="truncate text-lg font-semibold leading-tight sm:text-xl">
                 {track.name}
               </p>
-              <p className="truncate text-sm text-gray-400 sm:text-base">
+              <p className="truncate text-sm leading-tight text-gray-400 sm:text-base">
                 {track.artists.map((artist, index) =>
                   index === track.artists.length - 1
                     ? artist.name

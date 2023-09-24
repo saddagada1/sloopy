@@ -26,7 +26,9 @@ const SloopList: React.FC<SloopListProps> = ({ sloops, profile }) => {
           key={index}
           onClick={() =>
             void router.push(
-              profile ? `/profile/sloop/${sloop.id}` : `/sloop/${sloop.id}`
+              profile
+                ? `/profile/sloop/${sloop.id}?private=${!!sloop.isPrivate}`
+                : `/sloop/${sloop.id}`
             )
           }
         >
@@ -46,14 +48,14 @@ const SloopList: React.FC<SloopListProps> = ({ sloops, profile }) => {
             style={{ height: width * 0.2 }}
             className="flex flex-1 flex-col justify-between overflow-hidden"
           >
-            <p className="truncate text-lg font-semibold sm:text-xl">
+            <p className="truncate text-lg font-semibold leading-tight sm:text-xl">
               {sloop.name}
             </p>
             <div>
-              <p className="truncate text-sm font-medium text-gray-400 sm:text-base ">
+              <p className="truncate text-sm font-medium leading-tight text-gray-400 sm:text-base">
                 {sloop.track.name}
               </p>
-              <p className="truncate text-xs text-gray-400 sm:text-sm">
+              <p className="truncate text-xs leading-tight text-gray-400 sm:text-sm">
                 {sloop.artists.map((artist, index) =>
                   index === sloop.artists.length - 1
                     ? artist.name
@@ -62,11 +64,11 @@ const SloopList: React.FC<SloopListProps> = ({ sloops, profile }) => {
               </p>
             </div>
           </div>
-          <p className="flex items-center gap-2 text-sm sm:text-base">
+          <p className="flex items-center gap-2 rounded-lg bg-secondary px-2 py-0.5 text-xs text-primary sm:text-sm">
             {sloop.rankedSloop?.likes.toLocaleString(undefined, {
               notation: "compact",
             })}
-            <PiHeartFill className="text-base sm:text-lg" />
+            <PiHeartFill className="text-sm sm:text-base" />
           </p>
         </li>
       ))}

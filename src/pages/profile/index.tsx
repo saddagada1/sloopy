@@ -1,23 +1,34 @@
 import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { PiHeart } from "react-icons/pi";
+import { PiCamera, PiHeart, PiTrash } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import { api } from "~/utils/api";
 import Loading from "~/components/utils/Loading";
 import WithAuth from "~/components/utils/WithAuth";
 import SafeImage from "~/components/ui/SafeImage";
-import { paginationLimit, pitchClassColours } from "~/utils/constants";
+import { paginationLimit } from "~/utils/constants";
 import ErrorView from "~/components/utils/ErrorView";
 import SloopList from "~/components/ui/SloopList";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import clsx from "clsx";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import Modal from "~/components/ui/Modal";
+import StyledTitle from "~/components/ui/form/StyledTitle";
+import Image from "next/image";
+import toast from "react-hot-toast";
+import LoadingButton from "~/components/ui/LoadingButton";
+import axios from "axios";
 
 const Profile: NextPage = ({}) => {
   const router = useRouter();
   const [imageContainerRef, { height }] = useElementSize();
-  const { data: session } = useSession();
+  const [changeProfileImage, setChangeProfileImage] = useState(false);
+  const [profileImage, setProfileImage] = useState<File>();
+  const profileImageRef = useRef<HTMLInputElement>(null!);
+  const { data: session, update: updateSession } = useSession();
   const {
     data: user,
     isLoading: fetchingUser,
@@ -30,6 +41,55 @@ const Profile: NextPage = ({}) => {
   } = api.sloops.getSloops.useQuery({
     limit: paginationLimit,
   });
+  const { mutateAsync: uploadProfileImage, isLoading: uploadingProfileImage } =
+    api.users.changeImage.useMutation();
+  const { mutateAsync: deleteProfileImage } =
+    api.users.deleteImage.useMutation();
+
+  const handleProfileImageUpload = (file?: File) => {
+    const accept = "image/jpeg image/jpg image/png";
+    if (!file) return;
+    if (file.size > 2097152) {
+      toast.error("Max File Size: 2MB");
+      return;
+    }
+    if (!accept.includes(file.type)) {
+      toast.error("Only JPEG, JPG and PNG Files");
+      return;
+    }
+    setProfileImage(file);
+  };
+
+  const handleSaveProfileImage = async () => {
+    if (!profileImage) return;
+    try {
+      const url = await uploadProfileImage();
+      const response = await axios.put(url, profileImage);
+      if (response.status !== 200) {
+        toast.error("Error: Could Not Change Profile Image");
+      }
+      toast.success("Success: Changed Profile Image");
+      await updateSession();
+    } catch (error) {
+      toast.error("Error: Could Not Change Profile Image");
+    }
+    setChangeProfileImage(false);
+  };
+
+  const handleDeleteProfileImage = async () => {
+    try {
+      await deleteProfileImage();
+      toast.success("Success: Deleted Profile Image");
+      await updateSession();
+    } catch (error) {
+      toast.error("Error: Could Not Delete Profile Image");
+    }
+    setChangeProfileImage(false);
+  };
+
+  useEffect(() => {
+    setProfileImage(undefined);
+  }, [changeProfileImage]);
 
   if (fetchingUser || fetchingSloops) {
     return <Loading />;
@@ -44,6 +104,73 @@ const Profile: NextPage = ({}) => {
       <Head>
         <title>Sloopy - Profile</title>
       </Head>
+      <AnimatePresence>
+        {changeProfileImage && (
+          <Modal setVisible={setChangeProfileImage}>
+            <StyledTitle title="Profile Image" />
+            <div className="mb-6 flex flex-col items-center">
+              <input
+                className="hidden"
+                ref={profileImageRef}
+                type="file"
+                name="file"
+                onChange={(e) =>
+                  e.target.files && handleProfileImageUpload(e.target.files[0])
+                }
+              />
+              <button
+                style={{ height: height }}
+                onClick={() =>
+                  profileImageRef.current && profileImageRef.current.click()
+                }
+                className="relative flex aspect-square flex-col items-center justify-center gap-1 overflow-hidden rounded-full border border-dashed border-secondary text-base text-gray-400 sm:text-lg"
+              >
+                {!profileImage && !session?.user.image ? (
+                  <>
+                    <PiCamera className="text-xl sm:text-2xl" />
+                    <p>Select</p>
+                  </>
+                ) : (
+                  <Image
+                    src={
+                      profileImage
+                        ? URL.createObjectURL(profileImage)
+                        : session?.user.image ?? ""
+                    }
+                    alt="Profile Image Preview"
+                    fill
+                    className="object-cover"
+                  />
+                )}
+              </button>
+            </div>
+            <div className="relative mt-2 flex h-14 w-full gap-2 font-display text-base font-bold sm:text-lg">
+              {session?.user.image && (
+                <button
+                  onClick={() => void handleDeleteProfileImage()}
+                  className="flex aspect-square items-center justify-center rounded-md border border-red-500 bg-red-100 text-2xl text-red-500 sm:text-3xl"
+                >
+                  <PiTrash />
+                </button>
+              )}
+              <button
+                onClick={() => setChangeProfileImage(false)}
+                className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200"
+              >
+                Cancel
+              </button>
+              <LoadingButton
+                onClick={() => void handleSaveProfileImage()}
+                loading={uploadingProfileImage}
+                disabled={uploadingProfileImage}
+                className="flex flex-1 items-center justify-center rounded-md bg-secondary text-primary"
+              >
+                Save
+              </LoadingButton>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
       <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
         <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
           Profile
@@ -52,15 +179,14 @@ const Profile: NextPage = ({}) => {
           {session?.user.name ?? session?.user.username}
         </h1>
         <div ref={imageContainerRef} className="flex gap-4">
-          <SafeImage
-            url={user.image}
-            alt={user.username}
-            width={height}
-            className="relative aspect-square overflow-hidden rounded-full"
-            colours={Object.keys(pitchClassColours).map(
-              (key) => pitchClassColours[parseInt(key)]!
-            )}
-          />
+          <button onClick={() => setChangeProfileImage(true)}>
+            <SafeImage
+              url={session?.user.image}
+              alt={user.username}
+              width={height}
+              className="relative aspect-square overflow-hidden rounded-full"
+            />
+          </button>
           <div className="flex flex-1 flex-col justify-between gap-4">
             <div className="flex border-b border-gray-300 pb-4">
               <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
@@ -68,7 +194,7 @@ const Profile: NextPage = ({}) => {
                   Sloops
                 </p>
                 <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user.sloops.length.toLocaleString(undefined, {
+                  {user.sloopsCount.toLocaleString(undefined, {
                     notation: "compact",
                   })}
                 </p>

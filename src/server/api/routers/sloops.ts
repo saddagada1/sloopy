@@ -33,7 +33,7 @@ const createSloopInput = z.object({
   description: z.string().max(500),
   trackId: z.string(),
   trackName: z.string(),
-  trackImage: z.string(),
+  trackImage: z.string().optional(),
   artists: z.array(zodArtist),
   duration: z.number(),
   key: z.number().min(-1).max(11),
@@ -67,7 +67,32 @@ export const sloopsRouter = createTRPCRouter({
       try {
         const { trackId, trackName, trackImage, ...sloopInput } = input;
         const id = await ctx.prisma.$transaction(async () => {
-          const track = await ctx.prisma.track.upsert({
+          const artists = await Promise.all(
+            sloopInput.artists.map(
+              async (artist) =>
+                await ctx.prisma.artist.upsert({
+                  where: {
+                    id: artist.spotifyId,
+                  },
+                  update: {},
+                  create: {
+                    id: artist.spotifyId,
+                    image: artist.image,
+                    name: artist.name,
+                  },
+                })
+            )
+          );
+          for (const artist of artists) {
+            await ctx.prisma.rankedArtist.upsert({
+              where: {
+                artistId: artist.id,
+              },
+              update: {},
+              create: { artistId: artist.id },
+            });
+          }
+          await ctx.prisma.track.upsert({
             where: {
               id: trackId,
             },
@@ -76,6 +101,16 @@ export const sloopsRouter = createTRPCRouter({
               id: trackId,
               name: trackName,
               image: trackImage,
+              artists: { connect: artists },
+            },
+          });
+          await ctx.prisma.rankedTrack.upsert({
+            where: {
+              trackId: trackId,
+            },
+            update: {},
+            create: {
+              trackId: trackId,
             },
           });
           const sloop = await ctx.prisma.sloop.create({
@@ -83,28 +118,20 @@ export const sloopsRouter = createTRPCRouter({
               ...sloopInput,
               userId: ctx.session.user.id,
               userUsername: ctx.session.user.username,
-              trackId: track.id,
+              trackId: trackId,
               artists: {
-                connectOrCreate: sloopInput.artists.map((artist) => {
-                  return {
-                    where: { id: artist.spotifyId },
-                    create: {
-                      id: artist.spotifyId,
-                      image: artist.image,
-                      name: artist.name,
-                      rankedArtist: {
-                        create: {
-                          artistId: artist.spotifyId,
-                        },
-                      },
-                    },
-                  };
-                }),
+                connect: artists,
               },
               loops: [],
             },
           });
           await ctx.prisma.rankedSloop.create({ data: { sloopId: sloop.id } });
+          await ctx.prisma.user.update({
+            where: { id: ctx.session.user.id },
+            data: {
+              sloopsCount: { increment: 1 },
+            },
+          });
           return sloop.id;
         });
         return id;
@@ -312,6 +339,49 @@ export const sloopsRouter = createTRPCRouter({
       }
     }),
 
+  getTrendingTracks: publicProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const tracks = await ctx.prisma.rankedTrack.findMany({
+          orderBy: { rank: "desc" },
+          include: {
+            track: {
+              include: {
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { trackId: input.cursor } : undefined,
+        });
+        let next: typeof input.cursor = undefined;
+        if (tracks.length > input.limit) {
+          next = tracks.pop()?.trackId;
+        }
+        return {
+          next: next,
+          items: tracks,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get Trending Tracks",
+        });
+      }
+    }),
+
   getTrendingArtists: publicProcedure
     .input(
       z.object({
@@ -394,7 +464,50 @@ export const sloopsRouter = createTRPCRouter({
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Could Not Get Favourite Sloops",
+          message: "Could Not Get Loved Sloops",
+        });
+      }
+    }),
+
+  getLovedTracks: publicProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const tracks = await ctx.prisma.rankedTrack.findMany({
+          orderBy: { likeRank: "desc" },
+          include: {
+            track: {
+              include: {
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { trackId: input.cursor } : undefined,
+        });
+        let next: typeof input.cursor = undefined;
+        if (tracks.length > input.limit) {
+          next = tracks.pop()?.trackId;
+        }
+        return {
+          next: next,
+          items: tracks,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get Loved Tracks",
         });
       }
     }),
@@ -429,7 +542,7 @@ export const sloopsRouter = createTRPCRouter({
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Could Not Get Favourite Artists",
+          message: "Could Not Get Loved Artists",
         });
       }
     }),
@@ -482,6 +595,276 @@ export const sloopsRouter = createTRPCRouter({
       }
     }),
 
+  getArtistTrendingSloops: publicProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+        id: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const sloops = await ctx.prisma.rankedSloop.findMany({
+          where: {
+            sloop: {
+              artists: {
+                some: {
+                  id: input.id,
+                },
+              },
+              isPrivate: false,
+            },
+          },
+          orderBy: { rank: "desc" },
+          include: {
+            sloop: {
+              include: {
+                rankedSloop: {
+                  select: { likes: true },
+                },
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+                track: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { sloopId: input.cursor } : undefined,
+        });
+        let next: typeof input.cursor = undefined;
+        if (sloops.length > input.limit) {
+          next = sloops.pop()?.sloopId;
+        }
+        return {
+          next: next,
+          items: sloops,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Artists' Trending Sloops",
+        });
+      }
+    }),
+
+  getArtistTrendingTracks: publicProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+        id: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const tracks = await ctx.prisma.rankedTrack.findMany({
+          where: {
+            track: {
+              artists: {
+                some: {
+                  id: input.id,
+                },
+              },
+            },
+          },
+          orderBy: { rank: "desc" },
+          include: {
+            track: true,
+          },
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { trackId: input.cursor } : undefined,
+        });
+        let next: typeof input.cursor = undefined;
+        if (tracks.length > input.limit) {
+          next = tracks.pop()?.trackId;
+        }
+        return {
+          next: next,
+          items: tracks,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Artists' Trending Tracks",
+        });
+      }
+    }),
+
+  getArtistLovedSloops: publicProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+        id: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const sloops = await ctx.prisma.rankedSloop.findMany({
+          where: {
+            sloop: {
+              artists: {
+                some: {
+                  id: input.id,
+                },
+              },
+              isPrivate: false,
+            },
+          },
+          orderBy: { likeRank: "desc" },
+          include: {
+            sloop: {
+              include: {
+                rankedSloop: {
+                  select: { likes: true },
+                },
+                artists: {
+                  select: {
+                    name: true,
+                  },
+                },
+                track: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { sloopId: input.cursor } : undefined,
+        });
+        let next: typeof input.cursor = undefined;
+        if (sloops.length > input.limit) {
+          next = sloops.pop()?.sloopId;
+        }
+        return {
+          next: next,
+          items: sloops,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Artists' Loved Sloops",
+        });
+      }
+    }),
+
+  getArtistLovedTracks: publicProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+        id: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const tracks = await ctx.prisma.rankedTrack.findMany({
+          where: {
+            track: {
+              artists: {
+                some: {
+                  id: input.id,
+                },
+              },
+            },
+          },
+          orderBy: { likeRank: "desc" },
+          include: {
+            track: true,
+          },
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { trackId: input.cursor } : undefined,
+        });
+        let next: typeof input.cursor = undefined;
+        if (tracks.length > input.limit) {
+          next = tracks.pop()?.trackId;
+        }
+        return {
+          next: next,
+          items: tracks,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Artists' Loved Tracks",
+        });
+      }
+    }),
+
+  getArtistMostRecent: publicProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.string().optional(),
+        skip: z.number().optional(),
+        id: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const sloops = await ctx.prisma.sloop.findMany({
+          where: {
+            artists: {
+              some: {
+                id: input.id,
+              },
+            },
+            isPrivate: false,
+          },
+          orderBy: { createdAt: "desc" },
+          include: {
+            rankedSloop: {
+              select: { likes: true },
+            },
+            artists: {
+              select: {
+                name: true,
+              },
+            },
+            track: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          skip: input.skip,
+          take: input.limit + 1,
+          cursor: input.cursor ? { id: input.cursor } : undefined,
+        });
+        let next: typeof input.cursor = undefined;
+        if (sloops.length > input.limit) {
+          next = sloops.pop()?.id;
+        }
+        return {
+          next: next,
+          items: sloops,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could Not Get Artists' Most Recent Sloops",
+        });
+      }
+    }),
+
   get: publicProcedure
     .input(
       z.object({
@@ -492,7 +875,11 @@ export const sloopsRouter = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       try {
         const sloop = await ctx.prisma.sloop.findUnique({
-          where: { id: input.id, isPrivate: !!input.getPrivate },
+          where: {
+            id: input.id,
+            userId: ctx.session?.user.id,
+            isPrivate: !!input.getPrivate,
+          },
           include: {
             rankedSloop: {
               select: { likes: true, plays: true },
@@ -503,6 +890,7 @@ export const sloopsRouter = createTRPCRouter({
                 name: true,
               },
             },
+            track: { select: { name: true, image: true } },
             likes: { where: { userId: ctx.session?.user.id } },
             plays: { where: { userId: ctx.session?.user.id } },
           },
@@ -677,7 +1065,10 @@ export const sloopsRouter = createTRPCRouter({
             create: { userId: ctx.session.user.id, sloopId: input.id },
             include: {
               sloop: {
-                select: { artists: { select: { id: true } } },
+                select: {
+                  artists: { select: { id: true } },
+                  track: { select: { id: true } },
+                },
               },
             },
           });
@@ -711,6 +1102,14 @@ export const sloopsRouter = createTRPCRouter({
         const like = await ctx.prisma.$transaction(async () => {
           const response = await ctx.prisma.like.create({
             data: { userId: ctx.session.user.id, sloopId: input.id },
+            include: {
+              sloop: {
+                select: {
+                  artists: { select: { id: true } },
+                  track: { select: { id: true } },
+                },
+              },
+            },
           });
           await ctx.prisma.rankedSloop.update({
             where: { sloopId: input.id },

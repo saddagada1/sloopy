@@ -11,6 +11,8 @@ import OAuthButtons from "~/components/ui/form/OAuthButtons";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/router";
 import WithoutAuth from "~/components/utils/WithoutAuth";
+import toast from "react-hot-toast";
+import { useEffect } from "react";
 
 interface LoginValues {
   email: string;
@@ -19,6 +21,16 @@ interface LoginValues {
 
 const Login: NextPage = ({}) => {
   const router = useRouter();
+
+  useEffect(() => {
+    if (router.query.error) {
+      if (router.query.error === "OAuthAccountNotLinked") {
+        toast.error("Error: Please Login With The Correct Provider");
+      } else {
+        toast.error(`Error: ${router.query.error as string}`);
+      }
+    }
+  }, [router.query.error]);
   return (
     <>
       <Head>

@@ -10,6 +10,7 @@ import NoData from "~/components/ui/NoData";
 import SearchInput from "~/components/ui/SearchInput";
 import SloopCard from "~/components/ui/SloopCard";
 import SloopList from "~/components/ui/SloopList";
+import TrackCard from "~/components/ui/TrackCard";
 import ErrorView from "~/components/utils/ErrorView";
 import Loading from "~/components/utils/Loading";
 import { api } from "~/utils/api";
@@ -26,6 +27,14 @@ const useHome = () => {
     alwaysRefetch
   );
   const {
+    data: trendingTracks,
+    isLoading: fetchingTrendingTracks,
+    error: trendingTracksError,
+  } = api.sloops.getTrendingTracks.useQuery(
+    { limit: paginationLimit },
+    alwaysRefetch
+  );
+  const {
     data: trendingSloops,
     isLoading: fetchingTrendingSloops,
     error: trendingSloopsError,
@@ -38,6 +47,14 @@ const useHome = () => {
     isLoading: fetchingLovedArtists,
     error: lovedArtistsError,
   } = api.sloops.getLovedArtists.useQuery(
+    { limit: paginationLimit },
+    alwaysRefetch
+  );
+  const {
+    data: lovedTracks,
+    isLoading: fetchingLovedTracks,
+    error: lovedTracksError,
+  } = api.sloops.getLovedTracks.useQuery(
     { limit: paginationLimit },
     alwaysRefetch
   );
@@ -60,8 +77,10 @@ const useHome = () => {
 
   if (
     fetchingTrendingArtists ||
+    fetchingTrendingTracks ||
     fetchingTrendingSloops ||
     fetchingLovedArtists ||
+    fetchingLovedTracks ||
     fetchingLovedSloops ||
     fetchingMostRecent
   ) {
@@ -70,8 +89,10 @@ const useHome = () => {
 
   if (
     !trendingArtists ||
+    !trendingTracks ||
     !trendingSloops ||
     !lovedArtists ||
+    !lovedTracks ||
     !lovedSloops ||
     !mostRecent
   ) {
@@ -84,8 +105,10 @@ const useHome = () => {
 
   if (
     trendingArtistsError ??
+    trendingTracksError ??
     trendingSloopsError ??
     lovedArtistsError ??
+    lovedTracksError ??
     lovedSloopsError ??
     mostRecentError
   ) {
@@ -99,8 +122,10 @@ const useHome = () => {
   return {
     data: {
       trendingArtists,
+      trendingTracks,
       trendingSloops,
       lovedArtists,
+      lovedTracks,
       lovedSloops,
       mostRecent,
     },
@@ -204,7 +229,7 @@ const Home: NextPage = () => {
         <SearchInput />
         <div ref={containerRef} className="mt-2 flex flex-1 flex-col gap-6">
           {sessionStatus !== "authenticated" ? (
-            <section className="relative flex aspect-video w-full items-end overflow-hidden rounded-md p-4 text-primary">
+            <section className="relative flex aspect-video w-full items-end overflow-hidden rounded-md p-4 text-primary will-change-transform">
               <video
                 autoPlay
                 loop
@@ -224,7 +249,7 @@ const Home: NextPage = () => {
               <section>
                 <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
                   Recently Played
-                  <Link href="/saved/albums">
+                  <Link href="/sloops/recently-played">
                     <PiArrowRight className="text-gray-400" />
                   </Link>
                 </h3>
@@ -241,7 +266,7 @@ const Home: NextPage = () => {
               <section>
                 <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
                   Favourites
-                  <Link href="/saved/albums">
+                  <Link href="/sloops/favourite">
                     <PiArrowRight className="text-gray-400" />
                   </Link>
                 </h3>
@@ -260,7 +285,7 @@ const Home: NextPage = () => {
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Trending Artists
-              <Link href="/saved/albums">
+              <Link href="/trending/artists">
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
@@ -276,8 +301,25 @@ const Home: NextPage = () => {
           </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
+              Trending Tracks
+              <Link href="/trending/tracks">
+                <PiArrowRight className="text-gray-400" />
+              </Link>
+            </h3>
+            {home.trendingTracks.items.length > 0 ? (
+              <Carousel>
+                {home.trendingTracks.items.map(({ track }, index) => (
+                  <TrackCard key={index} track={track} width={width} />
+                ))}
+              </Carousel>
+            ) : (
+              <NoData>No Trending Tracks</NoData>
+            )}
+          </section>
+          <section>
+            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Trending Sloops
-              <Link href="/saved/albums">
+              <Link href="/trending/sloops">
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
@@ -294,7 +336,7 @@ const Home: NextPage = () => {
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Most Loved Artists
-              <Link href="/saved/albums">
+              <Link href="/loved/artists">
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
@@ -305,13 +347,30 @@ const Home: NextPage = () => {
                 ))}
               </Carousel>
             ) : (
-              <NoData>No Loved Artists</NoData>
+              <NoData>No Most Loved Artists</NoData>
+            )}
+          </section>
+          <section>
+            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
+              Most Loved Tracks
+              <Link href="/loved/tracks">
+                <PiArrowRight className="text-gray-400" />
+              </Link>
+            </h3>
+            {home.lovedTracks.items.length > 0 ? (
+              <Carousel>
+                {home.lovedTracks.items.map(({ track }, index) => (
+                  <TrackCard key={index} track={track} width={width} />
+                ))}
+              </Carousel>
+            ) : (
+              <NoData>No Most Loved Tracks</NoData>
             )}
           </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Most Loved Sloops
-              <Link href="/saved/albums">
+              <Link href="/loved/sloops">
                 <PiArrowRight className="text-gray-400" />
               </Link>
             </h3>
@@ -322,15 +381,15 @@ const Home: NextPage = () => {
                 ))}
               </Carousel>
             ) : (
-              <NoData>No Loved Sloops</NoData>
+              <NoData>No Most Loved Sloops</NoData>
             )}
           </section>
           <section>
             <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
               Most Recent
-              <p className="text-base text-gray-400 sm:text-lg">
-                {home.mostRecent.items.length}
-              </p>
+              <Link href="/sloops/most-recent">
+                <PiArrowRight className="text-gray-400" />
+              </Link>
             </h3>
             {home.mostRecent.items.length > 0 ? (
               <SloopList sloops={home.mostRecent.items} />

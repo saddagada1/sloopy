@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import Avatar from "boring-avatars";
 import { AnimatePresence } from "framer-motion";
 import type { NextPage } from "next";
@@ -9,10 +8,10 @@ import { useState } from "react";
 import {
   PiCheck,
   PiLink,
-  PiMusicNote,
   PiPencilSimpleLine,
   PiPlayFill,
   PiShareNetwork,
+  PiTrash,
 } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
 import Chord from "~/components/sloops/Chord";
@@ -26,8 +25,11 @@ import WithAuth from "~/components/utils/WithAuth";
 import { api } from "~/utils/api";
 import { calcRelativeTime, calcSloopColours } from "~/utils/calc";
 import { mode, pitchClass, pitchClassColours } from "~/utils/constants";
-import { fetchChords } from "~/utils/helpers";
-import { type Loop } from "~/utils/types";
+import { type Chords, type Loop } from "~/utils/types";
+import chordsData from "public/chords.json";
+import SafeImage from "~/components/ui/SafeImage";
+
+const chords = chordsData as Chords;
 
 const Sloop: NextPage = ({}) => {
   const router = useRouter();
@@ -40,18 +42,7 @@ const Sloop: NextPage = ({}) => {
     error: sloopError,
   } = api.sloops.get.useQuery({
     id: router.query.id as string,
-    getPrivate: true,
-  });
-  const {
-    data: chords,
-    isLoading: fetchingChords,
-    error: chordsError,
-  } = useQuery(["chords"], async () => {
-    const response = await fetchChords();
-    if (!response.ok) {
-      throw new Error("Failed To Fetch Chords");
-    }
-    return response;
+    getPrivate: router.query.private === "true" ? true : undefined,
   });
   const [showDelete, setShowDelete] = useState(false);
   const { mutateAsync: deleteSloop, isLoading: deletingSloop } =
@@ -60,13 +51,14 @@ const Sloop: NextPage = ({}) => {
   const handleDeleteSloop = async (id: string) => {
     await deleteSloop({ id: id });
     setShowDelete(false);
+    void router.replace("/profile");
   };
 
-  if (fetchingSloop || fetchingChords) {
+  if (fetchingSloop) {
     return <Loading />;
   }
 
-  if ((!sloop || sloopError) ?? (!chords || chordsError)) {
+  if (!sloop || sloopError) {
     return <ErrorView />;
   }
 
@@ -77,32 +69,35 @@ const Sloop: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {sloop.name}</title>
       </Head>
-      {showDelete && (
-        <Modal>
-          <StyledTitle title="Delete Loop" />
-          <p className="mb-6 font-sans text-sm font-medium sm:text-base">
-            Are you sure you want to delete this loop? This can not be undone.
-          </p>
-          <div className="flex h-14 gap-2">
-            <button
-              className="flex-1 rounded-md border border-gray-300 bg-gray-200"
-              onClick={() => setShowDelete(false)}
-            >
-              Cancel
-            </button>
-            <LoadingButton
-              onClick={() => {
-                void handleDeleteSloop(sloop.id);
-              }}
-              loading={deletingSloop}
-              disabled={deletingSloop}
-              className="flex flex-1 items-center justify-center rounded-md border border-red-500 bg-red-100 text-red-500"
-            >
-              Confirm
-            </LoadingButton>
-          </div>
-        </Modal>
-      )}
+      <AnimatePresence>
+        {showDelete && (
+          <Modal setVisible={setShowDelete}>
+            <StyledTitle title="Delete Sloop" />
+            <p className="mb-6 font-sans text-sm font-medium sm:text-base">
+              Are you sure you want to delete this sloop? This can not be
+              undone.
+            </p>
+            <div className="flex h-14 gap-2 font-display text-base font-bold sm:text-lg">
+              <button
+                className="flex-1 rounded-md border border-gray-300 bg-gray-200"
+                onClick={() => setShowDelete(false)}
+              >
+                Cancel
+              </button>
+              <LoadingButton
+                onClick={() => {
+                  void handleDeleteSloop(sloop.id);
+                }}
+                loading={deletingSloop}
+                disabled={deletingSloop}
+                className="flex flex-1 items-center justify-center rounded-md border border-red-500 bg-red-100 text-red-500"
+              >
+                Confirm
+              </LoadingButton>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
       <div
         ref={containerRef}
         className="flex flex-1 flex-col items-center px-4 pb-4 pt-6"
@@ -129,14 +124,14 @@ const Sloop: NextPage = ({}) => {
           {sloop.name}
         </h1>
         <div className="mb-4 flex w-full gap-4 border-b border-gray-300 pb-4 text-3xl sm:text-4xl">
-          <Link className="flex-1" href={`/player/${sloop.id}?private=true`}>
+          <Link
+            className="flex-1"
+            href={`/player/${sloop.id}?private=${sloop.isPrivate}`}
+          >
             <PiPlayFill />
           </Link>
-          <Link href={`/editor/${sloop.id}`}>
+          <Link href={`/editor/${sloop.id}?private=${sloop.isPrivate}`}>
             <PiPencilSimpleLine />
-          </Link>
-          <Link href={`/track/${sloop.trackId}`}>
-            <PiMusicNote />
           </Link>
           <button className="relative" onClick={() => setShowShare(true)}>
             <PiShareNetwork />
@@ -157,6 +152,36 @@ const Sloop: NextPage = ({}) => {
               )}
             </AnimatePresence>
           </button>
+          <button onClick={() => setShowDelete(true)} className="text-red-500">
+            <PiTrash />
+          </button>
+        </div>
+        <div className="mb-4 flex w-full flex-col items-start gap-2 border-b border-gray-300 pb-4">
+          <p className="font-display text-xs text-gray-400 sm:text-sm">Track</p>
+          <Link className="flex" href={`/track/${sloop.trackId}`}>
+            <SafeImage
+              url={sloop.track.image}
+              alt={sloop.track.name}
+              width={width * 0.1}
+              className="relative mr-4 aspect-square flex-shrink-0 overflow-hidden rounded"
+              square
+            />
+            <div
+              style={{ height: width * 0.1 }}
+              className="flex flex-col justify-between overflow-hidden"
+            >
+              <p className="truncate text-sm font-semibold leading-tight sm:text-base">
+                {sloop.track.name}
+              </p>
+              <p className="truncate text-xs leading-tight text-gray-400 sm:text-sm">
+                {sloop.artists.map((artist, index) =>
+                  index === sloop.artists.length - 1
+                    ? artist.name
+                    : `${artist.name}, `
+                )}
+              </p>
+            </div>
+          </Link>
         </div>
         {sloop.description !== "" && (
           <div className="mb-4 flex w-full flex-col items-start gap-1 border-b border-gray-300 pb-4">
@@ -277,7 +302,7 @@ const Sloop: NextPage = ({}) => {
                 <div className="w-full flex-1 -translate-y-5 translate-x-2">
                   <Chord
                     chord={
-                      chords.data[loops[previewLoop]!.chord]![
+                      chords[loops[previewLoop]!.chord]![
                         loops[previewLoop]!.voicing
                       ]
                     }

@@ -5,11 +5,14 @@ import { calcPastDate, calcRank } from "~/utils/calc";
 import { TRENDING_TOPIC } from "~/utils/constants";
 import { kafka } from "~/utils/upstash";
 
-interface PlayWithArtists extends Play {
+interface PlayWithRelations extends Play {
   sloop: {
     artists: {
       id: string;
     }[];
+    track: {
+      id: string;
+    };
   };
 }
 
@@ -29,7 +32,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   });
 
   const plays = messages.map(
-    (play) => JSON.parse(play.value) as PlayWithArtists
+    (play) => JSON.parse(play.value) as PlayWithRelations
   );
 
   //sloops
@@ -42,7 +45,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     const exists = await prisma.sloop.findUnique({ where: { id: sloop } });
     if (!exists) continue;
 
-    let rankedSloop = await prisma.rankedSloop.findUnique({
+    const rankedSloop = await prisma.rankedSloop.findUnique({
       where: { sloopId: sloop },
       include: {
         pastPlayCounts: {
@@ -51,16 +54,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
         },
       },
     });
-    if (!rankedSloop) {
-      rankedSloop = await prisma.rankedSloop.create({
-        data: { sloopId: sloop },
-        include: {
-          pastPlayCounts: {
-            select: { playCount: true },
-          },
-        },
-      });
-    }
+    if (!rankedSloop) continue;
 
     const rank = calcRank(
       countedPlays[sloop]!,
@@ -85,6 +79,52 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     }
   }
 
+  //tracks
+  const tracks = plays.map((play) => play.sloop.track);
+  const countedTrackPlays = tracks.reduce((previous, current) => {
+    previous[current.id] = (previous[current.id] ?? 0) + 1;
+    return previous;
+  }, {} as Record<string, number>);
+  console.log(countedTrackPlays);
+  for (const track of Object.keys(countedTrackPlays)) {
+    const exists = await prisma.track.findUnique({ where: { id: track } });
+    if (!exists) continue;
+
+    const rankedTrack = await prisma.rankedTrack.findUnique({
+      where: { trackId: track },
+      include: {
+        pastPlayCounts: {
+          where: { createdAt: { gt: calcPastDate(historyRange) } },
+          select: { playCount: true },
+        },
+      },
+    });
+
+    if (!rankedTrack) continue;
+
+    const rank = calcRank(
+      countedTrackPlays[track]!,
+      rankedTrack.pastPlayCounts.map(({ playCount }) => playCount)
+    );
+    const plays = rankedTrack.plays;
+    try {
+      await prisma.$transaction(async () => {
+        await prisma.rankedTrack.update({
+          where: { trackId: track },
+          data: { rank: rank, plays: plays + countedTrackPlays[track]! },
+        });
+        await prisma.trackRank.create({
+          data: { trackId: track, rank: rank },
+        });
+        await prisma.trackPlayCount.create({
+          data: { trackId: track, playCount: countedTrackPlays[track]! },
+        });
+      });
+    } catch (error) {
+      continue;
+    }
+  }
+
   //artists
   const artists = plays.flatMap((play) => play.sloop.artists);
   const countedArtistPlays = artists.reduce((previous, current) => {
@@ -96,7 +136,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     const exists = await prisma.artist.findUnique({ where: { id: artist } });
     if (!exists) continue;
 
-    let rankedArtist = await prisma.rankedArtist.findUnique({
+    const rankedArtist = await prisma.rankedArtist.findUnique({
       where: { artistId: artist },
       include: {
         pastPlayCounts: {
@@ -106,16 +146,7 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    if (!rankedArtist) {
-      rankedArtist = await prisma.rankedArtist.create({
-        data: { artistId: artist },
-        include: {
-          pastPlayCounts: {
-            select: { playCount: true },
-          },
-        },
-      });
-    }
+    if (!rankedArtist) continue;
 
     const rank = calcRank(
       countedArtistPlays[artist]!,

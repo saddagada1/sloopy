@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import Router from "next/router";
+import { useSession } from "next-auth/react";
 
 export const useSpotifyWebSDK = (token?: string) => {
+  const { data: session } = useSession();
   const [player, setPlayer] = useState<Spotify.Player>();
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [deviceId, setDeviceId] = useState("");
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !session?.user.canPlaySpotify) return;
 
     if (!window.Spotify) return;
 
@@ -54,6 +56,7 @@ export const useSpotifyWebSDK = (token?: string) => {
       player.removeListener("playback_error");
       player.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   return { player, isReady, error, deviceId };
