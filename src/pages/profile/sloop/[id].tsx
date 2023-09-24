@@ -29,7 +29,7 @@ import { type Chords, type Loop } from "~/utils/types";
 import chordsData from "public/chords.json";
 import SafeImage from "~/components/ui/SafeImage";
 
-const chords = chordsData as Chords;
+const chords = chordsData as unknown as Chords;
 
 const Sloop: NextPage = ({}) => {
   const router = useRouter();

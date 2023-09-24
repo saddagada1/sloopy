@@ -27,7 +27,7 @@ import ErrorView from "~/components/utils/ErrorView";
 import chordsData from "public/chords.json";
 import { useSession } from "next-auth/react";
 
-const chords = chordsData as Chords;
+const chords = chordsData as unknown as Chords;
 
 const SloopPlayer: NextPage = ({}) => {
   const router = useRouter();
