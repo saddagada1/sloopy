@@ -149,7 +149,7 @@ const useUserHome = (enabled: boolean) => {
     data: favourites,
     isLoading: fetchingFavourites,
     error: favouritesError,
-  } = api.sloops.getRecentlyPlayedSloops.useQuery(
+  } = api.sloops.getFavouriteSloops.useQuery(
     { limit: paginationLimit },
     {
       enabled: enabled,
