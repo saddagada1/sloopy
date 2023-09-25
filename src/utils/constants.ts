@@ -80,6 +80,7 @@ export const alwaysRefetch = {
   staleTime: 1000 * 60 * 5,
 };
 
-export const domain = process.env.VERCEL_URL
-  ? `https://${env.NEXT_PUBLIC_PRODUCTION_URL}`
-  : "http://localhost:3000";
+export const domain =
+  env.NEXT_PUBLIC_CLIENT_ENV === "production"
+    ? `https://${env.NEXT_PUBLIC_PRODUCTION_URL}`
+    : "http://localhost:3000";

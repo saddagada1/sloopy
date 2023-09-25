@@ -889,6 +889,7 @@ export const sloopsRouter = createTRPCRouter({
         const sloop = await ctx.prisma.sloop.findUnique({
           where: {
             id: input.id,
+            userId: input.getPrivate ? ctx.session?.user.id : undefined,
             isPrivate: !!input.getPrivate,
           },
           include: {

@@ -22,7 +22,7 @@ const ScrollPagination: React.FC<ScrollPaginationProps> = ({
       <div
         {...DetailedHTMLProps}
         className={twMerge(
-          "flex w-full flex-col items-center gap-4 font-display text-3xl sm:text-4xl",
+          "flex w-full flex-col items-center gap-4",
           DetailedHTMLProps.className
         )}
       >

@@ -52,6 +52,7 @@ export const env = createEnv({
   client: {
     NEXT_PUBLIC_SPOTIFY_CLIENT_ID: z.string().min(1),
     NEXT_PUBLIC_PRODUCTION_URL: z.string().min(1),
+    NEXT_PUBLIC_CLIENT_ENV: z.enum(["development", "test", "production"]),
   },
 
   /**
@@ -69,6 +70,7 @@ export const env = createEnv({
     FACEBOOK_CLIENT_SECRET: process.env.FACEBOOK_CLIENT_SECRET,
     NEXT_PUBLIC_SPOTIFY_CLIENT_ID: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
     NEXT_PUBLIC_PRODUCTION_URL: process.env.NEXT_PUBLIC_PRODUCTION_URL,
+    NEXT_PUBLIC_CLIENT_ENV: process.env.NEXT_PUBLIC_CLIENT_ENV,
     SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID,
     SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,

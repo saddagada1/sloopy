@@ -9,7 +9,7 @@ import {
   PiSpotifyLogo,
 } from "react-icons/pi";
 import { useSpotifyContext } from "~/contexts/Spotify";
-import { useElementSize } from "usehooks-ts";
+import { useEffectOnce, useElementSize } from "usehooks-ts";
 import { AnimatePresence, motion } from "framer-motion";
 import { calcVideoTimestamp, clamp } from "~/utils/calc";
 import Popover from "../ui/Popover";
@@ -83,6 +83,13 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
     void context.player.seek(seekPosition * 1000);
     context.handlePlayingLoop(seekPosition);
   };
+
+  useEffectOnce(() => {
+    const savedVolume = sessionStorage.getItem("volume");
+    if (savedVolume) {
+      setVolume(parseFloat(savedVolume));
+    }
+  });
 
   useEffect(() => {
     const handleMouseScrub = (e: MouseEvent) => {
@@ -303,6 +310,7 @@ const Player: React.FC<PlayerProps> = ({ trackId, duration, context }) => {
                     if (value[0] === undefined) return;
                     void context.player?.setVolume(value[0]);
                     setVolume(value[0]);
+                    sessionStorage.setItem("volume", value[0].toString());
                   }}
                 />
               </Popover>

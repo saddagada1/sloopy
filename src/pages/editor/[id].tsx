@@ -510,7 +510,7 @@ const Editor: NextPage = ({}) => {
               className="no-scrollbar aspect-video w-full flex-1 resize-none rounded-md border border-gray-300 bg-transparent p-3 text-sm focus:outline-none sm:text-base"
             />
           ) : (
-            <div className="aspect-video w-full flex-1 rounded-md border border-gray-300" />
+            <div className="aspect-video w-full flex-1 overflow-scroll rounded-md border border-gray-300" />
           )}
         </div>
         <LoopTimeline
@@ -536,4 +536,4 @@ const Editor: NextPage = ({}) => {
   );
 };
 
-export default WithAuth(Editor, { linked: true, premium: true });
+export default WithAuth(Editor, { premium: true });

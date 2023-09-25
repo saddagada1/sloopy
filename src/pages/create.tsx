@@ -221,4 +221,4 @@ const Create: NextPage = ({}) => {
   );
 };
 
-export default WithAuth(Create, { linked: true });
+export default WithAuth(Create);
