@@ -6,6 +6,7 @@ import {
   type PrivateUser,
 } from "spotify-types";
 import { env } from "~/env.mjs";
+import { domain } from "../constants";
 
 axiosRetry(axios, {
   retries: 3,
@@ -27,7 +28,7 @@ export const fetchSpotifyCredentials = async (code: string) => {
       {
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: "http://localhost:3000/settings",
+        redirect_uri: `${domain}/settings`,
       },
       {
         headers: {
