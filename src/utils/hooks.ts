@@ -68,8 +68,8 @@ export const useSaveBeforeRouteChange = () => {
 
   useEffect(() => {
     const routeChangeStart = (url: string) => {
-      if (route) return;
       setRoute(url);
+      if (route) return;
       throw "Aborting route change. You can safely ignore this error.";
     };
 

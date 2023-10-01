@@ -17,8 +17,8 @@ interface LikeWithRelations extends Like {
 }
 
 const historyRange = 1000 * 60 * 60 * 24;
-const consumerGroupId = "group_1";
-const instanceId = "instance_1";
+const consumerGroupId = "group_2";
+const instanceId = "instance_2";
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
   const c = kafka.consumer();
@@ -30,6 +30,8 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
     autoCommit: false,
     timeout: 1000 * 60,
   });
+
+  console.log(messages);
 
   const likes = messages.map(
     (like) => JSON.parse(like.value) as LikeWithRelations
@@ -60,12 +62,11 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
       countedLikes[sloop]!,
       rankedSloop.pastLikeCounts.map(({ likeCount }) => likeCount)
     );
-    const likes = rankedSloop.likes;
     try {
       await prisma.$transaction(async () => {
         await prisma.rankedSloop.update({
           where: { sloopId: sloop },
-          data: { likeRank: rank, likes: likes + countedLikes[sloop]! },
+          data: { likeRank: rank },
         });
         await prisma.sloopLikeRank.create({
           data: { sloopId: sloop, likeRank: rank },

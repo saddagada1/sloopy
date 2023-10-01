@@ -9,7 +9,7 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { type Loop } from "~/utils/types";
 import { type Prisma } from "@prisma/client";
 import { kafka } from "~/utils/upstash";
-import { TRENDING_TOPIC } from "~/utils/constants";
+import { LOVED_TOPIC, TRENDING_TOPIC } from "~/utils/constants";
 
 const zodLoop: z.ZodType<Loop> = z.object({
   id: z.number().min(1),
@@ -1073,7 +1073,7 @@ export const sloopsRouter = createTRPCRouter({
                 sloopId: input.id,
               },
             },
-            update: { count: { increment: 1 } },
+            update: { count: { increment: 1 } }, // play count for session user
             create: { userId: ctx.session.user.id, sloopId: input.id },
             include: {
               sloop: {
@@ -1132,7 +1132,7 @@ export const sloopsRouter = createTRPCRouter({
           return response;
         });
         const p = kafka.producer();
-        await p.produce(TRENDING_TOPIC, like);
+        await p.produce(LOVED_TOPIC, like);
         return like;
       } catch (error) {
         if (error instanceof PrismaClientKnownRequestError) {

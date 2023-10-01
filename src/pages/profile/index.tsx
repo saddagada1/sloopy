@@ -115,6 +115,7 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
             </>
           ) : (
             <Image
+              unoptimized
               src={
                 profileImage
                   ? URL.createObjectURL(profileImage)

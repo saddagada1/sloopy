@@ -16,6 +16,7 @@ const LoadingImage: React.FC<LoadingImageProps> = ({ url, alt, width }) => {
   return (
     <>
       <Image
+        unoptimized
         src={url}
         alt={alt}
         sizes={`${width}px`}

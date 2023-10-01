@@ -16,6 +16,7 @@ import Loading from "~/components/utils/Loading";
 import { api } from "~/utils/api";
 import { calcTimeOfDay } from "~/utils/calc";
 import { alwaysRefetch, paginationLimit } from "~/utils/constants";
+import { postLoved } from "~/utils/helpers";
 
 const useHome = () => {
   const {
@@ -220,7 +221,10 @@ const Home: NextPage = () => {
         <title>Sloopy - Home</title>
       </Head>
       <div className="flex flex-1 flex-col px-4 py-6">
-        <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
+        <h2
+          onClick={() => void postLoved()}
+          className="font-display text-xl text-gray-400 sm:text-2xl"
+        >
           {calcTimeOfDay()}
         </h2>
         <Link

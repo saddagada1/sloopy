@@ -60,12 +60,11 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse) => {
       countedPlays[sloop]!,
       rankedSloop.pastPlayCounts.map(({ playCount }) => playCount)
     );
-    const plays = rankedSloop.plays;
     try {
       await prisma.$transaction(async () => {
         await prisma.rankedSloop.update({
           where: { sloopId: sloop },
-          data: { rank: rank, plays: plays + countedPlays[sloop]! },
+          data: { rank: rank },
         });
         await prisma.sloopRank.create({
           data: { sloopId: sloop, rank: rank },
