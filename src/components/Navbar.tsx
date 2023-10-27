@@ -111,7 +111,10 @@ const Navbar: React.FC = () => {
   const [showMenu, setShowMenu] = useState(false);
   return (
     <>
-      <nav className="fixed top-0 z-40 flex h-16 w-full items-center justify-between bg-primary p-4">
+      <nav
+        style={{ width: 428, maxWidth: 428 }}
+        className="fixed top-0 z-40 flex h-16 w-full items-center justify-between bg-primary p-4"
+      >
         <button onClick={() => setShowMenu(true)}>
           <PiList className="text-3xl sm:text-4xl" />
         </button>

@@ -14,6 +14,8 @@ import PlayerProvider from "~/contexts/Player";
 import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
 import StyledTitle from "./ui/form/StyledTitle";
+import { useEffectOnce } from "usehooks-ts";
+import toast from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const syne = Syne({
@@ -38,6 +40,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     setUnsavedSloop(null);
   };
 
+  useEffectOnce(() => {
+    toast("Sloopy Only Available For Mobile At The Moment.");
+  });
+
   useEffect(() => {
     const sloop = localStorage.getItem("sloop");
     if (sloop) {
@@ -53,7 +59,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div
-        className={`${syne.variable} ${inter.variable} flex min-h-screen flex-col font-sans text-secondary`}
+        style={{ width: 428, maxWidth: 428 }}
+        className={`${syne.variable} ${inter.variable} flex min-h-screen flex-col bg-primary font-sans text-secondary`}
       >
         <AnimatePresence>
           {unsavedData && unsavedSloop && (
