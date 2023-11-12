@@ -1,10 +1,5 @@
 import { env } from "~/env.mjs";
 
-export const primaryColour = "#f2f2f2";
-export const secondaryColour = "#151515";
-export const accentColour = "#d1d5db";
-export const darkAccentColour = "#d1d5db80";
-
 export const timeSignature: Record<number, string> = {
   3: "3/4",
   4: "4/4",
@@ -34,18 +29,18 @@ export const pitchClass: Record<number, string> = {
 };
 
 export const pitchClassColours: Record<number, string> = {
-  0: "#ff0000",
-  1: "#ff5200",
-  2: "#ffa500",
-  3: "#ffd200",
-  4: "#ffff00",
-  5: "#66ff00",
-  6: "#33ff80",
-  7: "#00ffff",
-  8: "#0080ff",
-  9: "#0000ff",
-  10: "#8000ff",
-  11: "#ff00ff",
+  0: "#ef4444",
+  1: "#f97316",
+  2: "#eab308",
+  3: "#84cc16",
+  4: "#22c55e",
+  5: "#14b8a6",
+  6: "#06b6d4",
+  7: "#3b82f6",
+  8: "#8b5cf6",
+  9: "#d946ef",
+  10: "#ec4899",
+  11: "#f43f5e",
 };
 
 export const spotifyScopes = `user-read-email user-read-private user-library-read user-library-modify 
@@ -72,6 +67,12 @@ export const TRENDING_TOPIC = "update-ranks";
 export const LOVED_TOPIC = "update-like-ranks";
 
 export const paginationLimit = 50;
+
+export const lgBreakpoint = 1024;
+
+export const lgCardSize = 150;
+
+export const smCardSize = 100;
 
 export const alwaysRefetch = {
   refetchOnWindowFocus: true,

@@ -1,26 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
 import type { NextPage } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
-import toast from "react-hot-toast";
-import { PiPlusCircle, PiSpotifyLogo } from "react-icons/pi";
-import { useElementSize } from "usehooks-ts";
-import NoData from "~/components/ui/NoData";
-import Pagination from "~/components/ui/Pagination";
-import SafeImage from "~/components/ui/SafeImage";
-import SloopList from "~/components/ui/SloopList";
+import { useMemo, useRef } from "react";
+import NoData from "~/components/noData";
 import ErrorView from "~/components/utils/ErrorView";
-import Loading from "~/components/utils/Loading";
-import { useSpotifyContext } from "~/contexts/Spotify";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
-import { mode, paginationLimit, pitchClass } from "~/utils/constants";
+import { paginationLimit } from "~/utils/constants";
+import InfinitePagination from "~/components/infinitePagination";
+import CardGrid from "~/components/cardGrid";
+import SloopCard from "~/components/sloopCard";
+import ImageSection from "~/components/imageSection";
+import { useSpotifyContext } from "~/contexts/Spotify";
+import { useQuery } from "@tanstack/react-query";
+import SpotifyButton from "~/components/spotifyButton";
+import Link from "next/link";
+import Marquee from "~/components/marquee";
 
 const Track: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
-  const [imageContainerRef, { width }] = useElementSize();
+  const lastItem = useRef<HTMLButtonElement>(null!);
   const {
     data: track,
     isLoading: fetchingTrack,
@@ -34,7 +34,6 @@ const Track: NextPage = ({}) => {
       }
       const trackResponse = await spotify.fetchTrack(id);
       if (!trackResponse?.ok) {
-        toast.error("Error: Could Not Fetch Spotify Data");
         throw new Error("Error: Could Not Fetch Spotify Data");
       }
       return trackResponse.data;
@@ -44,29 +43,6 @@ const Track: NextPage = ({}) => {
     }
   );
   const {
-    data: analysis,
-    isLoading: fetchingAnalysis,
-    error: analysisError,
-  } = useQuery(
-    ["analysis", router.query.id],
-    async () => {
-      const id = router.query.id;
-      if (typeof id !== "string") {
-        throw new Error("404");
-      }
-      const analysisResponse = await spotify.fetchTrackAnalysis(id);
-      if (!analysisResponse?.ok) {
-        toast.error("Error: Could Not Fetch Spotify Data");
-        throw new Error("Error: Could Not Fetch Spotify Data");
-      }
-      return analysisResponse.data;
-    },
-    {
-      enabled: !!spotify.auth,
-    }
-  );
-  const [page, setPage] = useState(0);
-  const {
     data: sloops,
     isLoading: fetchingSloops,
     error: sloopError,
@@ -74,31 +50,20 @@ const Track: NextPage = ({}) => {
   } = api.sloops.getTrackSloops.useInfiniteQuery(
     { id: router.query.id as string, limit: paginationLimit },
     {
+      enabled: typeof router.query.id === "string",
       getNextPageParam: (page) => page.next,
     }
   );
-  const data = sloops?.pages[page];
 
-  const handleNext = async () => {
-    if (!sloops?.pages[page + 1]) {
-      await fetchNextPage();
-    }
-    setPage((prev) => prev + 1);
-  };
+  const data = useMemo(() => {
+    return sloops?.pages.flatMap((page) => page.items);
+  }, [sloops]);
 
-  const handlePrevious = () => {
-    setPage((prev) => prev - 1);
-  };
-
-  if (fetchingTrack || fetchingAnalysis || fetchingSloops) {
+  if (fetchingTrack) {
     return <Loading />;
   }
 
-  if (
-    (!track || trackError) ??
-    (!analysis || analysisError) ??
-    (!sloops || sloopError)
-  ) {
+  if ((!track || trackError) ?? sloopError) {
     return <ErrorView />;
   }
 
@@ -107,74 +72,74 @@ const Track: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {track.name}</title>
       </Head>
-      <div
-        ref={imageContainerRef}
-        className="flex flex-1 flex-col items-center px-4 pb-4 pt-6"
-      >
-        <SafeImage
-          url={track.album.images[0]?.url}
-          alt={track.name}
-          width={width * 0.6}
-          className="relative mb-4 aspect-square overflow-hidden rounded-md"
-          square
-        />
-        <h2 className="w-full truncate font-display text-lg text-gray-400 sm:text-xl">
-          {track.artists.map((artist, index) =>
-            index === track.artists.length - 1
-              ? artist.name
-              : `${artist.name}, `
-          )}
-        </h2>
-        <h1 className="mb-4 w-full truncate text-3xl font-semibold sm:text-4xl">
+      <main className="flex flex-1 flex-col gap-2 overflow-scroll lg:grid lg:grid-cols-5 lg:grid-rows-5 lg:overflow-hidden">
+        <Marquee className="lg:col-span-4" label="Track">
           {track.name}
-        </h1>
-        <div className="mb-4 flex w-full items-end justify-between gap-4 border-b border-gray-300 pb-4 text-3xl sm:text-4xl">
-          <Link href={track.uri}>
-            <PiSpotifyLogo />
-          </Link>
-          <Link href={`/create?track_id=${track.id}`}>
-            <PiPlusCircle />
-          </Link>
+        </Marquee>
+        <div className="flex flex-col gap-2 lg:row-span-5">
+          <ImageSection
+            url={track.album.images[0]?.url}
+            alt={track.name}
+            square
+          />
+          <SpotifyButton uri={track.uri} />
+          <div className="section">
+            <h1 className="section-label">Artists</h1>
+            <div className="p-lg">
+              {track.artists.map((artist, index) =>
+                index === track.artists.length - 1 ? (
+                  <Link
+                    className="hover:underline"
+                    key={index}
+                    href={`/artist/${artist.id}`}
+                  >
+                    {artist.name}
+                  </Link>
+                ) : (
+                  <Link
+                    key={index}
+                    className="hover:underline"
+                    href={`/artist/${artist.id}`}
+                  >{`${artist.name}, `}</Link>
+                )
+              )}
+            </div>
+          </div>
+          <div className="section">
+            <h1 className="section-label">Sloops</h1>
+            <p className="num-sm lg:num-lg">{0}</p>
+          </div>
+          <div className="section flex-1 lg:block">
+            <h1 className="section-label">Bio</h1>
+            {/* {user.bio && user.bio.length > 0 ? (
+              <p className="p">{user.bio}</p>
+            ) : (
+              <NoData />
+            )} */}
+          </div>
         </div>
-        <div className="mb-4 flex w-full border-b border-gray-300 pb-4">
-          <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
-            <p className="font-display text-xs text-gray-400 sm:text-sm">Key</p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${pitchClass[analysis.track.key]} ${mode[analysis.track.mode]}`}
-            </p>
-          </div>
-          <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
-            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
-              Tempo
-            </p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${Math.round(analysis.track.tempo)} BPM`}
-            </p>
-          </div>
-          <div className="flex flex-1 flex-col items-start gap-1">
-            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
-              Time
-            </p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${analysis.track.time_signature} / 4`}
-            </p>
-          </div>
-        </div>
-
-        {data && data.items.length > 0 ? (
-          <Pagination
-            page={page}
-            hasNext={!!sloops.pages[page]?.next}
-            hasPrevious={!!sloops.pages[page - 1]}
-            onClickNext={() => void handleNext()}
-            onClickPrevious={() => handlePrevious()}
-          >
-            <SloopList sloops={data.items} />
-          </Pagination>
-        ) : (
-          <NoData>No sloops have been created :(</NoData>
-        )}
-      </div>
+        <InfinitePagination
+          lastItem={lastItem}
+          onLastItem={() => void fetchNextPage()}
+          className="min-h-[500px] lg:col-span-4 lg:row-span-4"
+        >
+          {fetchingSloops ? (
+            <Loading />
+          ) : data && data.length > 0 ? (
+            <CardGrid className="lg:grid-cols-7">
+              {data?.map((sloop, index) => (
+                <SloopCard
+                  ref={index === (data?.length ?? 0) - 1 ? lastItem : undefined}
+                  key={index}
+                  sloop={sloop}
+                />
+              ))}
+            </CardGrid>
+          ) : (
+            <NoData />
+          )}
+        </InfinitePagination>
+      </main>
     </>
   );
 };

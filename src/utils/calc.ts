@@ -33,8 +33,8 @@ export const calcTimeOfDay = () => {
   const now = new Date();
   const hours = now.getHours();
   if (hours < 12) return "Good Morning";
-  if (hours >= 12 && hours < 18) return "Good Afternoon";
-  if (hours >= 18 && hours < 24) return "Good Evening";
+  else if (hours >= 12 && hours < 18) return "Good Afternoon";
+  else return "Good Evening";
 };
 
 export const calcSloopColours = (sloop: Sloop) => {
@@ -67,6 +67,12 @@ export const calcUsername = (email?: string) => {
 export const calcPastDate = (range: number) => {
   const now = new Date().getTime();
   return new Date(now - range);
+};
+
+export const calcCompactValue = (value: number) => {
+  return value.toLocaleString(undefined, {
+    notation: "compact",
+  });
 };
 
 export const calcRank = (initial: number, values: number[]) => {

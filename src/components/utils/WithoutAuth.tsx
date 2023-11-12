@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { type NextPage } from "next";
-import Loading from "./Loading";
+import Loading from "./loading";
 import { useSession } from "next-auth/react";
 
 const WithoutAuth = (Page: NextPage) => {

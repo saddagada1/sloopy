@@ -1,14 +1,15 @@
-import { useEffect, useRef } from "react";
+import { type HTMLAttributes, useEffect, useRef } from "react";
 import { Orientation, SVGuitarChord } from "svguitar";
-import { secondaryColour } from "~/utils/constants";
+import { cn } from "~/utils/shadcn/utils";
 import { type Chord } from "~/utils/types";
 
-interface ChordProps {
+interface ChordProps extends HTMLAttributes<HTMLDivElement> {
   chord?: Chord;
   horizontal?: boolean;
 }
 
-const Chord: React.FC<ChordProps> = ({ chord, horizontal }) => {
+const Chord: React.FC<ChordProps> = ({ chord, horizontal, ...props }) => {
+  const { className, ...rest } = props;
   const canvasRef = useRef<HTMLDivElement>(null!);
   const svguitarRef = useRef<SVGuitarChord>(null!);
 
@@ -27,7 +28,6 @@ const Chord: React.FC<ChordProps> = ({ chord, horizontal }) => {
             fixedDiagramPosition: true,
             tuning: ["E", "A", "D", "G", "B", "E"],
             orientation: horizontal ? Orientation.horizontal : undefined,
-            color: secondaryColour,
           });
       }
     }
@@ -42,7 +42,13 @@ const Chord: React.FC<ChordProps> = ({ chord, horizontal }) => {
     };
   }, [chord, canvasRef, svguitarRef, horizontal]);
 
-  return <div className="h-full w-full" ref={canvasRef}></div>;
+  return (
+    <div
+      {...rest}
+      className={cn("h-full w-full", className)}
+      ref={canvasRef}
+    ></div>
+  );
 };
 
 export default Chord;

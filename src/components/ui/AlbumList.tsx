@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { type Album } from "spotify-types";
 import { useRouter } from "next/router";
 import { useElementSize } from "usehooks-ts";
-import SafeImage from "./SafeImage";
+import SafeImage from "../safeImage";
 
 interface AlbumListProps {
   albums: Album[];

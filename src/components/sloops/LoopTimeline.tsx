@@ -3,7 +3,7 @@ import { Resizable } from "re-resizable";
 import { useEffect, useRef, useState } from "react";
 import { type EditorValues } from "~/contexts/Editor";
 import { pitchClassColours } from "~/utils/constants";
-import Loading from "../utils/Loading";
+import Loading from "../utils/loading";
 import { type PlayerValues } from "~/contexts/Player";
 import { AnimatePresence, motion } from "framer-motion";
 import { calcVideoTimestamp } from "~/utils/calc";

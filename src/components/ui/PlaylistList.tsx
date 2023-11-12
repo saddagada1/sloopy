@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useRouter } from "next/router";
 import { useElementSize } from "usehooks-ts";
-import SafeImage from "./SafeImage";
+import SafeImage from "../safeImage";
 import { type Playlist } from "~/contexts/Spotify";
 
 interface PlaylistListProps {

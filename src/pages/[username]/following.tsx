@@ -1,20 +1,19 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
-import NoData from "~/components/ui/NoData";
-import Pagination from "~/components/ui/Pagination";
-import UserList from "~/components/ui/UserList";
+import { useMemo, useRef } from "react";
+import CardGrid from "~/components/cardGrid";
+import InfinitePagination from "~/components/infinitePagination";
+import Marquee from "~/components/marquee";
+import UserCard from "~/components/userCard";
 import ErrorView from "~/components/utils/ErrorView";
-import IsSessionUser from "~/components/utils/IsSessionUser";
-import Loading from "~/components/utils/Loading";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { paginationLimit } from "~/utils/constants";
 
 const Following: NextPage = ({}) => {
   const router = useRouter();
-  const [page, setPage] = useState(0);
+  const lastItem = useRef<HTMLButtonElement>(null!);
   const {
     data: following,
     isLoading: fetchingFollowing,
@@ -27,26 +26,14 @@ const Following: NextPage = ({}) => {
     },
     {
       getNextPageParam: (page) => page.next,
+      enabled: typeof router.query.username === "string",
     }
   );
-  const data = following?.pages[page];
+  const data = useMemo(() => {
+    return following?.pages.flatMap((page) => page.items);
+  }, [following]);
 
-  const handleNext = async () => {
-    if (!following?.pages[page + 1]) {
-      await fetchNextPage();
-    }
-    setPage((prev) => prev + 1);
-  };
-
-  const handlePrevious = () => {
-    setPage((prev) => prev - 1);
-  };
-
-  if (fetchingFollowing) {
-    return <Loading />;
-  }
-
-  if (!following || followingError) {
+  if (followingError) {
     return <ErrorView />;
   }
 
@@ -57,32 +44,29 @@ const Following: NextPage = ({}) => {
           router.query.username as string
         }'s Following`}</title>
       </Head>
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
-        <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
-          Following
-        </h2>
-        <Link
-          href={`/${router.query.username as string}`}
-          className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl"
+      <main className="flex flex-1 flex-col gap-2 overflow-hidden">
+        <Marquee label="Following">{router.query.username}</Marquee>
+        <InfinitePagination
+          lastItem={lastItem}
+          onLastItem={() => void fetchNextPage()}
         >
-          {router.query.username as string}
-        </Link>
-        {data && data.items.length > 0 ? (
-          <Pagination
-            page={page}
-            hasNext={!!following.pages[page]?.next}
-            hasPrevious={!!following.pages[page - 1]}
-            onClickNext={() => void handleNext()}
-            onClickPrevious={() => handlePrevious()}
-          >
-            <UserList users={data.items.map(({ followed }) => followed)} />
-          </Pagination>
-        ) : (
-          <NoData>Not Following Anyone</NoData>
-        )}
-      </div>
+          {fetchingFollowing ? (
+            <Loading />
+          ) : (
+            <CardGrid>
+              {data?.map(({ followed }, index) => (
+                <UserCard
+                  ref={index === (data?.length ?? 0) - 1 ? lastItem : undefined}
+                  key={index}
+                  user={followed}
+                />
+              ))}
+            </CardGrid>
+          )}
+        </InfinitePagination>
+      </main>
     </>
   );
 };
 
-export default IsSessionUser(Following);
+export default Following;

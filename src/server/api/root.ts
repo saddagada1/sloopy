@@ -4,6 +4,8 @@ import { credentialsRouter } from "~/server/api/routers/credentials";
 import { sloopsRouter } from "~/server/api/routers/sloops";
 import { usersRouter } from "./routers/users";
 import { searchRouter } from "./routers/search";
+import { artistsRouter } from "./routers/artists";
+import { tracksRouter } from "./routers/tracks";
 
 /**
  * This is the primary router for your server.
@@ -14,6 +16,8 @@ export const appRouter = createTRPCRouter({
   credentials: credentialsRouter,
   spotify: spotifyRouter,
   sloops: sloopsRouter,
+  artists: artistsRouter,
+  tracks: tracksRouter,
   users: usersRouter,
   search: searchRouter,
 });

@@ -1,20 +1,17 @@
 import type { NextPage } from "next";
-import { useSession } from "next-auth/react";
 import Head from "next/head";
-import Link from "next/link";
-import { useState } from "react";
-import NoData from "~/components/ui/NoData";
-import Pagination from "~/components/ui/Pagination";
-import UserList from "~/components/ui/UserList";
+import { useMemo, useRef } from "react";
+import CardGrid from "~/components/cardGrid";
+import InfinitePagination from "~/components/infinitePagination";
+import Marquee from "~/components/marquee";
+import UserCard from "~/components/userCard";
 import ErrorView from "~/components/utils/ErrorView";
-import Loading from "~/components/utils/Loading";
-import WithAuth from "~/components/utils/WithAuth";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { paginationLimit } from "~/utils/constants";
 
 const Followers: NextPage = ({}) => {
-  const { data: session } = useSession();
-  const [page, setPage] = useState(0);
+  const lastItem = useRef<HTMLButtonElement>(null!);
   const {
     data: followers,
     isLoading: fetchingFollowers,
@@ -28,24 +25,11 @@ const Followers: NextPage = ({}) => {
       getNextPageParam: (page) => page.next,
     }
   );
-  const data = followers?.pages[page];
+  const data = useMemo(() => {
+    return followers?.pages.flatMap((page) => page.items);
+  }, [followers]);
 
-  const handleNext = async () => {
-    if (!followers?.pages[page + 1]) {
-      await fetchNextPage();
-    }
-    setPage((prev) => prev + 1);
-  };
-
-  const handlePrevious = () => {
-    setPage((prev) => prev - 1);
-  };
-
-  if (fetchingFollowers) {
-    return <Loading />;
-  }
-
-  if (!followers || followersError) {
+  if (followersError) {
     return <ErrorView />;
   }
 
@@ -54,32 +38,29 @@ const Followers: NextPage = ({}) => {
       <Head>
         <title>Sloopy - Followers</title>
       </Head>
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
-        <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
-          Followers
-        </h2>
-        <Link
-          href="/profile"
-          className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl"
+      <main className="flex flex-1 flex-col gap-2 overflow-hidden">
+        <Marquee label="Your">Followers</Marquee>
+        <InfinitePagination
+          lastItem={lastItem}
+          onLastItem={() => void fetchNextPage()}
         >
-          {session?.user.name ?? session?.user.username}
-        </Link>
-        {data && data.items.length > 0 ? (
-          <Pagination
-            page={page}
-            hasNext={!!followers.pages[page]?.next}
-            hasPrevious={!!followers.pages[page - 1]}
-            onClickNext={() => void handleNext()}
-            onClickPrevious={() => handlePrevious()}
-          >
-            <UserList users={data.items.map(({ follower }) => follower)} />
-          </Pagination>
-        ) : (
-          <NoData>No Followers</NoData>
-        )}
-      </div>
+          {fetchingFollowers ? (
+            <Loading />
+          ) : (
+            <CardGrid>
+              {data?.map(({ follower }, index) => (
+                <UserCard
+                  ref={index === (data?.length ?? 0) - 1 ? lastItem : undefined}
+                  key={index}
+                  user={follower}
+                />
+              ))}
+            </CardGrid>
+          )}
+        </InfinitePagination>
+      </main>
     </>
   );
 };
 
-export default WithAuth(Followers);
+export default Followers;

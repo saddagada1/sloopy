@@ -59,7 +59,10 @@ export const usersRouter = createTRPCRouter({
             sloopsCount: true,
             followersCount: true,
             followingCount: true,
-            followers: { where: { followerId: ctx.session?.user.id } },
+            followers: {
+              where: { followerId: ctx.session?.user.id },
+              select: { followerId: true, followedId: true },
+            },
           },
         });
         if (user?.image) {

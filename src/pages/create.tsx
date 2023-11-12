@@ -10,13 +10,13 @@ import StyledLoadingButton from "~/components/ui/form/StyledLoadingButton";
 import { useRouter } from "next/router";
 import { useSpotifyContext } from "~/contexts/Spotify";
 import { useQuery } from "@tanstack/react-query";
-import Loading from "~/components/utils/Loading";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { TRPCClientError } from "@trpc/client";
 import toast from "react-hot-toast";
 import WithAuth from "~/components/utils/WithAuth";
 import { useElementSize } from "usehooks-ts";
-import SafeImage from "~/components/ui/SafeImage";
+import SafeImage from "~/components/safeImage";
 import ErrorView from "~/components/utils/ErrorView";
 
 interface SloopValues {

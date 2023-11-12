@@ -10,7 +10,7 @@ import {
   PiPlus,
   PiRepeat,
 } from "react-icons/pi";
-import Loading from "~/components/utils/Loading";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import {
   mode,

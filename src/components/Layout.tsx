@@ -1,8 +1,6 @@
-import { Inter, Syne } from "next/font/google";
-import Navbar from "./Navbar";
+import { Inter, Syne, JetBrains_Mono } from "next/font/google";
+import { SideNavbar, Navbar } from "./navbar";
 import Head from "next/head";
-import { useSession } from "next-auth/react";
-import Loading from "./utils/Loading";
 import { useRouter } from "next/router";
 import Script from "next/script";
 import EditorProvider from "~/contexts/Editor";
@@ -15,16 +13,20 @@ import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
 import StyledTitle from "./ui/form/StyledTitle";
 import { useEffectOnce } from "usehooks-ts";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
+import Header from "./header";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const syne = Syne({
+const display = Syne({
   subsets: ["latin"],
-  variable: "--font-syne",
+  variable: "--font-display",
+});
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
 });
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
-  const { status: sessionStatus } = useSession();
   const [unsavedData, setUnsavedData] = useState(false);
   const [unsavedSloop, setUnsavedSloop] = useState<UpdateSloopInput | null>(
     null
@@ -39,10 +41,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     setUnsavedData(false);
     setUnsavedSloop(null);
   };
-
-  useEffectOnce(() => {
-    toast("Sloopy Only Available For Mobile At The Moment.");
-  });
 
   useEffect(() => {
     const sloop = localStorage.getItem("sloop");
@@ -59,10 +57,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div
-        style={{ width: 428, maxWidth: 428 }}
-        className={`${syne.variable} ${inter.variable} flex min-h-screen flex-col bg-primary font-sans text-secondary`}
+        className={`${display.variable} ${sans.variable} ${mono.variable} flex h-screen w-screen flex-col gap-2 p-2 font-sans lg:flex-row`}
       >
-        <AnimatePresence>
+        {/* <AnimatePresence>
           {unsavedData && unsavedSloop && (
             <Modal disabled={true} setVisible={setUnsavedData}>
               <StyledTitle title="Unsaved Changes" />
@@ -87,37 +84,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </div>
             </Modal>
           )}
-        </AnimatePresence>
+        </AnimatePresence> */}
         {router.pathname.includes("editor") ? (
-          <main className="flex flex-1 flex-col">
-            <EditorProvider>
-              {sessionStatus === "loading" || unsavedData ? (
-                <Loading />
-              ) : (
-                children
-              )}
-            </EditorProvider>
-          </main>
+          <EditorProvider>{children}</EditorProvider>
         ) : router.pathname.includes("player") ? (
-          <main className="flex flex-1 flex-col">
-            <PlayerProvider>
-              {sessionStatus === "loading" || unsavedData ? (
-                <Loading />
-              ) : (
-                children
-              )}
-            </PlayerProvider>
-          </main>
+          <PlayerProvider>{children}</PlayerProvider>
         ) : (
           <>
+            <SideNavbar />
             <Navbar />
-            <main className="mt-16 flex flex-1 flex-col">
-              {sessionStatus === "loading" || unsavedData ? (
-                <Loading />
-              ) : (
-                children
-              )}
-            </main>
+            <div className="flex flex-1 flex-col gap-2 overflow-hidden">
+              <Header />
+              {children}
+            </div>
           </>
         )}
       </div>

@@ -17,7 +17,7 @@ import InputSlider from "../ui/InputSlider";
 import Link from "next/link";
 import { type EditorValues } from "~/contexts/Editor";
 import toast from "react-hot-toast";
-import SafeImage from "../ui/SafeImage";
+import SafeImage from "../safeImage";
 import { type PlayerValues } from "~/contexts/Player";
 import { WaveSpinner } from "react-spinners-kit";
 import { secondaryColour } from "~/utils/constants";

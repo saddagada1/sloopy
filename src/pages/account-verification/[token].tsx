@@ -4,7 +4,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import { useEffectOnce } from "usehooks-ts";
-import Loading from "~/components/utils/Loading";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 
 const AccountVerification: NextPage = ({}) => {

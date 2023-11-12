@@ -1,15 +1,19 @@
-import { WaveSpinner } from "react-spinners-kit";
-import { secondaryColour } from "~/utils/constants";
+import { Loader2 } from "lucide-react";
+import { type HTMLAttributes } from "react";
+import { cn } from "~/utils/shadcn/utils";
 
-const Loading: React.FC = () => {
+const Loading: React.FC<HTMLAttributes<HTMLDivElement>> = ({ ...props }) => {
+  const { className, ...rest } = props;
+
   return (
-    <div className="flex flex-1 items-center justify-center">
-      <WaveSpinner
-        size={4}
-        color={secondaryColour}
-        loading={true}
-        sizeUnit="vmax"
-      />
+    <div
+      {...rest}
+      className={cn(
+        "flex h-full w-full flex-1 items-center justify-center",
+        className
+      )}
+    >
+      <Loader2 className="h-10 w-10 animate-spin" />
     </div>
   );
 };
