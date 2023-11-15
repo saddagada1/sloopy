@@ -32,7 +32,7 @@ import { Combobox } from "../ui/combobox";
 import { useEditorContext } from "~/contexts/editor";
 import { Settings2 } from "lucide-react";
 
-const chords = chordsData as Chords;
+const chords = chordsData as unknown as Chords;
 
 interface EditLoopModalProps extends HTMLAttributes<HTMLButtonElement> {
   loop: Loop;

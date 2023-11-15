@@ -31,7 +31,7 @@ import {
 import { Combobox } from "../ui/combobox";
 import { useEditorContext } from "~/contexts/editor";
 
-const chords = chordsData as Chords;
+const chords = chordsData as unknown as Chords;
 
 interface CreateLoopModalProps extends HTMLAttributes<HTMLButtonElement> {
   small?: boolean;
