@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { TRPCClientError } from "@trpc/client";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import ErrorView from "~/components/utils/errorView";
 import TrackButton from "~/components/trackButton";
 import SloopForm from "~/components/sloops/sloopForm";
