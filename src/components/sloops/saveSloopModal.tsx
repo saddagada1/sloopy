@@ -1,10 +1,7 @@
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -25,13 +22,8 @@ const SaveSloopModal: React.FC<SaveSloopModalProps> = ({
       <DialogTrigger asChild>
         <Button className="mono flex-1">Save</Button>
       </DialogTrigger>
-      <DialogContent className="font-sans">
-        <DialogHeader>
-          <DialogTitle>Save Sloop</DialogTitle>
-          <DialogDescription>
-            How would you like to save your sloop.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent>
+        <h1 className="section-label">Save Sloop</h1>
         <DialogFooter className="flex flex-col gap-2">
           <Button variant="outline" onClick={() => onSave()} className="mono">
             Save & Exit

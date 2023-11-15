@@ -115,14 +115,7 @@ const Track: NextPage = ({}) => {
             <h1 className="section-label">Sloops</h1>
             <p>{0}</p>
           </div>
-          <div className="section flex-1 lg:block">
-            <h1 className="section-label">Bio</h1>
-            {/* {user.bio && user.bio.length > 0 ? (
-              <p className="p">{user.bio}</p>
-            ) : (
-              <NoData />
-            )} */}
-          </div>
+          <div className="section filler hidden flex-1 lg:block" />
         </div>
         <InfinitePagination
           lastItem={lastItem}

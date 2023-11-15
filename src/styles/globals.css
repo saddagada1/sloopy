@@ -80,7 +80,7 @@
     @apply text-xs sm:text-sm;
   }
   .p-lg {
-    @apply text-xs font-medium max-lg:text-right sm:text-sm;
+    @apply text-right text-xs font-medium sm:text-sm lg:text-left;
   }
   .p-sm {
     @apply text-xs text-muted-foreground;
@@ -136,6 +136,12 @@
 
 *::-webkit-scrollbar {
   display: none;
+}
+
+.filler {
+  background: hsl(var(--background))
+    radial-gradient(hsl(var(--muted-foreground)) 10%, transparent 1%);
+  background-size: 10px 10px;
 }
 
 .marquee {

@@ -13,7 +13,6 @@ import {
 } from "../ui/select";
 import { ScrollArea } from "../ui/scroll-area";
 import Carousel from "../carousel";
-import { useElementSize } from "usehooks-ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,13 +23,9 @@ import {
 import { useEditorContext } from "~/contexts/editor";
 import NoData from "../noData";
 import { tuning } from "~/utils/constants";
+import { type Tab } from "~/utils/types";
 
-interface Tab {
-  head: string[];
-  frets: string[][];
-}
-
-const TabEditor: React.FC<{ disabled?: boolean }> = ({ disabled }) => {
+const TabEditor: React.FC = ({}) => {
   const editor = useEditorContext();
   const [tabs, setTabs] = useState<Tab[]>(
     editor.playingLoop && editor.playingLoop.composition !== ""
@@ -38,11 +33,11 @@ const TabEditor: React.FC<{ disabled?: boolean }> = ({ disabled }) => {
       : []
   );
   const [selectedTab, setSelectedTab] = useState<number | null>(null);
-  const [container, { width, height }] = useElementSize();
   const empty = ["-", "-", "-", "-", "-", "-"];
   const mods = ["x", "h", "p", "b", "/", "\\"];
 
   useEffect(() => {
+    if (!editor.playingLoop) return;
     editor.setLoops(
       editor.loops.map((loop) => {
         if (loop.id === editor.playingLoop?.id) {
@@ -55,104 +50,102 @@ const TabEditor: React.FC<{ disabled?: boolean }> = ({ disabled }) => {
   }, [editor.playingLoop, tabs]);
 
   if (!editor.playingLoop) return <NoData>No loop.</NoData>;
+
   return (
     <>
-      {!disabled && (
-        <div className="section mb-2 flex gap-2">
-          <div className="flex flex-1 gap-2">
-            <Button
-              onClick={() => {
-                const notes = tuning[editor.generalInfo?.tuning]?.notes;
-                if (!notes) {
-                  toast.error("Something went wrong. Please Refresh.");
-                  return;
-                }
-                setTabs((curr) => [
-                  ...curr,
-                  {
-                    head: notes
-                      .reverse()
-                      .map((note) =>
-                        note.length > 1 ? `${note}|` : `${note} |`
-                      ),
-                    frets: [],
-                  },
-                ]);
-              }}
-              variant="outline"
-              className="mono"
-            >
-              Add Row
-            </Button>
-            <Button
-              onClick={() => {
-                if (selectedTab === null) {
-                  toast.error("No tab selected.");
-                  return;
-                }
-                setTabs((curr) =>
-                  curr.map((tab, index) => {
-                    if (index === selectedTab) {
-                      return { ...tab, frets: [...tab.frets, empty] };
-                    }
-                    return tab;
-                  })
-                );
-              }}
-              variant="outline"
-              className="mono"
-            >
-              Add Column
-            </Button>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="mono">Edit</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-fit p-0" align="end" forceMount>
-              {selectedTab !== null && (
-                <>
-                  <DropdownMenuItem>
-                    <Button
-                      onClick={() => {
-                        setTabs((curr) =>
-                          curr.filter((_, index) => index !== selectedTab)
-                        );
-                        setSelectedTab(null);
-                      }}
-                      size="base"
-                      variant="ghost"
-                      className="mono rounded-none"
-                    >
-                      Delete Row
-                    </Button>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="my-0" />
-                </>
-              )}
-              <DropdownMenuItem>
-                <Button
-                  onClick={() => {
-                    setTabs([]);
-                    setSelectedTab(null);
-                  }}
-                  variant="ghost"
-                  size="base"
-                  className="mono rounded-none hover:bg-destructive hover:text-background"
-                >
-                  Clear
-                </Button>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <div className="section mb-2 flex gap-2">
+        <div className="flex flex-1 gap-2">
+          <Button
+            onClick={() => {
+              const notes = tuning[editor.generalInfo?.tuning]?.notes;
+              if (!notes) {
+                toast.error("Something went wrong. Please Refresh.");
+                return;
+              }
+              setTabs((curr) => [
+                ...curr,
+                {
+                  head: notes
+                    .reverse()
+                    .map((note) =>
+                      note.length > 1 ? `${note}|` : `${note} |`
+                    ),
+                  frets: [],
+                },
+              ]);
+            }}
+            variant="outline"
+            className="mono"
+          >
+            Add Row
+          </Button>
+          <Button
+            onClick={() => {
+              if (selectedTab === null) {
+                toast.error("No tab selected.");
+                return;
+              }
+              setTabs((curr) =>
+                curr.map((tab, index) => {
+                  if (index === selectedTab) {
+                    return { ...tab, frets: [...tab.frets, empty] };
+                  }
+                  return tab;
+                })
+              );
+            }}
+            variant="outline"
+            className="mono"
+          >
+            Add Column
+          </Button>
         </div>
-      )}
-      <ScrollArea ref={container} className="section mono flex-1 p-0">
-        <div style={{ width, height }} className="space-y-2 p-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="mono">Edit</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-fit p-0" align="end" forceMount>
+            {selectedTab !== null && (
+              <>
+                <DropdownMenuItem>
+                  <Button
+                    onClick={() => {
+                      setTabs((curr) =>
+                        curr.filter((_, index) => index !== selectedTab)
+                      );
+                      setSelectedTab(null);
+                    }}
+                    size="base"
+                    variant="ghost"
+                    className="mono rounded-none"
+                  >
+                    Delete Row
+                  </Button>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-0" />
+              </>
+            )}
+            <DropdownMenuItem>
+              <Button
+                onClick={() => {
+                  setTabs([]);
+                  setSelectedTab(null);
+                }}
+                variant="ghost"
+                size="base"
+                className="mono rounded-none hover:bg-destructive hover:text-background"
+              >
+                Clear
+              </Button>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <ScrollArea className="section mono flex-1 p-0">
+        <div className="space-y-2 p-2">
           {tabs.map((tab, index) => (
             <Carousel
               onClick={() =>
-                !disabled &&
                 setSelectedTab(selectedTab === index ? null : index)
               }
               key={index}
@@ -168,7 +161,7 @@ const TabEditor: React.FC<{ disabled?: boolean }> = ({ disabled }) => {
               </div>
               {tab.frets.map((fret, fretIndex) => (
                 <Popover key={fretIndex}>
-                  <PopoverTrigger disabled={disabled} asChild>
+                  <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
                       size="base"

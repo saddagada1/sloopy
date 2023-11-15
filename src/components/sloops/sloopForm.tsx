@@ -253,9 +253,9 @@ const SloopForm: React.FC<SloopFormProps> = ({
           </div>
         </div>
         {form.formState.isSubmitting ? (
-          <ButtonLoading className="mono max-lg:w-full" />
+          <ButtonLoading className="mono w-full lg:w-auto" />
         ) : (
-          <Button type="submit" className="mono max-lg:w-full">
+          <Button type="submit" className="mono w-full lg:w-auto">
             {buttonLabel}
           </Button>
         )}

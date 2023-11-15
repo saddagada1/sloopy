@@ -4,10 +4,9 @@ import { useRouter } from "next/router";
 import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import {
-  colourMod,
+  lgBreakpoint,
   mode,
   pitchClass,
-  pitchClassColours,
   timeSignature,
   tuning,
 } from "~/utils/constants";
@@ -16,15 +15,13 @@ import AudioTimeline from "~/components/sloops/audioTimeline";
 import { useState, useEffect } from "react";
 import CreateLoopModal from "~/components/sloops/createLoopModal";
 import { useEditorContext } from "~/contexts/editor";
-import { WaveSpinner } from "react-spinners-kit";
 import { type UpdateSloopInput } from "~/utils/types";
-import { useElementSize } from "usehooks-ts";
+import { useElementSize, useWindowSize } from "usehooks-ts";
 import { useSaveBeforeRouteChange } from "~/utils/hooks";
 import { toast } from "sonner";
 import ErrorView from "~/components/utils/errorView";
 import ImageSection from "~/components/imageSection";
 import { calcSloopColours } from "~/utils/calc";
-import { Button } from "~/components/ui/button";
 import TrackButton from "~/components/trackButton";
 import SpotifyButton from "~/components/spotifyButton";
 import NoData from "~/components/noData";
@@ -32,12 +29,12 @@ import LoopTimeline from "~/components/sloops/loopTimeline";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Accordion } from "~/components/ui/accordion";
 import LoopButton from "~/components/sloops/loopButton";
-import { Pause, Play, Repeat } from "lucide-react";
 import TabEditor from "~/components/sloops/tabEditor";
-import EditLoopModal from "~/components/sloops/editLoopModal";
 import EditSloopModal from "~/components/sloops/editSloopModal";
 import UnsavedChangesModal from "~/components/sloops/unsavedChangesModal";
 import SaveSloopModal from "~/components/sloops/saveSloopModal";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import Link from "next/link";
 
 const Editor: NextPage = ({}) => {
   const router = useRouter();
@@ -50,8 +47,10 @@ const Editor: NextPage = ({}) => {
     },
     { enabled: typeof router.query.id === "string" }
   );
-  const [container, { width, height }] = useElementSize();
-  const [loopsContainer, { height: loopsHeight }] = useElementSize();
+  const [root, { width }] = useElementSize();
+  const [container, { height }] = useElementSize();
+  const { width: windowWidth } = useWindowSize();
+  const [tab, setTab] = useState("loops");
   const { mutateAsync: updateSloop } = api.sloops.update.useMutation();
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const { route, setRoute, disabled, setDisabled } = useSaveBeforeRouteChange();
@@ -156,10 +155,16 @@ const Editor: NextPage = ({}) => {
         />
       )}
       <main
-        ref={container}
+        ref={root}
         className="p-lg flex flex-1 flex-col gap-2 overflow-hidden lg:flex-row"
       >
         <nav className="hidden w-[200px] shrink-0 flex-col justify-end gap-2 lg:flex 2xl:w-[300px]">
+          <Link
+            href="/"
+            className="section t3 text-center font-extrabold uppercase"
+          >
+            Sloopy
+          </Link>
           <ImageSection
             alt={editor.generalInfo?.name}
             colours={calcSloopColours({
@@ -205,7 +210,13 @@ const Editor: NextPage = ({}) => {
             )}
           </div>
         </nav>
-        <nav className="flex w-full shrink-0 gap-2 lg:hidden">
+        <Link
+          href="/"
+          className="section t3 text-center font-extrabold uppercase lg:hidden"
+        >
+          Sloopy
+        </Link>
+        <nav className="section flex w-full shrink-0 gap-2 lg:hidden">
           <ImageSection
             key={editor.loops.length}
             className="aspect-square h-full w-fit"
@@ -247,10 +258,7 @@ const Editor: NextPage = ({}) => {
             <EditSloopModal />
           </div>
         </nav>
-        <div
-          style={{ maxHeight: height }}
-          className="flex flex-1 flex-col gap-2 overflow-hidden"
-        >
+        <div className="flex flex-1 flex-col gap-2 overflow-hidden">
           <header className="flex gap-2">
             <div className="section flex-1">
               <h1 className="section-label">Key</h1>
@@ -272,14 +280,37 @@ const Editor: NextPage = ({}) => {
             </div>
           </header>
           <div className="flex flex-1 flex-col gap-2">
-            <div className="flex flex-1 flex-col-reverse gap-2 lg:flex-row">
-              <div className="section flex basis-3/4 flex-col">
-                <h1 className="section-label flex-none">Composition</h1>
-                <TabEditor key={editor.playingLoop?.id} />
-              </div>
-              <div className="flex basis-1/4 gap-2 lg:flex-col">
-                <div className="flex flex-col gap-2 max-lg:basis-1/4">
-                  <div className="section flex flex-1 flex-col">
+            <Tabs
+              className="w-full lg:hidden"
+              onValueChange={(value) => setTab(value)}
+              defaultValue="loops"
+            >
+              <TabsList className="gap-2">
+                <TabsTrigger value="loops">Loops</TabsTrigger>
+                <TabsTrigger value="tabs">Tabs</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div
+              ref={container}
+              className="flex flex-1 flex-col-reverse gap-2 lg:flex-row"
+            >
+              {((windowWidth < lgBreakpoint && tab === "tabs") ||
+                windowWidth > lgBreakpoint) && (
+                <div
+                  style={{ maxHeight: height }}
+                  className="section flex flex-1 flex-col overflow-hidden lg:flex-none lg:basis-3/4"
+                >
+                  <h1 className="section-label flex-none">Composition</h1>
+                  <TabEditor key={editor.playingLoop?.id} />
+                </div>
+              )}
+              {((windowWidth < lgBreakpoint && tab === "loops") ||
+                windowWidth > lgBreakpoint) && (
+                <div
+                  style={{ maxHeight: height }}
+                  className="lg:flex-nonw flex flex-1 flex-col gap-2 lg:basis-1/4"
+                >
+                  <div className="section">
                     <h1 className="section-label">Chord</h1>
                     {editor.playingLoop ? (
                       <p>
@@ -288,115 +319,33 @@ const Editor: NextPage = ({}) => {
                         }`}
                       </p>
                     ) : (
-                      <NoData className="flex-none">No loop.</NoData>
+                      <NoData>No loop.</NoData>
                     )}
                   </div>
-                  <CreateLoopModal small className="lg:hidden" />
+                  <div className="section flex flex-1 flex-col overflow-hidden">
+                    <h1 className="section-label flex-none">Loops</h1>
+                    <ScrollArea className="section mb-2 flex-1">
+                      {editor.loops.length > 0 ? (
+                        <Accordion
+                          type="multiple"
+                          className="flex flex-col gap-2"
+                        >
+                          {editor.loops.map((loop) => (
+                            <LoopButton
+                              key={loop.id}
+                              loop={loop}
+                              context={editor}
+                            />
+                          ))}
+                        </Accordion>
+                      ) : (
+                        <NoData>Create a loop to begin!</NoData>
+                      )}
+                    </ScrollArea>
+                    <CreateLoopModal />
+                  </div>
                 </div>
-                <div className="section flex basis-3/4 flex-col lg:flex-1">
-                  <h1 className="section-label flex-none">Loops</h1>
-                  <ScrollArea ref={loopsContainer} className="flex-1 lg:mb-2">
-                    {editor.loops.length > 0 ? (
-                      <Accordion
-                        type="multiple"
-                        style={{ height: loopsHeight }}
-                        className="flex flex-col gap-2"
-                      >
-                        {editor.loops.map((loop) => (
-                          <LoopButton
-                            key={loop.id}
-                            style={{
-                              backgroundColor:
-                                pitchClassColours[loop.key] + colourMod,
-                            }}
-                            loopId={loop.id.toString()}
-                            chord={`${pitchClass[loop.key]} ${mode[loop.mode]}`}
-                            className="section"
-                          >
-                            <div className="flex items-end">
-                              <div className="flex flex-1 gap-2">
-                                <Button
-                                  onClick={() => {
-                                    if (editor.repeatPlayingLoop) return;
-                                    void editor.player?.seek(loop.start * 1000);
-                                    editor.setPlaybackPosition(loop.start);
-                                    if (!editor.isPlaying) {
-                                      editor.setPlayingLoop(loop);
-                                      void editor.player?.resume();
-                                    } else {
-                                      void editor.player?.pause();
-                                    }
-                                  }}
-                                  variant="link"
-                                  className="h-fit p-1"
-                                >
-                                  {editor.isPlaying &&
-                                  (loop.id === editor.repeatPlayingLoop?.id ||
-                                    (!editor.repeatPlayingLoop &&
-                                      loop.id === editor.playingLoop?.id)) ? (
-                                    <Pause
-                                      strokeWidth={1}
-                                      className="h-5 w-5 fill-foreground"
-                                    />
-                                  ) : (
-                                    <Play
-                                      strokeWidth={1}
-                                      className="h-5 w-5 fill-foreground"
-                                    />
-                                  )}
-                                </Button>
-                                <Button
-                                  variant={
-                                    loop.id === editor.repeatPlayingLoop?.id
-                                      ? "secondary"
-                                      : "link"
-                                  }
-                                  className="h-fit p-1"
-                                  onClick={() => {
-                                    if (
-                                      loop.id === editor.repeatPlayingLoop?.id
-                                    ) {
-                                      editor.setRepeatPlayingLoop(null);
-                                    } else {
-                                      editor.setRepeatPlayingLoop(loop);
-                                      if (
-                                        editor.playbackPosition >= loop.start &&
-                                        loop.end >= editor.playbackPosition
-                                      ) {
-                                        return;
-                                      }
-                                      void editor.player?.seek(
-                                        loop.start * 1000
-                                      );
-                                      editor.setPlaybackPosition(loop.start);
-                                      if (!editor.isPlaying) {
-                                        editor.setPlayingLoop(loop);
-                                      }
-                                    }
-                                  }}
-                                >
-                                  <Repeat className="h-5 w-5" strokeWidth={1} />
-                                </Button>
-                              </div>
-                              {editor.isPlaying &&
-                              (loop.id === editor.repeatPlayingLoop?.id ||
-                                (!editor.repeatPlayingLoop &&
-                                  loop.id === editor.playingLoop?.id)) ? (
-                                <WaveSpinner size={24} />
-                              ) : (
-                                <EditLoopModal loop={loop} />
-                              )}
-                            </div>
-                          </LoopButton>
-                        ))}
-                      </Accordion>
-                    ) : (
-                      <NoData>Create a loop to begin!</NoData>
-                    )}
-                  </ScrollArea>
-                  <CreateLoopModal className="hidden lg:block" />
-                </div>
-              </div>
+              )}
             </div>
             <div className="section">
               <LoopTimeline

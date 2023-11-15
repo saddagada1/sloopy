@@ -25,9 +25,9 @@ const EditLoopModal: React.FC<HTMLAttributes<HTMLButtonElement>> = ({
             Edit
           </Button>
         </DialogTrigger>
-        <DialogContent className="section">
+        <DialogContent>
           <h1 className="section-label">Edit Sloop</h1>
-          <ScrollArea className="p-2 max-lg:h-[350px]">
+          <ScrollArea className="h-[350px] lg:h-auto">
             <SloopForm
               key={open ? 1 : 0}
               onFormSubmit={(values) => {
@@ -36,6 +36,7 @@ const EditLoopModal: React.FC<HTMLAttributes<HTMLButtonElement>> = ({
               }}
               buttonLabel="Save"
               defaultValues={editor.generalInfo}
+              className="mb-8 flex w-full flex-col gap-8 border-b pb-8"
             />
           </ScrollArea>
         </DialogContent>

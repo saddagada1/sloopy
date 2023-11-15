@@ -41,13 +41,13 @@ const SloopCard = React.forwardRef<HTMLButtonElement, SloopCardProps>(
               <Heart strokeWidth={1} className="h-3 w-3 fill-foreground" />
             </p>
           </div>
-          <p style={{ maxWidth: width }} className="p-lg truncate">
+          <p style={{ maxWidth: width }} className="p-lg truncate text-left">
             {sloop.name}
           </p>
-          <p style={{ maxWidth: width }} className="p-sm truncate">
+          <p style={{ maxWidth: width }} className="p-sm truncate text-left">
             {sloop.track.name}
           </p>
-          <p style={{ maxWidth: width }} className="p-xs truncate">
+          <p style={{ maxWidth: width }} className="p-xs truncate text-left">
             {sloop.artists.map((artist, index) =>
               index === sloop.artists.length - 1
                 ? artist.name

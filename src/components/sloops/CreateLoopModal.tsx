@@ -4,10 +4,7 @@ import { type Chords } from "~/utils/types";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -99,18 +96,13 @@ const CreateLoopModal: React.FC<CreateLoopModalProps> = ({
           </Button>
         </DialogTrigger>
         <DialogContent>
+          <h1 className="section-label">Create Loop</h1>
           <Form {...form}>
             <form
               className="space-y-8"
               // eslint-disable-next-line @typescript-eslint/no-misused-promises
               onSubmit={form.handleSubmit(onSubmit)}
             >
-              <DialogHeader>
-                <DialogTitle>Create Loop</DialogTitle>
-                <DialogDescription>
-                  Create a new loop section.
-                </DialogDescription>
-              </DialogHeader>
               <FormField
                 control={form.control}
                 name="key"

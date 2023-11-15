@@ -118,8 +118,6 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setLoops((currentLoops) => [...currentLoops, loop]);
   };
 
-  console.log(loops);
-
   const handlePlayingLoop = (position: number) => {
     if (!player) return;
 

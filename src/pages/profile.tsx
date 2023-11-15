@@ -65,7 +65,7 @@ const Profile: NextPage = ({}) => {
           </div>
           <div className="flex gap-2 lg:flex-col">
             <ImageSection
-              className="w-1/2 lg:w-full"
+              className="w-1/2 max-w-[200px] lg:w-full lg:max-w-none"
               url={
                 user.image
                   ? env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN + user.image
@@ -75,7 +75,7 @@ const Profile: NextPage = ({}) => {
             />
             <div className="flex flex-1 flex-col gap-2">
               <div className="section flex flex-1 flex-col">
-                <h1 className="section-label mb-0">Sloops</h1>
+                <h1 className="section-label">Sloops</h1>
                 <p>{calcCompactValue(user.sloopsCount)}</p>
               </div>
               <Button
@@ -85,7 +85,7 @@ const Profile: NextPage = ({}) => {
                 asChild
               >
                 <Link href="/followers">
-                  <h1 className="section-label mb-0">Followers</h1>
+                  <h1 className="section-label">Followers</h1>
                   <p>{calcCompactValue(user.followersCount)}</p>
                 </Link>
               </Button>
@@ -96,16 +96,16 @@ const Profile: NextPage = ({}) => {
                 asChild
               >
                 <Link href="/following">
-                  <h1 className="section-label mb-0">Following</h1>
+                  <h1 className="section-label">Following</h1>
                   <p>{calcCompactValue(user.followingCount)}</p>
                 </Link>
               </Button>
             </div>
           </div>
-          <div className="section flex-1 overflow-y-scroll lg:block">
+          <div className="section flex-1 overflow-y-scroll">
             <h1 className="section-label">Bio</h1>
             {user.bio && user.bio.length > 0 ? (
-              <p className="p">{user.bio}</p>
+              <p className="p-lg text-left">{user.bio}</p>
             ) : (
               <NoData />
             )}

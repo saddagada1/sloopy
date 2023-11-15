@@ -4,46 +4,56 @@ import { useRouter } from "next/router";
 import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import {
-  colourMod,
+  lgBreakpoint,
   mode,
   pitchClass,
-  pitchClassColours,
   timeSignature,
   tuning,
 } from "~/utils/constants";
 import { useSpotifyContext } from "~/contexts/spotify";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import LoopTimeline from "~/components/sloops/loopTimeline";
 import { usePlayerContext } from "~/contexts/player";
-import { WaveSpinner } from "react-spinners-kit";
-import { useEffectOnce, useElementSize } from "usehooks-ts";
+import { useElementSize, useWindowSize } from "usehooks-ts";
 import LoopButton from "~/components/sloops/loopButton";
 import ErrorView from "~/components/utils/errorView";
 import ImageSection from "~/components/imageSection";
 import { Accordion } from "@radix-ui/react-accordion";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
-import { Pause, Play, Repeat } from "lucide-react";
 import NoData from "~/components/noData";
 import AudioTimeline from "~/components/sloops/audioTimeline";
-import TabEditor from "~/components/sloops/tabEditor";
 import SpotifyButton from "~/components/spotifyButton";
 import TrackButton from "~/components/trackButton";
 import { calcSloopColours } from "~/utils/calc";
-import { Button } from "~/components/ui/button";
+import TabViewer from "~/components/sloops/tabViewer";
+import { type Tab } from "~/utils/types";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import Link from "next/link";
 
 const Player: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
   const player = usePlayerContext();
-  const { data, isLoading, error } = api.sloops.get.useQuery({
-    id: router.query.id as string,
-    getPrivate: router.query.private === "true" ? true : undefined,
-  });
+  const { data, isLoading, error } = api.sloops.get.useQuery(
+    {
+      id: router.query.id as string,
+      getPrivate: router.query.private === "true" ? true : undefined,
+    },
+    {
+      enabled: typeof router.query.id === "string",
+      onSuccess: (d) => {
+        if (!d) return;
+        void handleUpdatePlays(d.id);
+      },
+    }
+  );
   const { mutateAsync: updatePlays } =
     api.sloops.createOrUpdatePlay.useMutation();
   const t3 = api.useContext();
-  const [container, { width, height }] = useElementSize();
-  const [loopsContainer, { height: loopsHeight }] = useElementSize();
+  const [root, { width }] = useElementSize();
+  const [container, { height }] = useElementSize();
+  const { width: windowWidth } = useWindowSize();
+  const [tab, setTab] = useState("loops");
 
   const handleUpdatePlays = async (id: string) => {
     try {
@@ -67,10 +77,6 @@ const Player: NextPage = ({}) => {
     }
   };
 
-  useEffectOnce(() => {
-    void handleUpdatePlays(router.query.id as string);
-  });
-
   useEffect(() => {
     if (!data) return;
     player.initialize(data);
@@ -87,10 +93,16 @@ const Player: NextPage = ({}) => {
         <title>Sloopy - Player</title>
       </Head>
       <main
-        ref={container}
+        ref={root}
         className="p-lg flex flex-1 flex-col gap-2 overflow-hidden lg:flex-row"
       >
         <nav className="hidden w-[200px] shrink-0 flex-col justify-end gap-2 lg:flex 2xl:w-[300px]">
+          <Link
+            href="/"
+            className="section t3 text-center font-extrabold uppercase"
+          >
+            Sloopy
+          </Link>
           <ImageSection
             alt={data.name}
             colours={calcSloopColours({
@@ -117,7 +129,13 @@ const Player: NextPage = ({}) => {
             )}
           </div>
         </nav>
-        <nav className="flex w-full shrink-0 gap-2 lg:hidden">
+        <Link
+          href="/"
+          className="section t3 text-center font-extrabold uppercase lg:hidden"
+        >
+          Sloopy
+        </Link>
+        <nav className="section flex w-full shrink-0 gap-2 lg:hidden">
           <ImageSection
             key={player.loops.length}
             className="aspect-square h-full w-fit"
@@ -139,10 +157,7 @@ const Player: NextPage = ({}) => {
             <p className="line-clamp-2">{data.name}</p>
           </div>
         </nav>
-        <div
-          style={{ maxHeight: height }}
-          className="flex flex-1 flex-col gap-2 overflow-hidden"
-        >
+        <div className="flex flex-1 flex-col gap-2 overflow-hidden">
           <header className="flex gap-2">
             <div className="section flex-1">
               <h1 className="section-label">Key</h1>
@@ -162,14 +177,43 @@ const Player: NextPage = ({}) => {
             </div>
           </header>
           <div className="flex flex-1 flex-col gap-2">
-            <div className="flex flex-1 flex-col-reverse gap-2 lg:flex-row">
-              <div className="section flex basis-3/4 flex-col">
-                <h1 className="section-label flex-none">Composition</h1>
-                <TabEditor disabled />
-              </div>
-              <div className="flex basis-1/4 gap-2 lg:flex-col">
-                <div className="flex flex-col gap-2 max-lg:basis-1/4">
-                  <div className="section flex flex-1 flex-col">
+            <Tabs
+              className="w-full lg:hidden"
+              onValueChange={(value) => setTab(value)}
+              defaultValue="loops"
+            >
+              <TabsList className="gap-2">
+                <TabsTrigger value="loops">Loops</TabsTrigger>
+                <TabsTrigger value="tabs">Tabs</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div
+              ref={container}
+              className="flex flex-1 flex-col-reverse gap-2 lg:flex-row"
+            >
+              {((windowWidth < lgBreakpoint && tab === "tabs") ||
+                windowWidth > lgBreakpoint) && (
+                <div
+                  style={{ maxHeight: height }}
+                  className="section flex flex-1 flex-col overflow-hidden lg:flex-none lg:basis-3/4"
+                >
+                  <h1 className="section-label flex-none">Composition</h1>
+                  <TabViewer
+                    tabs={
+                      player.playingLoop
+                        ? (JSON.parse(player.playingLoop.composition) as Tab[])
+                        : []
+                    }
+                  />
+                </div>
+              )}
+              {((windowWidth < lgBreakpoint && tab === "loops") ||
+                windowWidth > lgBreakpoint) && (
+                <div
+                  style={{ maxHeight: height }}
+                  className="flex flex-1 flex-col gap-2 lg:flex-none lg:basis-1/4"
+                >
+                  <div className="section">
                     <h1 className="section-label">Chord</h1>
                     {player.playingLoop ? (
                       <p>
@@ -178,111 +222,33 @@ const Player: NextPage = ({}) => {
                         }`}
                       </p>
                     ) : (
-                      <NoData className="flex-none">No loop.</NoData>
+                      <NoData>No loop.</NoData>
                     )}
                   </div>
+                  <div className="section flex flex-1 flex-col overflow-hidden">
+                    <h1 className="section-label flex-none">Loops</h1>
+                    <ScrollArea className="section flex-1">
+                      {player.loops.length > 0 ? (
+                        <Accordion
+                          type="multiple"
+                          className="flex flex-col gap-2"
+                        >
+                          {player.loops.map((loop) => (
+                            <LoopButton
+                              key={loop.id}
+                              loop={loop}
+                              context={player}
+                              disabled
+                            />
+                          ))}
+                        </Accordion>
+                      ) : (
+                        <NoData>No loops :(</NoData>
+                      )}
+                    </ScrollArea>
+                  </div>
                 </div>
-                <div className="section flex basis-3/4 flex-col lg:flex-1">
-                  <h1 className="section-label flex-none">Loops</h1>
-                  <ScrollArea ref={loopsContainer} className="flex-1">
-                    {player.loops.length > 0 ? (
-                      <Accordion
-                        type="multiple"
-                        style={{ height: loopsHeight }}
-                        className="flex flex-col gap-2"
-                      >
-                        {player.loops.map((loop) => (
-                          <LoopButton
-                            key={loop.id}
-                            style={{
-                              backgroundColor:
-                                pitchClassColours[loop.key] + colourMod,
-                            }}
-                            loopId={loop.id.toString()}
-                            chord={`${pitchClass[loop.key]} ${mode[loop.mode]}`}
-                            className="section"
-                          >
-                            <div className="flex items-end">
-                              <div className="flex flex-1 gap-2">
-                                <Button
-                                  onClick={() => {
-                                    if (player.repeatPlayingLoop) return;
-                                    void player.player?.seek(loop.start * 1000);
-                                    player.setPlaybackPosition(loop.start);
-                                    if (!player.isPlaying) {
-                                      player.setPlayingLoop(loop);
-                                      void player.player?.resume();
-                                    } else {
-                                      void player.player?.pause();
-                                    }
-                                  }}
-                                  variant="link"
-                                  className="h-fit p-1"
-                                >
-                                  {player.isPlaying &&
-                                  (loop.id === player.repeatPlayingLoop?.id ||
-                                    (!player.repeatPlayingLoop &&
-                                      loop.id === player.playingLoop?.id)) ? (
-                                    <Pause
-                                      strokeWidth={1}
-                                      className="h-5 w-5 fill-foreground"
-                                    />
-                                  ) : (
-                                    <Play
-                                      strokeWidth={1}
-                                      className="h-5 w-5 fill-foreground"
-                                    />
-                                  )}
-                                </Button>
-                                <Button
-                                  variant={
-                                    loop.id === player.repeatPlayingLoop?.id
-                                      ? "secondary"
-                                      : "link"
-                                  }
-                                  className="h-fit p-1"
-                                  onClick={() => {
-                                    if (
-                                      loop.id === player.repeatPlayingLoop?.id
-                                    ) {
-                                      player.setRepeatPlayingLoop(null);
-                                    } else {
-                                      player.setRepeatPlayingLoop(loop);
-                                      if (
-                                        player.playbackPosition >= loop.start &&
-                                        loop.end >= player.playbackPosition
-                                      ) {
-                                        return;
-                                      }
-                                      void player.player?.seek(
-                                        loop.start * 1000
-                                      );
-                                      player.setPlaybackPosition(loop.start);
-                                      if (!player.isPlaying) {
-                                        player.setPlayingLoop(loop);
-                                      }
-                                    }
-                                  }}
-                                >
-                                  <Repeat className="h-5 w-5" strokeWidth={1} />
-                                </Button>
-                              </div>
-                              {player.isPlaying &&
-                              (loop.id === player.repeatPlayingLoop?.id ||
-                                (!player.repeatPlayingLoop &&
-                                  loop.id === player.playingLoop?.id)) ? (
-                                <WaveSpinner size={24} />
-                              ) : null}
-                            </div>
-                          </LoopButton>
-                        ))}
-                      </Accordion>
-                    ) : (
-                      <NoData>No loops have been made :(</NoData>
-                    )}
-                  </ScrollArea>
-                </div>
-              </div>
+              )}
             </div>
             <div className="section">
               <LoopTimeline

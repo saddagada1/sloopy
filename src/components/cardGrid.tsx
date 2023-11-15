@@ -7,7 +7,7 @@ const CardGrid: React.FC<HTMLAttributes<HTMLDivElement>> = ({ ...props }) => {
     <div
       {...rest}
       className={cn(
-        "grid grid-flow-row grid-cols-3 gap-2 lg:grid-cols-8",
+        "grid grid-flow-row grid-cols-3 gap-2 md:grid-cols-8",
         className
       )}
     >

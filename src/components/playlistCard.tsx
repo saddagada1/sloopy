@@ -33,7 +33,7 @@ const PlaylistCard = React.forwardRef<HTMLButtonElement, PlaylistCardProps>(
             square
             width={width}
           />
-          <p style={{ maxWidth: width }} className="p-lg truncate">
+          <p style={{ maxWidth: width }} className="p-lg truncate text-left">
             {playlist.name}
           </p>
         </Link>

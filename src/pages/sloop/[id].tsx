@@ -3,7 +3,7 @@ import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import ErrorView from "~/components/utils/errorView";
 import Loading from "~/components/utils/loading";
@@ -13,8 +13,16 @@ import {
   calcRelativeTime,
   calcSloopColours,
 } from "~/utils/calc";
-import { domain, mode, pitchClass, timeSignature } from "~/utils/constants";
-import { type Loop } from "~/utils/types";
+import {
+  colourMod,
+  domain,
+  lgBreakpoint,
+  mode,
+  pitchClass,
+  pitchClassColours,
+  timeSignature,
+} from "~/utils/constants";
+import { type Tab, type Loop } from "~/utils/types";
 import NoData from "~/components/noData";
 import Marquee from "~/components/marquee";
 import ImageSection from "~/components/imageSection";
@@ -28,16 +36,20 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
+import { CheckIcon } from "@radix-ui/react-icons";
+import TabViewer from "~/components/sloops/tabViewer";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { useElementSize, useWindowSize } from "usehooks-ts";
 
 const Sloop: NextPage = ({}) => {
   const router = useRouter();
   const { data: session } = useSession();
+  const [container, { height }] = useElementSize();
+  const { width: windowWidth } = useWindowSize();
+  const [selectedLoop, setSelectedLoop] = useState(0);
   const t3 = api.useContext();
   const {
     data: sloop,
@@ -150,6 +162,11 @@ const Sloop: NextPage = ({}) => {
             square
             colours={calcSloopColours(sloop)}
           />
+          <TrackButton
+            renderImage
+            track={{ ...sloop.track, artists: sloop.artists }}
+          />
+          <SpotifyButton uri={`spotify:track:${sloop.trackId}`} />
           <div className="section">
             <h1 className="section-label">Creator</h1>
             <Link
@@ -159,15 +176,10 @@ const Sloop: NextPage = ({}) => {
               {sloop.userUsername}
             </Link>
           </div>
-          <TrackButton
-            renderImage
-            track={{ ...sloop.track, artists: sloop.artists }}
-          />
-          <SpotifyButton uri={`spotify:track:${sloop.trackId}`} />
-          <div className="section flex-1 lg:block">
+          <div className="section flex-1 overflow-y-scroll">
             <h1 className="section-label">Description</h1>
             {sloop.description.length > 0 ? (
-              <p className="p">{sloop.description}</p>
+              <p className="p-lg text-left">{sloop.description}</p>
             ) : (
               <NoData />
             )}
@@ -176,7 +188,7 @@ const Sloop: NextPage = ({}) => {
         <div className="flex flex-col gap-2 lg:col-span-4 lg:row-span-4">
           <div className="flex gap-2">
             <div className="lg:section mono flex flex-1 justify-between gap-2">
-              <Button asChild className="max-lg:flex-1">
+              <Button asChild className="flex-1 lg:flex-none">
                 <Link
                   href={`/player/${sloop.id}?private=${
                     session?.user.id === sloop.userId ? sloop.isPrivate : false
@@ -216,18 +228,13 @@ const Sloop: NextPage = ({}) => {
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Are you absolutely sure?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently
-                          delete your sloop and remove the data from our
-                          servers.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
+                      <h1 className="section-label mb-0">Confirm</h1>
+                      <p className="mono text-xxs text-muted-foreground lg:text-xs">
+                        This action cannot be undone. This will permanently
+                        delete your sloop and remove the data from our servers.
+                      </p>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="mono h-10">
+                        <AlertDialogCancel className="mono h-10 bg-foreground text-background">
                           Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
@@ -256,7 +263,7 @@ const Sloop: NextPage = ({}) => {
                   return;
                 }
               }}
-              className="max-lg:p-2 lg:h-auto"
+              className="p-2 lg:h-auto lg:px-4 lg:py-2"
               variant="outline"
             >
               <Heart
@@ -265,8 +272,7 @@ const Sloop: NextPage = ({}) => {
               />
             </Button>
           </div>
-
-          <section className="p-lg flex flex-1 flex-col gap-2 text-right">
+          <div className="p-lg flex flex-col gap-2">
             <div className="flex gap-2">
               <div className="section basis-1/4">
                 <h1 className="section-label">Plays</h1>
@@ -305,7 +311,61 @@ const Sloop: NextPage = ({}) => {
                 </p>
               </div>
             </div>
-          </section>
+          </div>
+          {loops.length > 0 ? (
+            <div
+              ref={container}
+              className="p-lg flex flex-1 flex-col gap-2 overflow-hidden lg:flex-row"
+            >
+              <div
+                style={{ maxHeight: windowWidth > lgBreakpoint ? height : 350 }}
+                className="flex flex-1 flex-col gap-2"
+              >
+                <div className="section">
+                  <h1 className="section-label">Chord</h1>
+                  <p>{loops[selectedLoop]?.chord}</p>
+                </div>
+                <div className="section flex flex-1 flex-col overflow-hidden">
+                  <h1 className="section-label flex-none">Loops</h1>
+                  <ScrollArea className="section flex-1">
+                    {loops.map((loop, index) => (
+                      <Button
+                        key={loop.id}
+                        style={{
+                          backgroundColor:
+                            pitchClassColours[loop.key] + colourMod,
+                        }}
+                        variant="outline"
+                        size="base"
+                        className={cn("h-10", index !== 0 && "mt-2")}
+                        onClick={() => setSelectedLoop(index)}
+                      >
+                        <span className="flex-1 text-left">{`${
+                          pitchClass[loop.key]
+                        } ${mode[loop.mode]}`}</span>
+                        {selectedLoop === index && <CheckIcon />}
+                      </Button>
+                    ))}
+                  </ScrollArea>
+                </div>
+              </div>
+              <div
+                style={{ maxHeight: windowWidth > lgBreakpoint ? height : 350 }}
+                className="section flex flex-1 flex-col overflow-hidden"
+              >
+                <h1 className="section-label flex-none">Composition</h1>
+                <TabViewer
+                  tabs={
+                    loops[selectedLoop]
+                      ? (JSON.parse(loops[selectedLoop]!.composition) as Tab[])
+                      : []
+                  }
+                />
+              </div>
+            </div>
+          ) : (
+            <NoData className="section">No loops have been made :(</NoData>
+          )}
         </div>
       </main>
     </>

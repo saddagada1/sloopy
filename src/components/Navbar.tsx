@@ -6,9 +6,11 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import SearchInput from "./searchInput";
 import { useRouter } from "next/router";
 import { cn } from "~/utils/shadcn/utils";
-import { pitchClassColours } from "~/utils/constants";
 import ImageSection from "./imageSection";
 import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
+import { LogOut, Moon, Sun } from "lucide-react";
+import { useIsClient } from "usehooks-ts";
 
 interface NavButtonProps {
   href: string;
@@ -26,16 +28,10 @@ const NavButton: React.FC<NavButtonProps> = ({ href, label, description }) => {
       className={cn("uppercase", router.pathname === href && "bg-accent")}
     >
       <Link href={href} className="flex gap-2">
-        <Avatar
-          size={40}
-          name={label}
-          colors={Object.keys(pitchClassColours).map(
-            (key) => pitchClassColours[parseInt(key)]!
-          )}
-        />
+        <Avatar size={40} name={label} colors={["#8b5cf6", "#eab308"]} />
         <div>
           <p className="p-lg text-left">{label}</p>
-          <p className="p-sm font-normal">{description}</p>
+          <p className="p-sm truncate font-normal">{description}</p>
         </div>
       </Link>
     </Button>
@@ -43,9 +39,13 @@ const NavButton: React.FC<NavButtonProps> = ({ href, label, description }) => {
 };
 
 const SideNavbar: React.FC = () => {
+  const { theme, setTheme } = useTheme();
+  const isWindow = useIsClient();
+
+  if (!isWindow) return null;
   return (
-    <nav className="mono hidden w-[300px] shrink-0 flex-col justify-end gap-2 lg:flex">
-      <ImageSection alt="Sloopy" />
+    <nav className="mono hidden w-[200px] shrink-0 flex-col justify-end gap-2 lg:flex 2xl:w-[300px]">
+      <ImageSection colours={["#8b5cf6", "#eab308"]} alt="Sloop" />
       <div className="section flex flex-1 flex-col">
         <Link href="/" className="t3 mb-6 font-extrabold uppercase">
           sloopy
@@ -72,7 +72,20 @@ const SideNavbar: React.FC = () => {
             description="Something Personal"
           />
         </div>
-        <p className="p-sm">2@23</p>
+        <div className="flex items-end">
+          <p className="p-sm flex-1">2@23</p>
+          <Button
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            variant="outline"
+            size="icon"
+          >
+            {theme === "light" ? (
+              <Moon strokeWidth={1} />
+            ) : (
+              <Sun strokeWidth={1} />
+            )}
+          </Button>
+        </div>
       </div>
     </nav>
   );
@@ -82,13 +95,15 @@ const Navbar: React.FC = () => {
   const [open, setOpen] = useState(false);
   const { status: sessionStatus } = useSession();
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   return (
-    <nav className="flex w-full shrink-0 gap-2 lg:hidden">
+    <nav className="section flex w-full shrink-0 gap-2 lg:hidden">
       <ImageSection
         onClick={() => void router.push("/")}
         className="aspect-square h-full w-fit"
-        alt="Sloopy for Spotify"
+        colours={["#8b5cf6", "#eab308"]}
+        alt="Sloop"
       />
       <div className="flex flex-1 flex-col gap-2">
         <div className="mono flex gap-2">
@@ -169,14 +184,25 @@ const Navbar: React.FC = () => {
                   description="Something Personal"
                 />
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end gap-2">
                 <p className="p-sm flex-1">2@23</p>
                 <Button
-                  onClick={() => void signOut()}
-                  variant="destructive"
-                  className="mono"
+                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                  variant="outline"
+                  size="icon"
                 >
-                  Logout
+                  {theme === "light" ? (
+                    <Moon strokeWidth={1} />
+                  ) : (
+                    <Sun strokeWidth={1} />
+                  )}
+                </Button>
+                <Button
+                  onClick={() => void signOut()}
+                  variant="outline"
+                  size="icon"
+                >
+                  <LogOut strokeWidth={1} />
                 </Button>
               </div>
             </SheetContent>

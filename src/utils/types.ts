@@ -131,3 +131,8 @@ export interface Tuning {
   name: string;
   notes: string[];
 }
+
+export interface Tab {
+  head: string[];
+  frets: string[][];
+}

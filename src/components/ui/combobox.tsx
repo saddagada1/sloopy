@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "./Popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Button } from "./button";
 import {
   Command,
@@ -57,7 +57,7 @@ const Combobox: React.FC<ComboboxProps> = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between px-2 font-sans font-normal"
+          className="h-9 w-full justify-between px-2 font-sans font-normal"
         >
           {value ? value?.label : placeholder ?? "Select"}
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />

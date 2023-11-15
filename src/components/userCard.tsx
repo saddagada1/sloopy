@@ -33,7 +33,7 @@ const UserCard = React.forwardRef<HTMLButtonElement, UserCardProps>(
             alt={user.username}
             width={width}
           />
-          <p style={{ maxWidth: width }} className="p-lg truncate">
+          <p style={{ maxWidth: width }} className="p-lg truncate text-left">
             {user.username}
           </p>
         </Link>

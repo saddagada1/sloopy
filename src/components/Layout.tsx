@@ -6,12 +6,9 @@ import EditorProvider from "~/contexts/editor";
 import { useEffect, useState } from "react";
 import { api } from "~/utils/api";
 import { type UpdateSloopInput } from "~/utils/types";
-import Link from "next/link";
 import PlayerProvider from "~/contexts/player";
-import { AnimatePresence } from "framer-motion";
-import { useEffectOnce } from "usehooks-ts";
-import { toast } from "sonner";
 import Header from "./header";
+import UnsavedChangesModal from "./sloops/unsavedChangesModal";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [unsavedData, setUnsavedData] = useState(false);
@@ -44,32 +41,21 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="flex h-screen w-screen flex-col gap-2 p-2 font-sans lg:flex-row">
-        {/* <AnimatePresence>
-          {unsavedData && unsavedSloop && (
-            <Modal disabled={true} setVisible={setUnsavedData}>
-              <StyledTitle title="Unsaved Changes" />
-              <p className="mb-6 font-sans text-sm font-medium sm:text-base">
-                There is a sloop with unsaved changes. Would you like to
-                continue editing the sloop or discard the changes.
-              </p>
-              <div className="flex h-14 gap-2 font-display text-base font-bold sm:text-lg">
-                <button
-                  className="w-full rounded-md border border-red-500 bg-red-100 text-red-500"
-                  onClick={() => handleUnsavedSloop(true)}
-                >
-                  Discard
-                </button>
-                <Link
-                  onClick={() => handleUnsavedSloop(false)}
-                  className="flex w-full items-center justify-center rounded-md bg-secondary text-primary"
-                  href={`/editor/${unsavedSloop.id}?private=${unsavedSloop.isPrivate}&unsaved=true`}
-                >
-                  Edit Sloop
-                </Link>
-              </div>
-            </Modal>
-          )}
-        </AnimatePresence> */}
+        {unsavedData && unsavedSloop && (
+          <UnsavedChangesModal
+            message={`Your sloop (${unsavedSloop.name}) has unsaved changes. Would you like to
+                continue editing the sloop or discard the changes.`}
+            onExit={() => handleUnsavedSloop(true)}
+            onSave={() => {
+              handleUnsavedSloop(false);
+              void router.push(
+                `/editor/${unsavedSloop.id}?private=${unsavedSloop.isPrivate}&unsaved=true`
+              );
+            }}
+            exitLabel="Discard"
+            saveLabel="Edit Sloop"
+          />
+        )}
         {router.pathname.includes("editor") ? (
           <EditorProvider>{children}</EditorProvider>
         ) : router.pathname.includes("player") ? (

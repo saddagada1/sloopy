@@ -305,10 +305,6 @@ const Artist: NextPage = ({}) => {
         <div className="flex flex-col gap-2 lg:row-span-5">
           <ImageSection url={artist.images[0]?.url} alt={artist.name} />
           <SpotifyButton uri={artist.uri} />
-          <div className="section">
-            <h1 className="section-label">Sloops</h1>
-            <p className="num-sm lg:num-lg">{0}</p>
-          </div>
           <Tabs
             className="w-full"
             onValueChange={(value) => setTab(value)}
@@ -319,14 +315,7 @@ const Artist: NextPage = ({}) => {
               <TabsTrigger value="spotify">Spotify</TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="section  flex-1 lg:block">
-            <h1 className="section-label">Bio</h1>
-            {/* {user.bio && user.bio.length > 0 ? (
-              <p className="p">{user.bio}</p>
-            ) : (
-              <NoData />
-            )} */}
-          </div>
+          <div className="section filler hidden flex-1 lg:block" />
         </div>
         {(tab === "spotify" && fetchingSpotifyArtist) ||
         (tab === "sloopy" && fetchingSloopyArtist) ? (
@@ -334,7 +323,7 @@ const Artist: NextPage = ({}) => {
         ) : (
           <ScrollArea
             ref={container}
-            className="max-lg:overflow-visible lg:col-span-4 lg:row-span-4"
+            className="overflow-visible lg:col-span-4 lg:row-span-4 lg:overflow-auto"
           >
             <div style={{ width }} className="flex flex-col gap-2">
               {tab === "sloopy" ? (

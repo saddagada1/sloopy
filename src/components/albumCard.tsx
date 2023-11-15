@@ -33,7 +33,7 @@ const AlbumCard = React.forwardRef<HTMLButtonElement, AlbumCardProps>(
             square
             width={width}
           />
-          <p style={{ maxWidth: width }} className="p-lg truncate">
+          <p style={{ maxWidth: width }} className="p-lg truncate text-left">
             {album.name}
           </p>
         </Link>

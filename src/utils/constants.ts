@@ -86,7 +86,7 @@ export const lgBreakpoint = 1024;
 
 export const lgCardSize = 150;
 
-export const smCardSize = 100;
+export const smCardSize = 125;
 
 export const colourMod = "CC";
 

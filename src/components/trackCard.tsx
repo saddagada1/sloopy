@@ -33,7 +33,7 @@ const TrackCard = React.forwardRef<HTMLButtonElement, TrackCardProps>(
             square
             width={width}
           />
-          <p style={{ maxWidth: width }} className="p-lg truncate">
+          <p style={{ maxWidth: width }} className="p-lg truncate text-left">
             {track.name}
           </p>
         </Link>

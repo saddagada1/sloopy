@@ -4,10 +4,7 @@ import { type Loop, type Chords } from "~/utils/types";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -102,18 +99,13 @@ const EditLoopModal: React.FC<EditLoopModalProps> = ({ loop, ...props }) => {
           </Button>
         </DialogTrigger>
         <DialogContent>
+          <h1 className="section-label">Edit Loop</h1>
           <Form {...form}>
             <form
               className="space-y-8"
               // eslint-disable-next-line @typescript-eslint/no-misused-promises
               onSubmit={form.handleSubmit(onSubmit)}
             >
-              <DialogHeader>
-                <DialogTitle>Edit Loop</DialogTitle>
-                <DialogDescription>
-                  {`Editing loop #${loop.id}`}
-                </DialogDescription>
-              </DialogHeader>
               <FormField
                 control={form.control}
                 name="key"

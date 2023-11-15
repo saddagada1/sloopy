@@ -32,7 +32,7 @@ const ArtistCard = React.forwardRef<HTMLButtonElement, ArtistCardProps>(
             alt={artist.name}
             width={width}
           />
-          <p style={{ maxWidth: width }} className="p-lg truncate">
+          <p style={{ maxWidth: width }} className="p-lg truncate text-left">
             {artist.name}
           </p>
         </Link>
