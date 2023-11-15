@@ -3,7 +3,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useMemo, useRef } from "react";
 import NoData from "~/components/noData";
-import ErrorView from "~/components/utils/ErrorView";
+import ErrorView from "~/components/utils/errorView";
 import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { paginationLimit } from "~/utils/constants";
@@ -11,11 +11,12 @@ import InfinitePagination from "~/components/infinitePagination";
 import CardGrid from "~/components/cardGrid";
 import SloopCard from "~/components/sloopCard";
 import ImageSection from "~/components/imageSection";
-import { useSpotifyContext } from "~/contexts/Spotify";
+import { useSpotifyContext } from "~/contexts/spotify";
 import { useQuery } from "@tanstack/react-query";
 import SpotifyButton from "~/components/spotifyButton";
 import Link from "next/link";
 import Marquee from "~/components/marquee";
+import { Button } from "~/components/ui/button";
 
 const Track: NextPage = ({}) => {
   const router = useRouter();
@@ -76,7 +77,12 @@ const Track: NextPage = ({}) => {
         <Marquee className="lg:col-span-4" label="Track">
           {track.name}
         </Marquee>
-        <div className="flex flex-col gap-2 lg:row-span-5">
+        <div className="p-lg flex flex-col gap-2 lg:row-span-5">
+          <div className="section bg-muted">
+            <Button className="mono w-full" variant="outline" asChild>
+              <Link href={`/create?track=${track.id}`}>Create Sloop</Link>
+            </Button>
+          </div>
           <ImageSection
             url={track.album.images[0]?.url}
             alt={track.name}
@@ -85,7 +91,7 @@ const Track: NextPage = ({}) => {
           <SpotifyButton uri={track.uri} />
           <div className="section">
             <h1 className="section-label">Artists</h1>
-            <div className="p-lg">
+            <div>
               {track.artists.map((artist, index) =>
                 index === track.artists.length - 1 ? (
                   <Link
@@ -107,7 +113,7 @@ const Track: NextPage = ({}) => {
           </div>
           <div className="section">
             <h1 className="section-label">Sloops</h1>
-            <p className="num-sm lg:num-lg">{0}</p>
+            <p>{0}</p>
           </div>
           <div className="section flex-1 lg:block">
             <h1 className="section-label">Bio</h1>

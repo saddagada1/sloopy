@@ -12,7 +12,7 @@ const SpotifyButton: React.FC<SpotifyButtonProps> = ({ uri, ...props }) => {
     <Button {...props} variant="outline" size="base" asChild>
       <Link href={uri}>
         <Icons.spotify className="h-10 w-10" />
-        <p className="p-lg mono mx-auto">Listen on Spotify</p>
+        <p className="mono mx-auto font-medium">Listen on Spotify</p>
       </Link>
     </Button>
   );

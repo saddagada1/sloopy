@@ -6,7 +6,7 @@ import ArtistCard from "~/components/artistCard";
 import Carousel from "~/components/carousel";
 import NoData from "~/components/noData";
 import SloopCard from "~/components/sloopCard";
-import ErrorView from "~/components/utils/ErrorView";
+import ErrorView from "~/components/utils/errorView";
 import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { calcTimeOfDay } from "~/utils/calc";

@@ -10,7 +10,7 @@ export const useSpotifyWebSDK = (token?: string) => {
   const [deviceId, setDeviceId] = useState("");
 
   useEffect(() => {
-    if (!token || !session?.user.canPlaySpotify) return;
+    if (!token || !session?.user.streamingEnabled) return;
 
     if (!window.Spotify) return;
 

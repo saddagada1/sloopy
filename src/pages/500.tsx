@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import ErrorView from "~/components/utils/ErrorView";
+import ErrorView from "~/components/utils/errorView";
 
 const ServerError: NextPage = ({}) => {
   return (
@@ -10,7 +10,7 @@ const ServerError: NextPage = ({}) => {
       </Head>
       <ErrorView
         code="500"
-        message="Something went wrong on our end. Please refresh the page and try again. If the problem persists please let us know through one of our contact links. Sorry for any inconvenience."
+        message="Something went wrong on our end. Please refresh the page and try again. Sorry for any inconvenience."
       />
     </>
   );

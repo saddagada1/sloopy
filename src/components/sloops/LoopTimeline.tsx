@@ -1,12 +1,11 @@
-import clsx from "clsx";
 import { Resizable } from "re-resizable";
 import { useEffect, useRef, useState } from "react";
-import { type EditorValues } from "~/contexts/Editor";
-import { pitchClassColours } from "~/utils/constants";
+import { type EditorValues } from "~/contexts/editor";
+import { colourMod, pitchClassColours } from "~/utils/constants";
 import Loading from "../utils/loading";
-import { type PlayerValues } from "~/contexts/Player";
-import { AnimatePresence, motion } from "framer-motion";
+import { type PlayerValues } from "~/contexts/player";
 import { calcVideoTimestamp } from "~/utils/calc";
+import { cn } from "~/utils/shadcn/utils";
 
 interface RulerProps {
   start?: number;
@@ -35,7 +34,7 @@ const Ruler: React.FC<RulerProps> = ({
         return (
           <span
             key={segment}
-            className={focus ? "h-full bg-gray-400" : "h-3/4 bg-gray-300"}
+            className={focus ? "h-full bg-input" : "h-3/4 bg-muted"}
             style={{
               width: segmentWidth,
               marginRight: segment === segments.length - 1 ? 0 : unit,
@@ -50,8 +49,8 @@ const Ruler: React.FC<RulerProps> = ({
 const SliderLoopHandle: React.FC = () => {
   return (
     <div className="flex h-full items-center justify-center">
-      <div className="flex h-1/2 w-full cursor-grab items-center justify-center rounded-full border border-gray-300 bg-primary">
-        <span className="h-1/2 w-1/12 rounded bg-gray-400" />
+      <div className="flex h-1/2 w-full cursor-grab items-center justify-center rounded-full border bg-muted">
+        <span className="h-1/2 w-1/12 rounded bg-input" />
       </div>
     </div>
   );
@@ -70,7 +69,7 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
   disabled,
   context,
 }) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null!);
+  const scrollContainer = useRef<HTMLDivElement>(null);
   const unit = width / 100;
   const segmentWidth = 1;
   const snapTo = unit + segmentWidth;
@@ -80,7 +79,7 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
   const [resizePosition, setResizePosition] = useState<number | null>(null);
 
   useEffect(() => {
-    const container = scrollContainerRef.current;
+    const container = scrollContainer.current;
     if (!container) return;
     const scrollToIndex =
       (sliderWidth / numScrollSections) *
@@ -90,8 +89,14 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
     }
     container.style.overflowX = "scroll";
     container.scrollTo({ left: scrollToIndex });
-    container.style.overflowX = "hidden";
-  }, [context.playbackPosition, duration, numScrollSections, sliderWidth]);
+    if (context.isPlaying) container.style.overflowX = "hidden";
+  }, [
+    context.isPlaying,
+    context.playbackPosition,
+    duration,
+    numScrollSections,
+    sliderWidth,
+  ]);
 
   if (!unit || !snapTo || !sliderWidth || !numScrollSections) {
     return <Loading />;
@@ -99,35 +104,25 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
 
   return (
     <>
-      <AnimatePresence>
-        {isResizing && resizePosition && (
-          <div className="pointer-events-none fixed z-50 flex h-full w-full items-end justify-center">
-            <motion.div
-              initial={{ translateY: "-150%", opacity: 0 }}
-              animate={{ translateY: "-200%", opacity: 1 }}
-              exit={{ translateY: "0%", opacity: 0 }}
-              transition={{ type: "tween", duration: 0.2 }}
-              className="select-none rounded-md border border-gray-300 bg-primary px-3 py-2 text-sm font-semibold sm:text-base"
-            >
-              {`${calcVideoTimestamp(
-                Math.round(resizePosition)
-              )} / ${calcVideoTimestamp(Math.round(duration))}`}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
       <div
-        ref={scrollContainerRef}
-        className={clsx(
-          "no-scrollbar h-24 border-b border-gray-300",
-          !context.isPlaying && "overflow-x-scroll"
+        ref={scrollContainer}
+        className={cn(
+          "relative h-16 rounded-md lg:h-24",
+          context.isPlaying ? "overflow-hidden" : "overflow-x-scroll"
         )}
       >
+        {isResizing && resizePosition !== null && (
+          <div className="section pointer-events-none absolute right-2 top-2 z-10 bg-background/80 backdrop-blur">
+            {`${calcVideoTimestamp(
+              Math.round(resizePosition)
+            )} / ${calcVideoTimestamp(Math.round(duration))}`}
+          </div>
+        )}
         <div
           style={{ width: sliderWidth }}
-          className={clsx(
+          className={cn(
             "relative flex h-full flex-col",
-            width > sliderWidth && "border-r border-gray-300"
+            width > sliderWidth && "border-r"
           )}
         >
           <div
@@ -136,7 +131,7 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
                 100 - (context.playbackPosition / duration) * 100
               }%)`,
             }}
-            className="absolute h-full w-full bg-gray-300/50"
+            className="absolute h-full w-full bg-input/50"
           />
           <div className="h-1/5">
             <Ruler
@@ -183,9 +178,9 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
               >
                 <div
                   style={{
-                    backgroundColor: pitchClassColours[loop.key] + "80",
+                    backgroundColor: pitchClassColours[loop.key] + colourMod,
                   }}
-                  className="h-full w-full rounded"
+                  className="h-full w-full rounded-md"
                 />
               </Resizable>
             ))}

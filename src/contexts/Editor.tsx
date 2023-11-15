@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { useSpotifyWebSDK } from "~/utils/hooks";
 import { type SloopGeneralInfo, type Loop } from "~/utils/types";
-import { useSpotifyContext } from "./Spotify";
+import { useSpotifyContext } from "./spotify";
 import { api } from "~/utils/api";
 
 export interface EditorValues {
@@ -55,7 +55,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const { mutateAsync: refreshSpotifyAuth } =
     api.spotify.refreshSpotifyAuth.useMutation();
   const { player, isReady, error, deviceId } = useSpotifyWebSDK(
-    spotify.auth?.access_token
+    spotify.auth?.accessToken
   );
   const [duration, setDuration] = useState(0);
   const [sloop, setSloop] = useState<Sloop>(null!);
@@ -75,6 +75,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       mode: sloop.mode,
       tempo: sloop.tempo,
       timeSignature: sloop.timeSignature,
+      tuning: sloop.tuning,
       name: sloop.name,
       description: sloop.description,
     });
@@ -108,8 +109,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       key: key,
       mode: mode,
       chord: chord,
-      voicing: 0,
-      notes: "",
+      composition: "",
     };
 
     if (loop.start <= playbackPosition && playbackPosition <= loop.end) {
@@ -117,6 +117,8 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
     setLoops((currentLoops) => [...currentLoops, loop]);
   };
+
+  console.log(loops);
 
   const handlePlayingLoop = (position: number) => {
     if (!player) return;
@@ -180,8 +182,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           key: loop.key,
           mode: loop.mode,
           chord: loop.chord,
-          voicing: loop.voicing,
-          notes: loop.notes,
+          composition: loop.composition,
           start: deletedLoop.id === 1 ? 0 : filteredLoops[index - 1]!.end,
           end: loop.end,
         };
@@ -230,17 +231,17 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
     const refresh = async (refresh_token: string) => {
       const credentials = await refreshSpotifyAuth({
-        refresh_token: refresh_token,
+        refreshToken: refresh_token,
       });
       console.log("refreshed spotify auth");
-      spotify.setAuth({ ...credentials, refresh_token: refresh_token });
+      spotify.setAuth({ ...credentials, refreshToken: refresh_token });
     };
 
     if (
-      spotify.auth.refresh_token &&
-      spotify.auth.expires_at < Date.now() / 1000
+      spotify.auth.refreshToken &&
+      spotify.auth.expiresAt < Date.now() / 1000
     ) {
-      void refresh(spotify.auth.refresh_token);
+      void refresh(spotify.auth.refreshToken);
       return;
     }
 

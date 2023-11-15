@@ -16,7 +16,6 @@ import { prisma } from "~/server/db";
 import { calcUsername } from "~/utils/calc";
 import { TRPCError } from "@trpc/server";
 import { type DefaultJWT } from "next-auth/jwt";
-import { type LinkedAccount } from "@prisma/client";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -32,10 +31,11 @@ declare module "next-auth" {
       email: string;
       username: string;
       verified: boolean;
-      linkedAccounts: LinkedAccount[];
-      spotifyLinked: boolean;
-      canPlaySpotify: boolean;
-      bio: string | null;
+      spotifyId: string | null;
+      refreshToken: string | null;
+      accessToken: string | null;
+      expiresAt: number | null;
+      streamingEnabled: boolean;
       // ...other properties
       // role: UserRole;
     };
@@ -47,10 +47,11 @@ declare module "next-auth" {
       email: string;
       username: string;
       verified: boolean;
-      linkedAccounts: LinkedAccount[];
-      spotifyLinked: boolean;
-      canPlaySpotify: boolean;
-      bio: string | null;
+      spotifyId: string | null;
+      refreshToken: string | null;
+      accessToken: string | null;
+      expiresAt: number | null;
+      streamingEnabled: boolean;
       // ...other properties
       // role: UserRole;
     };
@@ -60,9 +61,11 @@ declare module "next-auth" {
     username: string;
     verified: boolean;
     bio: string | null;
-    // linkedAccounts: LinkedAccount[];
-    // spotifyLinked: boolean;
-    // canPlaySpotify: boolean;
+    spotifyId: string | null;
+    refreshToken: string | null;
+    accessToken: string | null;
+    expiresAt: number | null;
+    streamingEnabled: boolean;
     // ...other properties
     // role: UserRole;
   }
@@ -94,45 +97,25 @@ export const authOptions: NextAuthOptions = {
             message: "User Not Found",
           });
         }
-        const linkedAccounts = await prisma.linkedAccount.findMany({
-          where: { userId: user.id },
-        });
         (token.bio = update.bio),
           (token.username = update.username),
           (token.verified = update.verified),
-          (token.linkedAccounts = linkedAccounts),
-          (token.spotifyLinked = linkedAccounts.find(
-            (account) => account.provider === "spotify"
-          )
-            ? true
-            : false),
-          (token.canPlaySpotify = linkedAccounts.find(
-            (account) =>
-              account.provider === "spotify" && account.isPremium === true
-          )
-            ? true
-            : false);
+          (token.spotifyId = update.spotifyId),
+          (token.refreshToken = update.refreshToken),
+          (token.accessToken = update.accessToken),
+          (token.expiresAt = update.expiresAt),
+          (token.streamingEnabled = update.streamingEnabled);
       }
       if (account) {
-        const linkedAccounts = await prisma.linkedAccount.findMany({
-          where: { userId: user.id },
-        });
         token.id = user.id;
         (token.bio = user.bio),
           (token.username = user.username),
           (token.verified = user.verified);
-        (token.linkedAccounts = linkedAccounts),
-          (token.spotifyLinked = linkedAccounts.find(
-            (account) => account.provider === "spotify"
-          )
-            ? true
-            : false),
-          (token.canPlaySpotify = linkedAccounts.find(
-            (account) =>
-              account.provider === "spotify" && account.isPremium === true
-          )
-            ? true
-            : false);
+        (token.spotifyId = user.spotifyId),
+          (token.refreshToken = user.refreshToken),
+          (token.accessToken = user.accessToken),
+          (token.expiresAt = user.expiresAt),
+          (token.streamingEnabled = user.streamingEnabled);
       }
       return token;
     },
@@ -144,9 +127,11 @@ export const authOptions: NextAuthOptions = {
         bio: token.bio,
         username: token.username,
         verified: token.verified,
-        linkedAccounts: token.linkedAccounts,
-        spotifyLinked: token.spotifyLinked,
-        canPlaySpotify: token.canPlaySpotify,
+        spotifyId: token.spotifyId,
+        refreshToken: token.refreshToken,
+        accessToken: token.accessToken,
+        expiresAt: token.expiresAt,
+        streamingEnabled: token.streamingEnabled,
       },
     }),
   },
@@ -233,6 +218,11 @@ export const authOptions: NextAuthOptions = {
           email: profile.email,
           verified: true,
           image: null,
+          spotifyId: null,
+          accessToken: null,
+          refreshToken: null,
+          expiresAt: null,
+          streamingEnabled: false,
         };
       },
     }),
@@ -248,6 +238,11 @@ export const authOptions: NextAuthOptions = {
           email: profile.email as string,
           verified: true,
           image: null,
+          spotifyId: null,
+          accessToken: null,
+          refreshToken: null,
+          expiresAt: null,
+          streamingEnabled: false,
         };
       },
     }),

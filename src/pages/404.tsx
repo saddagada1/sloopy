@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import ErrorView from "~/components/utils/ErrorView";
+import ErrorView from "~/components/utils/errorView";
 
 const NotFound: NextPage = ({}) => {
   return (

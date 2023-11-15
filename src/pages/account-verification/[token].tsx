@@ -2,7 +2,7 @@ import { TRPCClientError } from "@trpc/client";
 import type { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useEffectOnce } from "usehooks-ts";
 import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
@@ -15,7 +15,7 @@ const AccountVerification: NextPage = ({}) => {
     const verifying = toast.loading("Verifying Account...");
     try {
       await verifyAccount({ token: router.query.token as string });
-      toast.remove(verifying);
+      toast.dismiss(verifying);
       toast.success("Success: Your Account Has Been Verified", {
         duration: 4000,
       });

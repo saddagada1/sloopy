@@ -1,47 +1,22 @@
-import { motion } from "framer-motion";
-import { type DetailedHTMLProps, type HTMLAttributes, useState } from "react";
-import { PiCaretDown, PiCaretUp } from "react-icons/pi";
+import { type HTMLAttributes } from "react";
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../ui/accordion";
 
-interface LoopButtonProps
-  extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
-  label: string;
-  height: number;
-  open?: boolean;
-  children: React.ReactNode;
+interface LoopButtonProps extends HTMLAttributes<HTMLDivElement> {
+  loopId: string;
+  chord: string;
 }
 
-const LoopButton: React.FC<LoopButtonProps> = ({
-  children,
-  label,
-  height,
-  open,
-  ...DetailedHTMLProps
-}) => {
-  const [expand, setExpand] = useState(false);
+const LoopButton: React.FC<LoopButtonProps> = ({ loopId, chord, ...props }) => {
+  const { children, ...rest } = props;
   return (
-    <div
-      {...DetailedHTMLProps}
-      className="flex flex-col rounded text-sm font-semibold sm:text-base"
-    >
-      <div className="flex items-center justify-between p-1.5">
-        <p>{label}</p>
-        {!open && (
-          <button
-            className="text-xl sm:text-2xl"
-            onClick={() => setExpand(!expand)}
-          >
-            {expand ? <PiCaretUp /> : <PiCaretDown />}
-          </button>
-        )}
-      </div>
-      <motion.div
-        className="overflow-hidden"
-        initial={{ height: 0 }}
-        animate={{ height: expand || open ? height : 0 }}
-      >
-        {children}
-      </motion.div>
-    </div>
+    <AccordionItem {...rest} value={loopId}>
+      <AccordionTrigger className="h-6">{chord}</AccordionTrigger>
+      <AccordionContent>{children}</AccordionContent>
+    </AccordionItem>
   );
 };
 

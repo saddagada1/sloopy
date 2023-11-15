@@ -6,7 +6,7 @@ import { api } from "~/utils/api";
 import Loading from "~/components/utils/loading";
 import { paginationLimit } from "~/utils/constants";
 import { useRouter } from "next/router";
-import ErrorView from "~/components/utils/ErrorView";
+import ErrorView from "~/components/utils/errorView";
 import { useMemo, useRef } from "react";
 import NoData from "~/components/noData";
 import Marquee from "~/components/marquee";
@@ -17,6 +17,7 @@ import InfinitePagination from "~/components/infinitePagination";
 import CardGrid from "~/components/cardGrid";
 import SloopCard from "~/components/sloopCard";
 import { toast } from "sonner";
+import { env } from "~/env.mjs";
 
 const User: NextPage = ({}) => {
   const router = useRouter();
@@ -157,9 +158,9 @@ const User: NextPage = ({}) => {
       </Head>
       <main className="flex flex-1 flex-col gap-2 overflow-scroll lg:grid lg:grid-cols-5 lg:grid-rows-5 lg:overflow-hidden">
         <Marquee className="lg:col-span-4" label="Profile">
-          {user.name ?? user.username}
+          {user.username}
         </Marquee>
-        <div className="flex flex-col gap-2 lg:row-span-5">
+        <div className="p-lg flex flex-col gap-2 lg:row-span-5">
           <div className="section flex gap-2 bg-muted">
             <Button
               onClick={() => {
@@ -186,15 +187,17 @@ const User: NextPage = ({}) => {
           <div className="flex gap-2 lg:flex-col">
             <ImageSection
               className="w-1/2 lg:w-full"
-              url={user.image}
+              url={
+                user.image
+                  ? env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN + user.image
+                  : undefined
+              }
               alt={user.name ?? user.username}
             />
             <div className="flex flex-1 flex-col gap-2">
               <div className="section flex flex-1 flex-col">
                 <h1 className="section-label mb-0">Sloops</h1>
-                <p className="num-sm lg:num-lg">
-                  {calcCompactValue(user.sloopsCount)}
-                </p>
+                <p>{calcCompactValue(user.sloopsCount)}</p>
               </div>
               <Button
                 variant="outline"
@@ -204,9 +207,7 @@ const User: NextPage = ({}) => {
               >
                 <Link href={`${user.username}/followers`}>
                   <h1 className="section-label mb-0">Followers</h1>
-                  <p className="num-sm lg:num-lg">
-                    {calcCompactValue(user.followersCount)}
-                  </p>
+                  <p>{calcCompactValue(user.followersCount)}</p>
                 </Link>
               </Button>
               <Button
@@ -217,14 +218,16 @@ const User: NextPage = ({}) => {
               >
                 <Link href={`${user.username}/following`}>
                   <h1 className="section-label mb-0">Following</h1>
-                  <p className="num-sm lg:num-lg">
-                    {calcCompactValue(user.followingCount)}
-                  </p>
+                  <p>{calcCompactValue(user.followingCount)}</p>
                 </Link>
               </Button>
             </div>
           </div>
-          <div className="section  flex-1 lg:block">
+          <div className="section lg:block">
+            <h1 className="section-label">Name</h1>
+            <p>{user.name ?? user.username}</p>
+          </div>
+          <div className="section flex-1 overflow-y-scroll lg:block">
             <h1 className="section-label">Bio</h1>
             {user.bio && user.bio.length > 0 ? (
               <p className="p">{user.bio}</p>

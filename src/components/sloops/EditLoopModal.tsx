@@ -1,44 +1,68 @@
-import {
-  useState,
-  type Dispatch,
-  type SetStateAction,
-  useMemo,
-  useEffect,
-} from "react";
-import Modal from "../ui/Modal";
-import StyledTitle from "../ui/form/StyledTitle";
-import Select from "../ui/Select";
-import StyledLabel from "../ui/form/StyledLabel";
+import { useState, useMemo, type HTMLAttributes } from "react";
 import { mode, pitchClass } from "~/utils/constants";
 import { type Loop, type Chords } from "~/utils/types";
-import { PiTrash } from "react-icons/pi";
-import { AnimatePresence } from "framer-motion";
-import Popover from "../ui/Popover";
-import { useEditorContext } from "~/contexts/Editor";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import chordsData from "public/chords.json";
+import { zodResolver } from "@hookform/resolvers/zod";
+import z from "zod";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
+import { cn } from "~/utils/shadcn/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Combobox } from "../ui/combobox";
+import { useEditorContext } from "~/contexts/editor";
+import { Settings2 } from "lucide-react";
 
-interface EditLoopModalProps {
+const chords = chordsData as Chords;
+
+interface EditLoopModalProps extends HTMLAttributes<HTMLButtonElement> {
   loop: Loop;
-  chords: Chords;
-  setLoop: Dispatch<SetStateAction<Loop | null>>;
-  onEdit?: (loop: Loop) => void;
 }
 
-const EditLoopModal: React.FC<EditLoopModalProps> = ({
-  loop,
-  chords,
-  setLoop,
-  onEdit,
-}) => {
+const formSchema = z.object({
+  key: z.number().min(0).max(11),
+  mode: z.number().min(0).max(1),
+  chord: z.string().min(1, { message: "Required" }),
+});
+
+const EditLoopModal: React.FC<EditLoopModalProps> = ({ loop, ...props }) => {
+  const { className, ...rest } = props;
+  const [open, setOpen] = useState(false);
   const editor = useEditorContext();
   const [selectedKey, setSelectedKey] = useState(loop.key);
-  const [selectedMode, setSelectedMode] = useState(loop.mode);
-  const [selectedChord, setSelectedChord] = useState(loop.chord);
-  const [visible, setVisible] = useState(true);
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [showDelete, setShowDelete] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      key: loop.key,
+      mode: loop.mode,
+      chord: loop.chord,
+    },
+  });
 
   const chordsForKey = useMemo(() => {
-    selectedKey !== loop.key && setSelectedChord(pitchClass[selectedKey]!);
     return Object.keys(chords)
       .filter((key) => {
         const keyRegex = new RegExp(`^${pitchClass[selectedKey]}`);
@@ -51,118 +75,141 @@ const EditLoopModal: React.FC<EditLoopModalProps> = ({
           value: chord,
         };
       });
-  }, [selectedKey, chords, loop.key]);
+  }, [selectedKey]);
 
-  useEffect(() => {
-    if (!visible) {
-      setLoop(null);
-    }
-  }, [visible, setLoop]);
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    editor.updateLoop({ ...loop, ...values });
+    setOpen(false);
+  };
 
   return (
     <>
-      <Modal setVisible={setVisible} disabled={isSelecting}>
-        <StyledTitle title="Edit Loop" />
-        <StyledLabel label="Key" />
-        <Select
-          data={Object.keys(pitchClass).map((key) => {
-            return { label: pitchClass[parseInt(key)]!, value: key };
-          })}
-          value={pitchClass[selectedKey]!}
-          onSelect={({ value }) => {
-            setSelectedKey(parseInt(value));
-            setIsSelecting(false);
-          }}
-          onSelectFocus={(isOpen) => setIsSelecting(isOpen)}
-        />
-        <StyledLabel label="Mode" />
-        <Select
-          data={Object.keys(mode).map((key) => {
-            return { label: mode[parseInt(key)]!, value: key };
-          })}
-          value={mode[selectedMode]!}
-          onSelect={({ value }) => {
-            setSelectedMode(parseInt(value));
-            setIsSelecting(false);
-          }}
-          onSelectFocus={(isOpen) => setIsSelecting(isOpen)}
-        />
-        <StyledLabel label="Chord" />
-        <Select
-          data={chordsForKey}
-          value={selectedChord}
-          onSelect={({ value }) => {
-            setSelectedChord(value);
-            setIsSelecting(false);
-          }}
-          onSelectFocus={(isOpen) => setIsSelecting(isOpen)}
-          searchable
-        />
-        <div className="relative mt-2 flex h-14 w-full gap-2 font-display text-base font-bold sm:text-lg">
-          <button
-            onClick={() => setShowDelete(true)}
-            className="flex aspect-square items-center justify-center rounded-md border border-red-500 bg-red-100 text-2xl text-red-500 sm:text-3xl"
+      <Dialog
+        modal={false}
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          form.reset();
+        }}
+      >
+        <DialogTrigger asChild>
+          <Button
+            {...rest}
+            variant="link"
+            className={cn("h-fit p-1", className)}
           >
-            <PiTrash />
-          </button>
-          <AnimatePresence>
-            {showDelete && (
-              <Popover
-                setVisible={setShowDelete}
-                className="flex flex-col p-2 text-base text-secondary shadow-2xl sm:text-lg"
-                animate="-5%"
-                y="top"
-              >
-                <StyledTitle title="Delete Loop" />
-                <p className="mb-6 font-sans text-sm font-medium sm:text-base">
-                  Are you sure you want to delete this loop? This can not be
-                  undone.
-                </p>
-                <div className="flex h-14 gap-2">
-                  <button
-                    className="flex-1 rounded-md border border-gray-300 bg-gray-200"
-                    onClick={() => setShowDelete(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowDelete(false);
-                      editor.deleteLoop(loop);
-                      setVisible(false);
-                    }}
-                    className="flex-1 rounded-md border border-red-500 bg-red-100 text-red-500"
-                  >
-                    Confirm
-                  </button>
-                </div>
-              </Popover>
-            )}
-          </AnimatePresence>
-          <button
-            onClick={() => !isSelecting && setVisible(false)}
-            className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              if (isSelecting) return;
-              onEdit &&
-                onEdit({
-                  ...loop,
-                  key: selectedKey,
-                  mode: selectedMode,
-                  chord: selectedChord,
-                });
-              setVisible(false);
-            }}
-            className="flex flex-1 items-center justify-center rounded-md bg-secondary text-primary"
-          >
-            Save
-          </button>
-        </div>
-      </Modal>
+            <Settings2 className="h-5 w-5" strokeWidth={1} />
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <Form {...form}>
+            <form
+              className="space-y-8"
+              // eslint-disable-next-line @typescript-eslint/no-misused-promises
+              onSubmit={form.handleSubmit(onSubmit)}
+            >
+              <DialogHeader>
+                <DialogTitle>Edit Loop</DialogTitle>
+                <DialogDescription>
+                  {`Editing loop #${loop.id}`}
+                </DialogDescription>
+              </DialogHeader>
+              <FormField
+                control={form.control}
+                name="key"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between">
+                      <FormLabel>Key</FormLabel>
+                      <FormMessage />
+                    </div>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(parseInt(value));
+                        setSelectedKey(parseInt(value));
+                      }}
+                      defaultValue={field.value.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a key" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.keys(pitchClass).map((key, index) => (
+                          <SelectItem key={index} value={key}>
+                            {pitchClass[parseInt(key)]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mode"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between">
+                      <FormLabel>Mode</FormLabel>
+                      <FormMessage />
+                    </div>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a mode" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.keys(mode).map((key, index) => (
+                          <SelectItem key={index} value={key}>
+                            {mode[parseInt(key)]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="chord"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between">
+                      <FormLabel>Chord</FormLabel>
+                      <FormMessage />
+                    </div>
+                    <FormControl>
+                      <Combobox
+                        key={selectedKey}
+                        data={chordsForKey}
+                        placeholder="Select a chord"
+                        defaultValue={
+                          selectedKey !== loop.key
+                            ? chordsForKey[selectedKey]
+                            : { label: loop.chord, value: loop.chord }
+                        }
+                        onSelect={(item) => field.onChange(item.value)}
+                        searchFirst
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" className="mono">
+                  Save
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

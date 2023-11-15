@@ -18,7 +18,7 @@ const Marquee: React.FC<MarqueeProps> = ({ label, ...props }) => {
           ref={text}
           className="marquee marquee-text"
         >
-          {Array.from({ length: 4 }).map((_, index) => (
+          {Array.from({ length: 16 }).map((_, index) => (
             <span key={index}>
               &nbsp;
               {children}

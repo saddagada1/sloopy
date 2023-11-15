@@ -3,10 +3,9 @@ import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { toast } from "sonner";
-import Chord from "~/components/sloops/Chord";
-import ErrorView from "~/components/utils/ErrorView";
+import ErrorView from "~/components/utils/errorView";
 import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import {
@@ -14,17 +13,15 @@ import {
   calcRelativeTime,
   calcSloopColours,
 } from "~/utils/calc";
-import { domain, mode, pitchClass, pitchClassColours } from "~/utils/constants";
-import { type Chords, type Loop } from "~/utils/types";
-import chordsData from "public/chords.json";
+import { domain, mode, pitchClass, timeSignature } from "~/utils/constants";
+import { type Loop } from "~/utils/types";
 import NoData from "~/components/noData";
 import Marquee from "~/components/marquee";
 import ImageSection from "~/components/imageSection";
 import TrackButton from "~/components/trackButton";
 import SpotifyButton from "~/components/spotifyButton";
 import { Button } from "~/components/ui/button";
-import { Check, Heart } from "lucide-react";
-import { ScrollArea } from "~/components/ui/scroll-area";
+import { Heart } from "lucide-react";
 import { cn } from "~/utils/shadcn/utils";
 import {
   AlertDialog,
@@ -38,13 +35,10 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 
-const chords = chordsData as unknown as Chords;
-
 const Sloop: NextPage = ({}) => {
   const router = useRouter();
   const { data: session } = useSession();
   const t3 = api.useContext();
-  const [previewLoop, setPreviewLoop] = useState(0);
   const {
     data: sloop,
     isLoading: fetchingSloop,
@@ -182,13 +176,14 @@ const Sloop: NextPage = ({}) => {
         <div className="flex flex-col gap-2 lg:col-span-4 lg:row-span-4">
           <div className="flex gap-2">
             <div className="lg:section mono flex flex-1 justify-between gap-2">
-              <Button asChild>
+              <Button asChild className="max-lg:flex-1">
                 <Link
                   href={`/player/${sloop.id}?private=${
                     session?.user.id === sloop.userId ? sloop.isPrivate : false
                   }`}
                 >
                   Play
+                  <span className="hidden sm:inline-block">&nbsp;Sloop</span>
                 </Link>
               </Button>
               <div className="flex gap-2">
@@ -220,7 +215,7 @@ const Sloop: NextPage = ({}) => {
                         Delete
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="font-sans">
+                    <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>
                           Are you absolutely sure?
@@ -232,13 +227,13 @@ const Sloop: NextPage = ({}) => {
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="mono">
+                        <AlertDialogCancel className="mono h-10">
                           Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                           disabled={deletingSloop}
                           onClick={() => void handleDeleteSloop(sloop.id)}
-                          className="mono bg-destructive"
+                          className="mono h-10 bg-destructive"
                         >
                           Delete
                         </AlertDialogAction>
@@ -270,93 +265,47 @@ const Sloop: NextPage = ({}) => {
               />
             </Button>
           </div>
-          <div className="flex flex-1 flex-col-reverse gap-2 lg:flex-row">
-            <section className="section flex-1">
-              <h1 className="section-label">Composition</h1>
-            </section>
-            <section className="p-lg flex flex-1 flex-col gap-2 text-right">
-              <div className="flex gap-2">
-                <div className="section basis-1/4">
-                  <h1 className="section-label">Plays</h1>
-                  <p>{calcCompactValue(sloop.rankedSloop?.plays ?? 0)}</p>
-                </div>
-                <div className="section basis-1/4">
-                  <h1 className="section-label">Likes</h1>
-                  <p>{calcCompactValue(sloop.rankedSloop?.likes ?? 0)}</p>
-                </div>
-                <div className="section flex-1">
-                  <h1 className="section-label">Updated</h1>
-                  <p>{calcRelativeTime(sloop.updatedAt)}</p>
-                </div>
+
+          <section className="p-lg flex flex-1 flex-col gap-2 text-right">
+            <div className="flex gap-2">
+              <div className="section basis-1/4">
+                <h1 className="section-label">Plays</h1>
+                <p>{calcCompactValue(sloop.rankedSloop?.plays ?? 0)}</p>
               </div>
-              <div className="flex gap-2">
-                <div className="section flex-1">
-                  <h1 className="section-label">Key</h1>
-                  <p>{`${pitchClass[sloop.key]} ${mode[sloop.mode]}`}</p>
-                </div>
-                <div className="section flex-1">
-                  <h1 className="section-label">Tempo</h1>
-                  <p>{`${Math.round(sloop.tempo)} BPM`}</p>
-                </div>
-                <div className="section flex-1">
-                  <h1 className="section-label">Time</h1>
-                  <p>{`${sloop.timeSignature} / 4`}</p>
-                </div>
-                <div className="section flex-1">
-                  <h1 className="section-label">Complete</h1>
-                  <p>
-                    {loops.length > 0
-                      ? `${Math.round(
-                          (loops[loops.length - 1]!.end / sloop.duration) * 100
-                        )}%`
-                      : "0%"}
-                  </p>
-                </div>
+              <div className="section basis-1/4">
+                <h1 className="section-label">Likes</h1>
+                <p>{calcCompactValue(sloop.rankedSloop?.likes ?? 0)}</p>
               </div>
-              <div className="flex flex-1 gap-2">
-                <div className="section flex-1">
-                  <h1 className="section-label">Voicing</h1>
-                  <Chord
-                    className="-translate-y-5"
-                    chord={
-                      chords[loops[previewLoop]!.chord]![
-                        loops[previewLoop]!.voicing
-                      ]
-                    }
-                  />
-                </div>
-                <div className="flex flex-1 flex-col gap-2">
-                  <div className="section">
-                    <h1 className="section-label">Chord</h1>
-                    <p>{loops[previewLoop]?.chord}</p>
-                  </div>
-                  <div className="section flex-1">
-                    <h1 className="section-label">Loops</h1>
-                    <ScrollArea>
-                      <div className="flex flex-col gap-2">
-                        {loops.map((loop, index) => (
-                          <Button
-                            key={loop.id}
-                            style={{
-                              backgroundColor:
-                                pitchClassColours[loop.key] + "CC",
-                            }}
-                            variant="outline"
-                            size="lg"
-                            className="justify-between p-2"
-                            onClick={() => setPreviewLoop(index)}
-                          >
-                            {`${pitchClass[loop.key]} ${mode[loop.mode]}`}
-                            {index === previewLoop && <Check strokeWidth={1} />}
-                          </Button>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </div>
+              <div className="section flex-1">
+                <h1 className="section-label">Updated</h1>
+                <p>{calcRelativeTime(sloop.updatedAt)}</p>
               </div>
-            </section>
-          </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="section flex-1">
+                <h1 className="section-label">Key</h1>
+                <p>{`${pitchClass[sloop.key]} ${mode[sloop.mode]}`}</p>
+              </div>
+              <div className="section flex-1">
+                <h1 className="section-label">Tempo</h1>
+                <p>{`${Math.round(sloop.tempo)} BPM`}</p>
+              </div>
+              <div className="section flex-1">
+                <h1 className="section-label">Time</h1>
+                <p>{timeSignature[sloop.timeSignature]}</p>
+              </div>
+              <div className="section flex-1">
+                <h1 className="section-label">Complete</h1>
+                <p>
+                  {loops.length > 0
+                    ? `${Math.round(
+                        (loops[loops.length - 1]!.end / sloop.duration) * 100
+                      )}%`
+                    : "0%"}
+                </p>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
     </>

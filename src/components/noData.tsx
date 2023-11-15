@@ -6,7 +6,10 @@ const NoData: React.FC<HTMLAttributes<HTMLParagraphElement>> = ({
 }) => {
   const { className, children, ...rest } = props;
   return (
-    <p {...rest} className={cn("p flex-1 text-input", className)}>
+    <p
+      {...rest}
+      className={cn("p flex-1 text-left font-normal text-input", className)}
+    >
       {children ?? "Nothing to show here :("}
     </p>
   );

@@ -1,4 +1,18 @@
 import { env } from "~/env.mjs";
+import { type Tuning } from "./types";
+
+export const tuning: Record<number, Tuning> = {
+  0: { name: "Standard", notes: ["E", "A", "D", "G", "B", "E"] },
+  1: { name: "0.5 Down", notes: ["D#", "G#", "C#", "F#", "A#", "D#"] },
+  2: { name: "1 Down", notes: ["D", "G", "C", "F", "A", "D"] },
+  3: { name: "1.5 Down", notes: ["C#", "F#", "B", "E", "G#", "C#"] },
+  4: { name: "Drop D", notes: ["D", "A", "D", "G", "B", "E"] },
+  5: { name: "Drop C#", notes: ["C#", "G#", "C#", "F#", "A#", "D#"] },
+  6: { name: "Drop C", notes: ["C", "G", "C", "F", "A", "D"] },
+  7: { name: "Open G", notes: ["D", "G", "D", "G", "B", "D"] },
+  8: { name: "Open F", notes: ["F", "A", "C", "F", "C", "F"] },
+  9: { name: "DADGAD", notes: ["D", "A", "D", "G", "A", "D"] },
+};
 
 export const timeSignature: Record<number, string> = {
   3: "3/4",
@@ -73,6 +87,8 @@ export const lgBreakpoint = 1024;
 export const lgCardSize = 150;
 
 export const smCardSize = 100;
+
+export const colourMod = "CC";
 
 export const alwaysRefetch = {
   refetchOnWindowFocus: true,

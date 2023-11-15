@@ -4,17 +4,6 @@ import { Cross2Icon } from "@radix-ui/react-icons";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "~/utils/shadcn/utils";
-import { Syne, Inter, JetBrains_Mono } from "next/font/google";
-
-const display = Syne({
-  subsets: ["latin"],
-  variable: "--font-display",
-});
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
 
 const Sheet = SheetPrimitive.Root;
 
@@ -49,7 +38,7 @@ const sheetVariants = cva(
       side: {
         top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
-          "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+          "inset-x-0 bottom-0 border-t rounded-t-md data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
         left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
@@ -73,13 +62,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
-      className={cn(
-        sheetVariants({ side }),
-        className,
-        display.variable,
-        sans.variable,
-        mono.variable
-      )}
+      className={cn(sheetVariants({ side }), className)}
       {...props}
     >
       {children}

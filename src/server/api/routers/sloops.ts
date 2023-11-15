@@ -18,8 +18,7 @@ const zodLoop: z.ZodType<Loop> = z.object({
   key: z.number().min(-1).max(11),
   mode: z.number().min(0).max(1),
   chord: z.string(),
-  voicing: z.number(),
-  notes: z.string(),
+  composition: z.string(),
 });
 
 const zodArtist = z.object({
@@ -37,9 +36,10 @@ const createSloopInput = z.object({
   trackImage: z.string().optional(),
   artists: z.array(zodArtist),
   duration: z.number(),
-  key: z.number().min(-1).max(11),
+  key: z.number().min(0).max(11),
   mode: z.number().min(0).max(1),
   tempo: z.number(),
+  tuning: z.number(),
   timeSignature: z.number().min(3).max(7),
 });
 
@@ -47,9 +47,10 @@ const updateSloopInput = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().max(500),
-  key: z.number().min(-1).max(11),
+  key: z.number().min(0).max(11),
   mode: z.number().min(0).max(1),
   tempo: z.number(),
+  tuning: z.number(),
   timeSignature: z.number().min(3).max(7),
   loops: z.array(zodLoop),
   isPrivate: z.boolean(),

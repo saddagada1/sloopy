@@ -5,7 +5,7 @@ import CardGrid from "~/components/cardGrid";
 import InfinitePagination from "~/components/infinitePagination";
 import Marquee from "~/components/marquee";
 import SloopCard from "~/components/sloopCard";
-import ErrorView from "~/components/utils/ErrorView";
+import ErrorView from "~/components/utils/errorView";
 import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { paginationLimit } from "~/utils/constants";

@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import { cn } from "~/utils/shadcn/utils";
 import { pitchClassColours } from "~/utils/constants";
 import ImageSection from "./imageSection";
+import { signOut, useSession } from "next-auth/react";
 
 interface NavButtonProps {
   href: string;
@@ -33,7 +34,7 @@ const NavButton: React.FC<NavButtonProps> = ({ href, label, description }) => {
           )}
         />
         <div>
-          <p className="p-lg">{label}</p>
+          <p className="p-lg text-left">{label}</p>
           <p className="p-sm font-normal">{description}</p>
         </div>
       </Link>
@@ -79,19 +80,61 @@ const SideNavbar: React.FC = () => {
 
 const Navbar: React.FC = () => {
   const [open, setOpen] = useState(false);
+  const { status: sessionStatus } = useSession();
+  const router = useRouter();
 
   return (
-    <nav className="flex h-[80px] w-full shrink-0 gap-2 lg:hidden">
+    <nav className="flex w-full shrink-0 gap-2 lg:hidden">
       <ImageSection
+        onClick={() => void router.push("/")}
         className="aspect-square h-full w-fit"
         alt="Sloopy for Spotify"
       />
       <div className="flex flex-1 flex-col gap-2">
-        <div className="flex gap-2">
-          <div className="flex-1 rounded-md border">hello</div>
+        <div className="mono flex gap-2">
+          {sessionStatus !== "loading" && (
+            <>
+              {sessionStatus === "authenticated" ? (
+                <Button
+                  variant="outline"
+                  asChild
+                  className={cn(
+                    "flex-1 uppercase",
+                    router.pathname === "/profile" && "bg-accent"
+                  )}
+                >
+                  <Link href="/profile">Your Profile</Link>
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    asChild
+                    className={cn(
+                      "flex-1 uppercase",
+                      router.pathname === "/sign-up" && "bg-accent"
+                    )}
+                  >
+                    <Link href="/sign-up">Sign Up</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    className={cn(
+                      "flex-1 uppercase",
+                      router.pathname === "/login" && "bg-primary/90"
+                    )}
+                  >
+                    <Link href="/login">Login</Link>
+                  </Button>
+                </>
+              )}
+            </>
+          )}
           <Sheet open={open} onOpenChange={(o) => setOpen(o)}>
             <SheetTrigger asChild>
-              <Button variant="outline">Menu</Button>
+              <Button variant="outline" className="mono">
+                Menu
+              </Button>
             </SheetTrigger>
             <SheetContent
               side="bottom"
@@ -126,11 +169,20 @@ const Navbar: React.FC = () => {
                   description="Something Personal"
                 />
               </div>
-              <p className="p-sm">2@23</p>
+              <div className="flex items-end">
+                <p className="p-sm flex-1">2@23</p>
+                <Button
+                  onClick={() => void signOut()}
+                  variant="destructive"
+                  className="mono"
+                >
+                  Logout
+                </Button>
+              </div>
             </SheetContent>
           </Sheet>
         </div>
-        <SearchInput className="flex" />
+        <SearchInput className="flex h-10" />
       </div>
     </nav>
   );

@@ -53,6 +53,7 @@ export const env = createEnv({
     NEXT_PUBLIC_SPOTIFY_CLIENT_ID: z.string().min(1),
     NEXT_PUBLIC_PRODUCTION_URL: z.string().min(1),
     NEXT_PUBLIC_CLIENT_ENV: z.enum(["development", "test", "production"]),
+    NEXT_PUBLIC_CLOUDFRONT_DOMAIN: z.string().min(1),
   },
 
   /**
@@ -83,6 +84,7 @@ export const env = createEnv({
     S3_REGION: process.env.S3_REGION,
     S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
     S3_ACCESS_KEY_SECRET: process.env.S3_ACCESS_KEY_SECRET,
+    NEXT_PUBLIC_CLOUDFRONT_DOMAIN: process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.

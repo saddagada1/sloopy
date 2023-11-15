@@ -11,7 +11,6 @@ import {
   refreshSpotifyCredentials,
 } from "~/utils/axios/spotify";
 import { TRPCError } from "@trpc/server";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export const spotifyRouter = createTRPCRouter({
   linkSpotifyAccount: protectedProcedure
@@ -34,33 +33,20 @@ export const spotifyRouter = createTRPCRouter({
           message: spotifyUser.message,
         });
       }
+
       try {
-        const linkedAccount = await ctx.prisma.linkedAccount.create({
+        const user = await ctx.prisma.user.update({
+          where: { id: ctx.session.user.id },
           data: {
-            userId: ctx.session.user.id,
-            provider: "spotify",
-            providerAccountId: spotifyUser.id,
-            access_token: spotifyCredentials.access_token,
-            refresh_token: spotifyCredentials.refresh_token,
-            expires_at: Date.now() / 1000 + spotifyCredentials.expires_in,
-            token_type: spotifyCredentials.token_type,
-            isPremium: spotifyUser.product === "premium" ? true : false,
+            spotifyId: spotifyUser.id,
+            accessToken: spotifyCredentials.access_token,
+            refreshToken: spotifyCredentials.refresh_token,
+            expiresAt: Date.now() / 1000 + spotifyCredentials.expires_in,
+            streamingEnabled: spotifyUser.product === "premium" ? true : false,
           },
         });
-        return linkedAccount;
+        return user;
       } catch (error) {
-        if (error instanceof PrismaClientKnownRequestError) {
-          if (error.code === "P2002") {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "User Has Existing Spotify Account Linked",
-            });
-          }
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Could Not Link Spotify Account",
-          });
-        }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Could Not Link Spotify Account",
@@ -70,12 +56,14 @@ export const spotifyRouter = createTRPCRouter({
 
   unlinkSpotifyAccount: protectedProcedure.mutation(async ({ ctx }) => {
     try {
-      await ctx.prisma.linkedAccount.delete({
-        where: {
-          userId_provider: {
-            userId: ctx.session.user.id,
-            provider: "spotify",
-          },
+      await ctx.prisma.user.update({
+        where: { id: ctx.session.user.id },
+        data: {
+          spotifyId: null,
+          accessToken: null,
+          refreshToken: null,
+          expiresAt: null,
+          streamingEnabled: false,
         },
       });
     } catch (error) {
@@ -87,10 +75,10 @@ export const spotifyRouter = createTRPCRouter({
   }),
 
   refreshSpotifyAuth: protectedProcedure
-    .input(z.object({ refresh_token: z.string() }))
+    .input(z.object({ refreshToken: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const spotifyCredentials = await refreshSpotifyCredentials(
-        input.refresh_token
+        input.refreshToken
       );
       if (!spotifyCredentials.ok) {
         throw new TRPCError({
@@ -101,21 +89,16 @@ export const spotifyRouter = createTRPCRouter({
 
       try {
         const expires_at = Date.now() / 1000 + spotifyCredentials.expires_in;
-        await ctx.prisma.linkedAccount.update({
+        await ctx.prisma.user.update({
+          where: { id: ctx.session.user.id },
           data: {
-            access_token: spotifyCredentials.access_token,
-            expires_at: expires_at,
-          },
-          where: {
-            userId_provider: {
-              userId: ctx.session.user.id,
-              provider: "spotify",
-            },
+            accessToken: spotifyCredentials.access_token,
+            expiresAt: expires_at,
           },
         });
         return {
-          access_token: spotifyCredentials.access_token,
-          expires_at: expires_at,
+          accessToken: spotifyCredentials.access_token,
+          expiresAt: expires_at,
         };
       } catch (error) {
         throw new TRPCError({
@@ -133,10 +116,10 @@ export const spotifyRouter = createTRPCRouter({
         message: spotifyCredentials.message,
       });
     }
-    const expires_at = Date.now() / 1000 + spotifyCredentials.expires_in;
+    const expiresAt = Date.now() / 1000 + spotifyCredentials.expires_in;
     return {
-      access_token: spotifyCredentials.access_token,
-      expires_at: expires_at,
+      accessToken: spotifyCredentials.access_token,
+      expiresAt,
     };
   }),
 });

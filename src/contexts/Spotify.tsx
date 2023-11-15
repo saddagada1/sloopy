@@ -10,7 +10,7 @@ import { useSession } from "next-auth/react";
 import { type ReadonlyURLSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { api } from "~/utils/api";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { TRPCClientError } from "@trpc/client";
 import axios, { type AxiosError, type AxiosResponse } from "axios";
 import {
@@ -47,9 +47,9 @@ interface QueuedRequest {
 }
 
 interface SpotifyAuth {
-  access_token: string;
-  refresh_token?: string;
-  expires_at: number;
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt: number;
 }
 
 interface SpotifyValues {
@@ -169,21 +169,28 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
     const linkSpotify = toast.loading("Linking Spotify Account...");
     try {
       const credentials = await linkSpotifyAccount({ code: code });
-      toast.remove(linkSpotify);
+      toast.dismiss(linkSpotify);
+      if (
+        !credentials.accessToken ||
+        !credentials.refreshToken ||
+        !credentials.expiresAt
+      ) {
+        throw "No Credentials";
+      }
       setAuth({
-        access_token: credentials.access_token,
-        refresh_token: credentials.refresh_token,
-        expires_at: credentials.expires_at,
+        accessToken: credentials.accessToken,
+        refreshToken: credentials.refreshToken,
+        expiresAt: credentials.expiresAt,
       });
       toast.success("Success: Linked Spotify Account", { duration: 4000 });
-      if (!credentials.isPremium) {
+      if (!credentials.streamingEnabled) {
         toast.error("Spotify Premium Required For Streaming");
       }
       await router.replace("/settings", undefined, { shallow: true });
       await updateSession();
       return;
     } catch (error) {
-      toast.remove(linkSpotify);
+      toast.dismiss(linkSpotify);
       if (error instanceof TRPCClientError) {
         toast.error(`Error: ${error.message}`);
       }
@@ -501,7 +508,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
           signal: controller.signal,
         };
       }
-      if (auth.expires_at < Date.now() / 1000) {
+      if (auth.expiresAt < Date.now() / 1000) {
         if (isRefreshing) {
           try {
             const token = await new Promise((resolve, reject) =>
@@ -520,18 +527,18 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
         isRefreshing = true;
         console.log("refreshing spotify auth");
         try {
-          let credentials: { access_token: string; expires_at: number };
-          if (auth.refresh_token) {
+          let credentials: { accessToken: string; expiresAt: number };
+          if (auth.refreshToken) {
             credentials = await refreshSpotifyAuth({
-              refresh_token: auth.refresh_token,
+              refreshToken: auth.refreshToken,
             });
           } else {
             credentials = await fetchSpotifyAuth();
           }
           console.log("refreshed spotify auth");
-          setAuth({ ...credentials, refresh_token: auth.refresh_token });
-          config.headers.Authorization = `Bearer ${credentials.access_token}`;
-          processRequestQueue({ error: null, token: credentials.access_token });
+          setAuth({ ...credentials, refreshToken: auth.refreshToken });
+          config.headers.Authorization = `Bearer ${credentials.accessToken}`;
+          processRequestQueue({ error: null, token: credentials.accessToken });
           isRefreshing = false;
           return config;
         } catch (error) {
@@ -548,7 +555,7 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
         }
       }
       console.log("vaild spotify auth");
-      config.headers.Authorization = `Bearer ${auth.access_token}`;
+      config.headers.Authorization = `Bearer ${auth.accessToken}`;
       return config;
     },
     (error) => {
@@ -587,20 +594,20 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
           }
           isRefreshing = true;
           try {
-            let credentials: { access_token: string; expires_at: number };
-            if (auth.refresh_token) {
+            let credentials: { accessToken: string; expiresAt: number };
+            if (auth.refreshToken) {
               credentials = await refreshSpotifyAuth({
-                refresh_token: auth.refresh_token,
+                refreshToken: auth.refreshToken,
               });
             } else {
               credentials = await fetchSpotifyAuth();
             }
             console.log("refreshed spotify auth");
-            setAuth({ ...credentials, refresh_token: auth.refresh_token });
-            originalRequest.headers.Authorization = `Bearer ${credentials.access_token}`;
+            setAuth({ ...credentials, refreshToken: auth.refreshToken });
+            originalRequest.headers.Authorization = `Bearer ${credentials.accessToken}`;
             processRequestQueue({
               error: null,
-              token: credentials.access_token,
+              token: credentials.accessToken,
             });
             isRefreshing = false;
             return client(originalRequest);
@@ -621,27 +628,27 @@ const SpotifyProvider: React.FC<SpotifyProviderProps> = ({ children }) => {
   const initSpotifyClientCredentialsAuth = async () => {
     const credentials = await fetchSpotifyAuth();
     setAuth({
-      access_token: credentials.access_token,
-      expires_at: credentials.expires_at,
+      accessToken: credentials.accessToken,
+      expiresAt: credentials.expiresAt,
     });
   };
 
   useEffect(() => {
     if (sessionStatus === "loading") return;
 
-    const credentials = session?.user.linkedAccounts.find(
-      (account) => account.provider === "spotify"
-    );
-
-    if (!credentials) {
+    if (
+      !session?.user.accessToken ||
+      !session?.user.refreshToken ||
+      !session?.user.expiresAt
+    ) {
       void initSpotifyClientCredentialsAuth();
       return;
     }
 
     setAuth({
-      access_token: credentials.access_token,
-      refresh_token: credentials.refresh_token,
-      expires_at: credentials.expires_at,
+      accessToken: session?.user.accessToken,
+      refreshToken: session?.user.refreshToken,
+      expiresAt: session?.user.expiresAt,
     });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps

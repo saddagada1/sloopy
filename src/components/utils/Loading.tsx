@@ -9,7 +9,7 @@ const Loading: React.FC<HTMLAttributes<HTMLDivElement>> = ({ ...props }) => {
     <div
       {...rest}
       className={cn(
-        "flex h-full w-full flex-1 items-center justify-center",
+        "section flex h-full w-full flex-1 items-center justify-center",
         className
       )}
     >

@@ -25,6 +25,7 @@ model Sloop {
   mode          Int          @default(0)
   tempo         Float        @default(80)
   timeSignature Int          @default(4)
+  tuning        Int          @default(0)
   loops         Json
   isPrivate     Boolean      @default(true)
   userId        String
@@ -47,14 +48,14 @@ model Sloop {
 }
 
 model Track {
-  id           String        @id
-  type         String
-  name         String        @db.Text
-  image        String?       @db.Text
-  sloops       Sloop[]
-  artists      Artist[]
-  rankedTrack  RankedTrack?
-  createdAt    DateTime      @default(now())
+  id          String       @id
+  type        String
+  name        String       @db.Text
+  image       String?      @db.Text
+  sloops      Sloop[]
+  artists     Artist[]
+  rankedTrack RankedTrack?
+  createdAt   DateTime     @default(now())
 
   @@fulltext([name])
 }
@@ -73,9 +74,9 @@ model Artist {
 }
 
 model Play {
-  id        String      @id @default(cuid())
+  id        String   @id @default(cuid())
   sloopId   String
-  userId    String 
+  userId    String
   count     Int      @default(0)
   sloop     Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -88,7 +89,7 @@ model Play {
 }
 
 model Like {
-  id        String      @id @default(cuid())
+  id        String   @id @default(cuid())
   sloopId   String
   userId    String
   sloop     Sloop    @relation(fields: [sloopId], references: [id], onDelete: Cascade)
@@ -164,62 +165,62 @@ model RankedSloop {
 }
 
 model TrackPlayCount {
-  id        String       @id @default(cuid())
+  id        String      @id @default(cuid())
   trackId   String
   track     RankedTrack @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
   playCount Int
-  createdAt DateTime     @default(now())
+  createdAt DateTime    @default(now())
 
   @@index([trackId])
   @@index([playCount])
 }
 
 model TrackRank {
-  id        String       @id @default(cuid())
+  id        String      @id @default(cuid())
   trackId   String
   track     RankedTrack @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
   rank      Float
-  createdAt DateTime     @default(now())
+  createdAt DateTime    @default(now())
 
   @@index([trackId])
   @@index([rank])
 }
 
 model TrackLikeCount {
-  id        String       @id @default(cuid())
+  id        String      @id @default(cuid())
   trackId   String
   track     RankedTrack @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
   likeCount Int
-  createdAt DateTime     @default(now())
+  createdAt DateTime    @default(now())
 
   @@index([trackId])
   @@index([likeCount])
 }
 
 model TrackLikeRank {
-  id        String       @id @default(cuid())
+  id        String      @id @default(cuid())
   trackId   String
   track     RankedTrack @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
   likeRank  Float
-  createdAt DateTime     @default(now())
+  createdAt DateTime    @default(now())
 
   @@index([trackId])
   @@index([likeRank])
 }
 
 model RankedTrack {
-  trackId        String            @id
-  track          Track             @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  plays          Int               @default(0)
-  likes          Int               @default(0)
-  rank           Float             @default(0)
-  likeRank       Float             @default(0)
+  trackId        String           @id
+  track          Track            @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  plays          Int              @default(0)
+  likes          Int              @default(0)
+  rank           Float            @default(0)
+  likeRank       Float            @default(0)
   pastRanks      TrackRank[]
   pastPlayCounts TrackPlayCount[]
   pastLikeRanks  TrackLikeRank[]
   pastLikeCounts TrackLikeCount[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@index([trackId])
   @@index([rank])
@@ -288,7 +289,7 @@ model RankedArtist {
 }
 
 model Follow {
-  id         String      @id @default(cuid())
+  id         String   @id @default(cuid())
   followedId String
   followerId String
   followed   User     @relation("followers", fields: [followedId], references: [id], onDelete: Cascade)
@@ -298,23 +299,6 @@ model Follow {
   @@unique([followedId, followerId])
   @@index([followedId])
   @@index([followerId])
-}
-
-model LinkedAccount {
-  id                String  @id @default(cuid())
-  userId            String
-  provider          String
-  providerAccountId String
-  refresh_token     String  @db.Text
-  access_token      String  @db.Text
-  expires_at        Int
-  token_type        String
-  isPremium         Boolean
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@unique([userId, provider])
-  @@index([userId])
 }
 
 // Necessary for Next auth
@@ -348,28 +332,32 @@ model Session {
 }
 
 model User {
-  id             String          @id @default(cuid())
-  name           String?         @db.Text
-  bio            String?         @db.Text
-  username       String          @unique @db.VarChar(255)
-  email          String          @unique @db.VarChar(320)
-  verified       Boolean         @default(false)
-  emailVerified  DateTime?
-  password       String?
-  image          String?         @db.Text
-  accounts       Account[]
-  sessions       Session[]
-  linkedAccounts LinkedAccount[]
-  sloopsCount    Int             @default(0)
-  sloops         Sloop[]
-  followersCount Int             @default(0)
-  followingCount Int             @default(0)
-  followers      Follow[]        @relation("followers")
-  following      Follow[]        @relation("following")
-  likes          Like[]
-  plays          Play[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id               String    @id @default(cuid())
+  name             String?   @db.Text
+  bio              String?   @db.Text
+  username         String    @unique @db.VarChar(255)
+  email            String    @unique @db.VarChar(320)
+  verified         Boolean   @default(false)
+  emailVerified    DateTime?
+  spotifyId        String?
+  refreshToken     String?   @db.Text
+  accessToken      String?   @db.Text
+  expiresAt        Int?
+  streamingEnabled Boolean   @default(false)
+  password         String?
+  image            String?   @db.Text
+  accounts         Account[]
+  sessions         Session[]
+  sloopsCount      Int       @default(0)
+  sloops           Sloop[]
+  followersCount   Int       @default(0)
+  followingCount   Int       @default(0)
+  followers        Follow[]  @relation("followers")
+  following        Follow[]  @relation("following")
+  likes            Like[]
+  plays            Play[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@unique([id, username])
   @@unique([id, email])

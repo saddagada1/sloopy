@@ -1,37 +1,66 @@
-import { useState, type Dispatch, type SetStateAction, useMemo } from "react";
-import Modal from "../ui/Modal";
-import StyledTitle from "../ui/form/StyledTitle";
-import Select from "../ui/Select";
-import StyledLabel from "../ui/form/StyledLabel";
+import { useState, useMemo, type HTMLAttributes } from "react";
 import { mode, pitchClass } from "~/utils/constants";
 import { type Chords } from "~/utils/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import chordsData from "public/chords.json";
+import { zodResolver } from "@hookform/resolvers/zod";
+import z from "zod";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
+import { cn } from "~/utils/shadcn/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Combobox } from "../ui/combobox";
+import { useEditorContext } from "~/contexts/editor";
 
-interface CreateLoopModalProps {
-  chords: Chords;
-  setVisible: Dispatch<SetStateAction<boolean>>;
-  onCreate?: ({
-    key,
-    mode,
-    chord,
-  }: {
-    key: number;
-    mode: number;
-    chord: string;
-  }) => void;
+const chords = chordsData as Chords;
+
+interface CreateLoopModalProps extends HTMLAttributes<HTMLButtonElement> {
+  small?: boolean;
 }
 
+const formSchema = z.object({
+  key: z.number().min(0).max(11),
+  mode: z.number().min(0).max(1),
+  chord: z.string().min(1, { message: "Required" }),
+});
+
 const CreateLoopModal: React.FC<CreateLoopModalProps> = ({
-  chords,
-  setVisible,
-  onCreate,
+  small,
+  ...props
 }) => {
-  const [selectedKey, setSelectedKey] = useState(0);
-  const [selectedMode, setSelectedMode] = useState(1);
-  const [selectedChord, setSelectedChord] = useState("C");
-  const [isSelecting, setIsSelecting] = useState(false);
+  const { className, ...rest } = props;
+  const [open, setOpen] = useState(false);
+  const editor = useEditorContext();
+  const [selectedKey, setSelectedKey] = useState<number | undefined>();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
 
   const chordsForKey = useMemo(() => {
-    setSelectedChord(pitchClass[selectedKey]!);
+    if (selectedKey === undefined) return;
     return Object.keys(chords)
       .filter((key) => {
         const keyRegex = new RegExp(`^${pitchClass[selectedKey]}`);
@@ -44,71 +73,133 @@ const CreateLoopModal: React.FC<CreateLoopModalProps> = ({
           value: chord,
         };
       });
-  }, [selectedKey, chords]);
+  }, [selectedKey]);
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    editor.createLoop(values);
+    setOpen(false);
+  };
 
   return (
     <>
-      <Modal setVisible={setVisible} disabled={isSelecting}>
-        <StyledTitle title="Create Loop" />
-        <StyledLabel label="Key" />
-        <Select
-          data={Object.keys(pitchClass).map((key) => {
-            return { label: pitchClass[parseInt(key)]!, value: key };
-          })}
-          value={pitchClass[selectedKey]!}
-          onSelect={({ value }) => {
-            setSelectedKey(parseInt(value));
-            setIsSelecting(false);
-          }}
-          onSelectFocus={(isOpen) => setIsSelecting(isOpen)}
-        />
-        <StyledLabel label="Mode" />
-        <Select
-          data={Object.keys(mode).map((key) => {
-            return { label: mode[parseInt(key)]!, value: key };
-          })}
-          value={mode[selectedMode]!}
-          onSelect={({ value }) => {
-            setSelectedMode(parseInt(value));
-            setIsSelecting(false);
-          }}
-          onSelectFocus={(isOpen) => setIsSelecting(isOpen)}
-        />
-        <StyledLabel label="Chord" />
-        <Select
-          data={chordsForKey}
-          value={selectedChord}
-          onSelect={({ value }) => {
-            setSelectedChord(value);
-            setIsSelecting(false);
-          }}
-          onSelectFocus={(isOpen) => setIsSelecting(isOpen)}
-          searchable
-        />
-        <div className="mt-2 flex w-full gap-2 font-display text-base font-bold sm:text-lg">
-          <button
-            onClick={() => !isSelecting && setVisible(false)}
-            className="flex h-14 flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200"
+      <Dialog
+        modal={false}
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          form.reset();
+        }}
+      >
+        <DialogTrigger asChild>
+          <Button
+            {...rest}
+            className={cn("mono", small && "w-full", className)}
           >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              if (isSelecting) return;
-              onCreate &&
-                onCreate({
-                  key: selectedKey,
-                  mode: selectedMode,
-                  chord: selectedChord,
-                });
-              setVisible(false);
-            }}
-            className="flex h-14 flex-1 items-center justify-center rounded-md bg-secondary text-primary"
-          >
-            Create
-          </button>
-        </div>
-      </Modal>
+            {small ? "New" : "Create Loop"}
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <Form {...form}>
+            <form
+              className="space-y-8"
+              // eslint-disable-next-line @typescript-eslint/no-misused-promises
+              onSubmit={form.handleSubmit(onSubmit)}
+            >
+              <DialogHeader>
+                <DialogTitle>Create Loop</DialogTitle>
+                <DialogDescription>
+                  Create a new loop section.
+                </DialogDescription>
+              </DialogHeader>
+              <FormField
+                control={form.control}
+                name="key"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between">
+                      <FormLabel>Key</FormLabel>
+                      <FormMessage />
+                    </div>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(parseInt(value));
+                        setSelectedKey(parseInt(value));
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a key" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.keys(pitchClass).map((key, index) => (
+                          <SelectItem key={index} value={key}>
+                            {pitchClass[parseInt(key)]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mode"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between">
+                      <FormLabel>Mode</FormLabel>
+                      <FormMessage />
+                    </div>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a mode" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.keys(mode).map((key, index) => (
+                          <SelectItem key={index} value={key}>
+                            {mode[parseInt(key)]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="chord"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between">
+                      <FormLabel>Chord</FormLabel>
+                      <FormMessage />
+                    </div>
+                    <FormControl>
+                      <Combobox
+                        key={selectedKey}
+                        data={chordsForKey}
+                        placeholder="Select a chord"
+                        onSelect={(item) => field.onChange(item.value)}
+                        searchFirst
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" className="mono">
+                  Create
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

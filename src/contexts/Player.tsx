@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { useSpotifyWebSDK } from "~/utils/hooks";
 import { type Loop } from "~/utils/types";
-import { useSpotifyContext } from "./Spotify";
+import { useSpotifyContext } from "./spotify";
 import { api } from "~/utils/api";
 
 export interface PlayerValues {
@@ -42,7 +42,7 @@ const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
   const { mutateAsync: refreshSpotifyAuth } =
     api.spotify.refreshSpotifyAuth.useMutation();
   const { player, isReady, error, deviceId } = useSpotifyWebSDK(
-    spotify.auth?.access_token
+    spotify.auth?.accessToken
   );
   const [loops, setLoops] = useState<Loop[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -88,17 +88,17 @@ const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
 
     const refresh = async (refresh_token: string) => {
       const credentials = await refreshSpotifyAuth({
-        refresh_token: refresh_token,
+        refreshToken: refresh_token,
       });
       console.log("refreshed spotify auth");
-      spotify.setAuth({ ...credentials, refresh_token: refresh_token });
+      spotify.setAuth({ ...credentials, refreshToken: refresh_token });
     };
 
     if (
-      spotify.auth.refresh_token &&
-      spotify.auth.expires_at < Date.now() / 1000
+      spotify.auth.refreshToken &&
+      spotify.auth.expiresAt < Date.now() / 1000
     ) {
-      void refresh(spotify.auth.refresh_token);
+      void refresh(spotify.auth.refreshToken);
       return;
     }
 

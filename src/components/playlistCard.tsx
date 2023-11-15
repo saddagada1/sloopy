@@ -1,7 +1,7 @@
 import Link from "next/link";
 import SafeImage from "./safeImage";
 import { type Playlist as SpotifyPlaylist } from "spotify-types";
-import { type Playlist } from "~/contexts/Spotify";
+import { type Playlist } from "~/contexts/spotify";
 import { Button } from "./ui/button";
 import React, { type HTMLAttributes } from "react";
 import { cn } from "~/utils/shadcn/utils";

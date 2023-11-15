@@ -14,7 +14,7 @@ import {
 import { v4 } from "uuid";
 import { FORGOT_PASSWORD_PREFIX, VERIFY_EMAIL_PREFIX } from "~/utils/constants";
 import { redis } from "~/utils/upstash";
-import { deleteObject, getObject, uploadObject } from "~/utils/s3";
+import { deleteObject, uploadObject } from "~/utils/s3";
 
 export const usersRouter = createTRPCRouter({
   getSessionUser: protectedProcedure.query(async ({ ctx }) => {
@@ -23,9 +23,11 @@ export const usersRouter = createTRPCRouter({
         where: { id: ctx.session.user.id },
         select: {
           name: true,
+          email: true,
           image: true,
           username: true,
           bio: true,
+          verified: true,
           sloopsCount: true,
           followersCount: true,
           followingCount: true,
@@ -65,10 +67,6 @@ export const usersRouter = createTRPCRouter({
             },
           },
         });
-        if (user?.image) {
-          const url = await getObject(user.image);
-          user.image = url;
-        }
         return user;
       } catch (error) {
         throw new TRPCError({
@@ -397,12 +395,10 @@ export const usersRouter = createTRPCRouter({
 
       if (duplicate) {
         return {
-          errors: [
-            {
-              field: "email",
-              message: "Email In Use",
-            },
-          ],
+          error: {
+            field: "email",
+            message: "Email In Use",
+          },
         };
       }
 
@@ -421,46 +417,6 @@ export const usersRouter = createTRPCRouter({
       }
     }),
 
-  changeImage: protectedProcedure.mutation(async ({ ctx }) => {
-    try {
-      let image: string;
-      if (ctx.session.user.image) {
-        image = ctx.session.user.image;
-      } else {
-        image = v4();
-      }
-      await ctx.prisma.user.update({
-        where: { id: ctx.session.user.id },
-        data: { image: image },
-      });
-      const url = await uploadObject(image);
-      return url;
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Could Not Update Profile Image",
-      });
-    }
-  }),
-
-  deleteImage: protectedProcedure.mutation(async ({ ctx }) => {
-    try {
-      if (!ctx.session.user.image) {
-        throw "No Image";
-      }
-      await ctx.prisma.user.update({
-        where: { id: ctx.session.user.id },
-        data: { image: null },
-      });
-      await deleteObject(ctx.session.user.image);
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Could Not Delete Profile Image",
-      });
-    }
-  }),
-
   changeUsername: protectedProcedure
     .input(
       z.object({
@@ -478,12 +434,10 @@ export const usersRouter = createTRPCRouter({
 
       if (duplicate) {
         return {
-          errors: [
-            {
-              field: "username",
-              message: "Username In Use",
-            },
-          ],
+          error: {
+            field: "username",
+            message: "Username In Use",
+          },
         };
       }
 
@@ -623,6 +577,46 @@ export const usersRouter = createTRPCRouter({
         });
       }
     }),
+
+  changeImage: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      let image: string;
+      if (ctx.session.user.image) {
+        image = ctx.session.user.image;
+      } else {
+        image = v4();
+      }
+      await ctx.prisma.user.update({
+        where: { id: ctx.session.user.id },
+        data: { image: image },
+      });
+      const url = await uploadObject(image);
+      return { url, image };
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could Not Update Profile Image",
+      });
+    }
+  }),
+
+  deleteImage: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      if (!ctx.session.user.image) {
+        throw "No Image";
+      }
+      await ctx.prisma.user.update({
+        where: { id: ctx.session.user.id },
+        data: { image: null },
+      });
+      await deleteObject(ctx.session.user.image);
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could Not Delete Profile Image",
+      });
+    }
+  }),
 
   follow: protectedProcedure
     .input(z.object({ id: z.string() }))

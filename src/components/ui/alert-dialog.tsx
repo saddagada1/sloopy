@@ -3,17 +3,6 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "~/utils/shadcn/utils";
 import { buttonVariants } from "~/components/ui/button";
-import { Syne, Inter, JetBrains_Mono } from "next/font/google";
-
-const display = Syne({
-  subsets: ["latin"],
-  variable: "--font-display",
-});
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
@@ -45,11 +34,8 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-11/12 max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-md border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
-        className,
-        display.variable,
-        sans.variable,
-        mono.variable
+        "fixed left-[50%] top-[50%] z-50 grid w-11/12 max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-md border bg-background p-4 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        className
       )}
       {...props}
     />
@@ -91,7 +77,7 @@ const AlertDialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold", className)}
+    className={cn("title", className)}
     {...props}
   />
 ));
@@ -103,7 +89,7 @@ const AlertDialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("mono text-muted-foreground", className)}
     {...props}
   />
 ));

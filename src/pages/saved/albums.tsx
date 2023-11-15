@@ -1,9 +1,9 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { NextPage } from "next";
 import Head from "next/head";
-import ErrorView from "~/components/utils/ErrorView";
+import ErrorView from "~/components/utils/errorView";
 import Loading from "~/components/utils/loading";
-import { useSpotifyContext } from "~/contexts/Spotify";
+import { useSpotifyContext } from "~/contexts/spotify";
 import Marquee from "~/components/marquee";
 import InfinitePagination from "~/components/infinitePagination";
 import { useMemo, useRef } from "react";

@@ -2,13 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem } from "~/components/ui/form";
-import { type FormHTMLAttributes } from "react";
-import { cn } from "~/utils/shadcn/utils";
+import { type HTMLAttributes } from "react";
 import { useRouter } from "next/router";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
-interface SearchInputProps extends FormHTMLAttributes<HTMLFormElement> {
+interface SearchInputProps extends HTMLAttributes<HTMLInputElement> {
   renderButton?: boolean;
 }
 
@@ -21,7 +20,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
   ...props
 }) => {
   const router = useRouter();
-  const { className, ...rest } = props;
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -38,8 +36,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       <form
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onSubmit={form.handleSubmit(onSubmit)}
-        {...rest}
-        className={cn("hidden gap-2 lg:flex", className)}
+        className="flex gap-2"
       >
         <FormField
           control={form.control}
@@ -48,6 +45,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
             <FormItem className="w-full">
               <FormControl>
                 <Input
+                  // className="h-full"
+                  {...props}
                   placeholder="Search for sloops, users, tracks, artists..."
                   {...field}
                 />

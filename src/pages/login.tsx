@@ -1,25 +1,31 @@
-import { Form, Formik, type FormikHelpers } from "formik";
 import type { NextPage } from "next";
 import Head from "next/head";
-import * as yup from "yup";
-import StyledLabel from "~/components/ui/form/StyledLabel";
-import StyledField from "~/components/ui/form/StyledField";
-import StyledTitle from "~/components/ui/form/StyledTitle";
-import StyledLoadingButton from "~/components/ui/form/StyledLoadingButton";
-import StyledLink from "~/components/ui/form/StyledLink";
-import OAuthButtons from "~/components/ui/form/OAuthButtons";
-import { signIn } from "next-auth/react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import z from "zod";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormLink,
+  FormMessage,
+} from "~/components/ui/form";
+import { Input } from "~/components/ui/input";
+import { Button, ButtonLoading } from "~/components/ui/button";
+import OAuthButtons from "~/components/ui/oauth";
 import { useRouter } from "next/router";
-import WithoutAuth from "~/components/utils/WithoutAuth";
-import toast from "react-hot-toast";
 import { useEffect } from "react";
+import { toast } from "sonner";
+import { signIn } from "next-auth/react";
 
-interface LoginValues {
-  email: string;
-  password: string;
-}
+const formSchema = z.object({
+  email: z.string().email({ message: "Invalid Email" }),
+  password: z.string().min(1, { message: "Required" }),
+});
 
-const Login: NextPage = ({}) => {
+const LoginForm: React.FC = () => {
   const router = useRouter();
 
   useEffect(() => {
@@ -31,84 +37,106 @@ const Login: NextPage = ({}) => {
       }
     }
   }, [router.query.error]);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const response = await signIn("credentials", {
+      redirect: false,
+      email: values.email,
+      password: values.password,
+    });
+    if (response?.ok) {
+      if (
+        router.query.callbackUrl &&
+        typeof router.query.callbackUrl === "string"
+      ) {
+        void router.push(router.query.callbackUrl);
+      } else {
+        void router.push("/");
+      }
+    } else {
+      form.setError("email", {
+        type: "manual",
+        message: response?.error as string | undefined,
+      });
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="w-full max-w-[600px] space-y-8 text-right"
+      >
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <div className="flex justify-between">
+                <FormLabel>Email</FormLabel>
+                <FormMessage />
+              </div>
+              <FormControl>
+                <Input placeholder="sloopy@acme.ca" {...field} type="email" />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <div className="flex justify-between">
+                <FormLabel>Password</FormLabel>
+                <FormMessage />
+              </div>
+              <FormControl>
+                <Input placeholder="********" {...field} type="password" />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        <FormLink href="/forgot-password">Forgot Password?</FormLink>
+        {form.formState.isSubmitting ? (
+          <ButtonLoading className="mono w-full" />
+        ) : (
+          <Button className="mono w-full" type="submit">
+            Login
+          </Button>
+        )}
+      </form>
+    </Form>
+  );
+};
+
+const Login: NextPage = ({}) => {
   return (
     <>
       <Head>
         <title>Sloopy - Login</title>
       </Head>
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6">
-        <Formik
-          initialValues={{
-            email: "",
-            password: "",
-          }}
-          validationSchema={yup.object().shape({
-            email: yup.string().email("Invalid Format").required("Required"),
-          })}
-          onSubmit={async (
-            values: LoginValues,
-            { setErrors }: FormikHelpers<LoginValues>
-          ) => {
-            const response = await signIn("credentials", {
-              redirect: false,
-              email: values.email,
-              password: values.password,
-            });
-            if (response?.ok) {
-              void router.push("/");
-            } else {
-              setErrors({ email: response!.error! });
-            }
-          }}
-        >
-          {({ errors, touched, isSubmitting }) => (
-            <Form className="w-full">
-              <StyledTitle title="login" />
-              <StyledLabel
-                label="Email"
-                error={errors.email}
-                touched={touched.email}
-              />
-              <StyledField
-                id="email"
-                name="email"
-                placeholder="sloopy@acme.ca"
-                type="email"
-              />
-              <StyledLabel
-                label="Password"
-                error={errors.password}
-                touched={touched.password}
-              />
-              <StyledField
-                id="password"
-                name="password"
-                placeholder="********"
-                type="password"
-                style={{ marginBottom: "6px" }}
-              />
-              <StyledLink
-                label="Forgotten Password?"
-                href="/forgot-password"
-                style={{ textAlign: "right", marginBottom: "24px" }}
-              />
-              <StyledLoadingButton
-                label="login"
-                loading={isSubmitting}
-                disabled={isSubmitting}
-              />
-            </Form>
-          )}
-        </Formik>
-        <OAuthButtons />
-        <StyledLink
-          label="Don't have an account? Register!"
-          href="/register"
-          style={{ textAlign: "center" }}
-        />
-      </div>
+      <main className="section flex flex-1 flex-col text-center">
+        <h1 className="section-label flex-none">Login</h1>
+        <div className="flex flex-1 flex-col items-center justify-center">
+          <LoginForm />
+          <OAuthButtons />
+          <FormLink href="/sign-up">
+            Don&apos;t have an account? Sign Up!
+          </FormLink>
+        </div>
+      </main>
     </>
   );
 };
 
-export default WithoutAuth(Login);
+export default Login;

@@ -1,56 +1,29 @@
-import clsx from "clsx";
-import { motion } from "framer-motion";
-import { type Dispatch, type SetStateAction, useEffect } from "react";
+import * as React from "react";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
 
-interface PopoverProps {
-  setVisible: Dispatch<SetStateAction<boolean>>;
-  children?: React.ReactNode;
-  className?: string;
-  x?: "left" | "right";
-  y?: "top" | "bottom";
-  animate?: string;
-}
+import { cn } from "~/utils/shadcn/utils";
 
-const Popover: React.FC<PopoverProps> = ({
-  setVisible,
-  children,
-  className,
-  x,
-  y,
-  animate,
-}) => {
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if ((event.target as HTMLElement).closest("button")) {
-        return;
-      }
-      setVisible(false);
-    };
+const Popover = PopoverPrimitive.Root;
 
-    document.addEventListener("click", handleOutsideClick);
+const PopoverTrigger = PopoverPrimitive.Trigger;
 
-    return () => {
-      document.removeEventListener("click", handleOutsideClick);
-    };
-  }, [setVisible]);
-
-  return (
-    <motion.div
-      initial={{ translateY: "0%", opacity: 0 }}
-      animate={{ translateY: animate ?? "-25%", opacity: 1 }}
-      exit={{ translateY: "0%", opacity: 0 }}
-      transition={{ type: "spring", duration: 0.5 }}
-      className={clsx(
-        "absolute z-50 rounded-md border border-gray-300 bg-primary p-2",
-        x === "left" && "right-full",
-        x === "right" && "left-full",
-        y === "top" && "bottom-full",
-        y === "bottom" && "top-full",
+const PopoverContent = React.forwardRef<
+  React.ElementRef<typeof PopoverPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
+>(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+  <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Content
+      ref={ref}
+      align={align}
+      sideOffset={sideOffset}
+      className={cn(
+        "z-50 w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         className
       )}
-    >
-      {children}
-    </motion.div>
-  );
-};
-export default Popover;
+      {...props}
+    />
+  </PopoverPrimitive.Portal>
+));
+PopoverContent.displayName = PopoverPrimitive.Content.displayName;
+
+export { Popover, PopoverTrigger, PopoverContent };

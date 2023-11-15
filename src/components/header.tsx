@@ -14,19 +14,21 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { cn } from "~/utils/shadcn/utils";
 import SafeImage from "./safeImage";
+import { env } from "~/env.mjs";
+import { api } from "~/utils/api";
 
 const UserMenu: React.FC = ({}) => {
-  const { data: session } = useSession();
-
+  const { data: user } = api.users.getSessionUser.useQuery();
+  if (!user) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" className="w-full">
           <SafeImage
-            url={session?.user.image}
-            alt={session?.user.name ?? session?.user.username}
-            width={35}
-            className="aspect-square overflow-hidden rounded-full"
+            url={env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN + user?.image}
+            alt={user?.name ?? user?.username}
+            width={40}
+            className="aspect-square shrink-0 overflow-hidden rounded-full"
           />
         </Button>
       </DropdownMenuTrigger>
@@ -36,8 +38,8 @@ const UserMenu: React.FC = ({}) => {
         forceMount
       >
         <DropdownMenuLabel>
-          <p className="p-lg">{session?.user.name ?? session?.user.username}</p>
-          <p className="p-sm font-normal">{session?.user.email}</p>
+          <p className="p-lg">{user?.name ?? user?.username}</p>
+          <p className="p-sm font-normal">{user?.email}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup className="p-lg">
@@ -78,10 +80,10 @@ const Header: React.FC = ({}) => {
   return (
     <header className="hidden items-center gap-2 lg:flex">
       <div className="section flex-1">
-        <SearchInput renderButton />
+        <SearchInput className="h-full" renderButton />
       </div>
       {sessionStatus !== "loading" && (
-        <div className="section flex items-center justify-center gap-2">
+        <div className="section flex h-full items-center justify-center gap-2">
           {sessionStatus === "authenticated" ? (
             <UserMenu />
           ) : (
@@ -91,17 +93,16 @@ const Header: React.FC = ({}) => {
                 asChild
                 className={cn(
                   "uppercase",
-                  router.pathname === "/register" && "bg-accent"
+                  router.pathname === "/sign-up" && "bg-accent"
                 )}
               >
-                <Link href="/register">Sign Up</Link>
+                <Link href="/sign-up">Sign Up</Link>
               </Button>
               <Button
-                variant="outline"
                 asChild
                 className={cn(
                   "uppercase",
-                  router.pathname === "/login" && "bg-accent"
+                  router.pathname === "/login" && "bg-primary/90"
                 )}
               >
                 <Link href="/login">Login</Link>
