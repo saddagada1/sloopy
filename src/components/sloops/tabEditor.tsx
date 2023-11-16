@@ -33,8 +33,24 @@ const TabEditor: React.FC = ({}) => {
       : []
   );
   const [selectedTab, setSelectedTab] = useState<number | null>(null);
+  const [clipboard, setClipboard] = useState<string[][]>([]);
   const empty = ["-", "-", "-", "-", "-", "-"];
-  const mods = ["x", "h", "p", "b", "/", "\\"];
+  const mods = [
+    "-",
+    "x",
+    "h",
+    "p",
+    "b",
+    "v",
+    "r",
+    "t",
+    "T",
+    "s",
+    "S",
+    "*",
+    "/",
+    "\\",
+  ];
 
   useEffect(() => {
     if (!editor.playingLoop) return;
@@ -104,9 +120,23 @@ const TabEditor: React.FC = ({}) => {
           <DropdownMenuTrigger asChild>
             <Button className="mono">Edit</Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-fit p-0" align="end" forceMount>
+          <DropdownMenuContent className="w-fit" align="end" forceMount>
             {selectedTab !== null && (
               <>
+                <DropdownMenuItem>
+                  <Button
+                    onClick={() => {
+                      const tab = tabs[selectedTab];
+                      if (!tab) return;
+                      setTabs((curr) => [...curr, tab]);
+                    }}
+                    size="base"
+                    variant="ghost"
+                    className="mono"
+                  >
+                    Duplicate
+                  </Button>
+                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Button
                     onClick={() => {
@@ -117,12 +147,12 @@ const TabEditor: React.FC = ({}) => {
                     }}
                     size="base"
                     variant="ghost"
-                    className="mono rounded-none"
+                    className="mono"
                   >
-                    Delete Row
+                    Delete
                   </Button>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-0" />
+                <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem>
@@ -133,7 +163,7 @@ const TabEditor: React.FC = ({}) => {
                 }}
                 variant="ghost"
                 size="base"
-                className="mono rounded-none hover:bg-destructive hover:text-background"
+                className="mono hover:bg-destructive hover:text-background"
               >
                 Clear
               </Button>
@@ -141,7 +171,50 @@ const TabEditor: React.FC = ({}) => {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <ScrollArea className="section mono flex-1 p-0">
+      <ScrollArea className="section mono relative flex-1 p-0">
+        {clipboard.length > 0 && (
+          <div className="section absolute right-2 top-2 z-10 bg-background">
+            <h1 className="section-label mb-2">Clipboard</h1>
+            <div className="mb-3 flex justify-center gap-2">
+              {clipboard.map((fret, index) => (
+                <div className="text-center" key={index}>
+                  {fret.map((note, i) => (
+                    <p key={i}>{note}</p>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="destructive"
+                className="mono"
+                onClick={() => setClipboard([])}
+              >
+                Clear
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedTab === null) {
+                    toast.error("No tab selected.");
+                    return;
+                  }
+                  setTabs((curr) =>
+                    curr.map((tab, index) => {
+                      if (index === selectedTab) {
+                        return { ...tab, frets: [...tab.frets, ...clipboard] };
+                      }
+                      return tab;
+                    })
+                  );
+                  //setClipboard([])
+                }}
+                className="mono"
+              >
+                Paste
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="space-y-2 p-2">
           {tabs.map((tab, index) => (
             <Carousel
@@ -174,12 +247,12 @@ const TabEditor: React.FC = ({}) => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="p-lg w-fit space-y-2 p-2 font-sans">
-                    {tab.head.map((note, i) => (
+                    {fret.map((note, i) => (
                       <div
                         key={i}
                         className="grid grid-cols-4 items-center gap-2"
                       >
-                        <p>{note.replace("|", "")}</p>
+                        <p>{tab.head[i]?.replace("|", "")}</p>
                         <Select
                           onValueChange={(value) =>
                             setTabs((curr) =>
@@ -201,6 +274,7 @@ const TabEditor: React.FC = ({}) => {
                               })
                             )
                           }
+                          defaultValue={note}
                         >
                           <SelectTrigger className="col-span-3">
                             <SelectValue placeholder="note / mod" />
@@ -228,6 +302,21 @@ const TabEditor: React.FC = ({}) => {
                         </Select>
                       </div>
                     ))}
+                    <PopoverClose asChild>
+                      <Button
+                        onClick={() => {
+                          if (clipboard.length < 10) {
+                            setClipboard((curr) => [...curr, fret]);
+                          } else {
+                            toast.error("Your clipboard is full.");
+                          }
+                        }}
+                        variant="outline"
+                        className="mono w-full"
+                      >
+                        Copy
+                      </Button>
+                    </PopoverClose>
                     <PopoverClose asChild>
                       <Button
                         onClick={() =>

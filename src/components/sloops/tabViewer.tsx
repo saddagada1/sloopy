@@ -22,7 +22,7 @@ const TabViewer: React.FC<TabViewerProps> = ({ tabs }) => {
               ))}
             </div>
             {tab.frets.map((fret, fretIndex) => (
-              <div key={fretIndex} className='"w-fit flex-col'>
+              <div key={fretIndex} className="w-fit flex-col px-1 text-center">
                 {fret.map((note, i) => (
                   <p key={i}>{note}</p>
                 ))}

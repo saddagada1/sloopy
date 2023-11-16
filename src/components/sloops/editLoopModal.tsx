@@ -31,6 +31,7 @@ import {
 import { Combobox } from "../ui/combobox";
 import { useEditorContext } from "~/contexts/editor";
 import { Settings2 } from "lucide-react";
+import ConfirmModal from "./confirmModal";
 
 const chords = chordsData as unknown as Chords;
 
@@ -194,6 +195,22 @@ const EditLoopModal: React.FC<EditLoopModalProps> = ({ loop, ...props }) => {
                 )}
               />
               <DialogFooter>
+                <ConfirmModal
+                  message="This action cannot be undone. This will permanently
+                  delete your loop and remove the data from our servers."
+                  withTrigger
+                  trigger={
+                    <Button variant="destructive" className="mono">
+                      Delete
+                    </Button>
+                  }
+                  confirmLabel="Delete"
+                  onConfirm={() => {
+                    editor.deleteLoop(loop);
+                    setOpen(false);
+                  }}
+                  confirmDestructive
+                />
                 <Button type="submit" className="mono">
                   Save
                 </Button>

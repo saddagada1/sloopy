@@ -8,7 +8,7 @@ import React, {
   useEffect,
 } from "react";
 import { useSpotifyWebSDK } from "~/utils/hooks";
-import { type SloopGeneralInfo, type Loop } from "~/utils/types";
+import { type SloopGeneralInfo, type Loop, type Tab } from "~/utils/types";
 import { useSpotifyContext } from "./spotify";
 import { api } from "~/utils/api";
 
@@ -42,6 +42,7 @@ export interface EditorValues {
   handlePlayingLoop: (position: number) => void;
   updateLoop: (updatedLoop: Loop) => void;
   deleteLoop: (deletedLoop: Loop) => void;
+  updateTuning: (tuning: string[]) => void;
 }
 
 const EditorContext = createContext<EditorValues>(null!);
@@ -208,6 +209,29 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setLoops(update);
   };
 
+  const updateTuning = (tuning: string[]) => {
+    const update = loops.map((loop) => {
+      const tabs = JSON.parse(loop.composition) as Tab[];
+      return {
+        ...loop,
+        composition: JSON.stringify(
+          tabs.map((tab) => ({
+            ...tab,
+            head: tuning.map((note) =>
+              note.length > 1 ? `${note}|` : `${note} |`
+            ),
+          }))
+        ),
+      };
+    });
+    if (playingLoop) {
+      const playingUpdate = update.find((loop) => loop.id === playingLoop.id);
+      if (!playingUpdate) return;
+      setPlayingLoop(playingUpdate);
+    }
+    setLoops(update);
+  };
+
   useEffect(() => {
     if (!sloop) return;
 
@@ -218,7 +242,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         loops,
       };
       const update = JSON.stringify(updatedSloop);
-      localStorage.setItem(`sloop`, update);
+      localStorage.setItem(sloop.id, update);
     };
 
     autoSave();
@@ -270,6 +294,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         handlePlayingLoop,
         updateLoop,
         deleteLoop,
+        updateTuning,
       }}
     >
       {children}
