@@ -1,9 +1,18 @@
 import { env } from "~/env.mjs";
+import { type Tuning } from "./types";
 
-export const primaryColour = "#f2f2f2";
-export const secondaryColour = "#151515";
-export const accentColour = "#d1d5db";
-export const darkAccentColour = "#d1d5db80";
+export const tuning: Record<number, Tuning> = {
+  0: { name: "Standard", notes: ["E", "A", "D", "G", "B", "E"] },
+  1: { name: "0.5 Down", notes: ["D#", "G#", "C#", "F#", "A#", "D#"] },
+  2: { name: "1 Down", notes: ["D", "G", "C", "F", "A", "D"] },
+  3: { name: "1.5 Down", notes: ["C#", "F#", "B", "E", "G#", "C#"] },
+  4: { name: "Drop D", notes: ["D", "A", "D", "G", "B", "E"] },
+  5: { name: "Drop C#", notes: ["C#", "G#", "C#", "F#", "A#", "D#"] },
+  6: { name: "Drop C", notes: ["C", "G", "C", "F", "A", "D"] },
+  7: { name: "Open G", notes: ["D", "G", "D", "G", "B", "D"] },
+  8: { name: "Open F", notes: ["F", "A", "C", "F", "C", "F"] },
+  9: { name: "DADGAD", notes: ["D", "A", "D", "G", "A", "D"] },
+};
 
 export const timeSignature: Record<number, string> = {
   3: "3/4",
@@ -34,18 +43,18 @@ export const pitchClass: Record<number, string> = {
 };
 
 export const pitchClassColours: Record<number, string> = {
-  0: "#ff0000",
-  1: "#ff5200",
-  2: "#ffa500",
-  3: "#ffd200",
-  4: "#ffff00",
-  5: "#66ff00",
-  6: "#33ff80",
-  7: "#00ffff",
-  8: "#0080ff",
-  9: "#0000ff",
-  10: "#8000ff",
-  11: "#ff00ff",
+  0: "#ef4444",
+  1: "#f97316",
+  2: "#eab308",
+  3: "#84cc16",
+  4: "#22c55e",
+  5: "#14b8a6",
+  6: "#06b6d4",
+  7: "#3b82f6",
+  8: "#8b5cf6",
+  9: "#d946ef",
+  10: "#ec4899",
+  11: "#f43f5e",
 };
 
 export const spotifyScopes = `user-read-email user-read-private user-library-read user-library-modify 
@@ -72,6 +81,14 @@ export const TRENDING_TOPIC = "update-ranks";
 export const LOVED_TOPIC = "update-like-ranks";
 
 export const paginationLimit = 50;
+
+export const lgBreakpoint = 1024;
+
+export const lgCardSize = 150;
+
+export const smCardSize = 125;
+
+export const colourMod = "CC";
 
 export const alwaysRefetch = {
   refetchOnWindowFocus: true,

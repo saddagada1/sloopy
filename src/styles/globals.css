@@ -2,19 +2,131 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --primary-colour: #f2f2f2;
-  --secondary-colour: #151515;
-  --accent-colour: #d1d5db;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+  }
 }
 
-body {
-  background-color: var(--primary-colour);
-  color: var(--secondary-colour);
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .p {
+    @apply text-xs sm:text-sm;
+  }
+  .p-lg {
+    @apply text-right text-xs font-medium sm:text-sm lg:text-left;
+  }
+  .p-sm {
+    @apply text-xs text-muted-foreground;
+  }
+  .p-xs {
+    @apply text-xxs text-muted-foreground;
+  }
+  .t1 {
+    @apply mb-8 font-display text-4xl font-bold leading-tight lg:text-5xl;
+  }
+  .t2 {
+    @apply font-display text-3xl font-bold leading-tight;
+  }
+  .t3 {
+    @apply font-display text-2xl font-bold leading-tight;
+  }
+  .t4 {
+    @apply font-display font-bold leading-tight sm:text-lg lg:text-xl;
+  }
+  .title {
+    @apply font-mono text-base font-medium uppercase tracking-tight lg:text-xl;
+  }
+  .marquee-text {
+    @apply text-7xl font-black uppercase lg:text-9xl;
+  }
+  .section-label {
+    @apply mb-2 w-full flex-1 text-left font-mono text-xs uppercase leading-tight text-muted-foreground lg:mb-8 lg:text-sm lg:font-medium;
+  }
+  .section {
+    @apply rounded-md border p-2;
+  }
+  .num-lg {
+    @apply w-full text-right font-mono text-3xl font-normal leading-tight tracking-tight;
+  }
+  .num-sm {
+    @apply w-full text-right font-mono text-xl font-normal leading-tight tracking-tight;
+  }
+  .mono {
+    @apply font-mono text-xs uppercase tracking-tight sm:text-sm;
+  }
 }
 
 * {
   -webkit-tap-highlight-color: rgba(255, 255, 255, 0) !important;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 *::selection {
@@ -22,67 +134,27 @@ body {
   color: var(--primary-colour);
 }
 
-.no-scrollbar::-webkit-scrollbar {
+*::-webkit-scrollbar {
   display: none;
 }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.filler {
+  background: hsl(var(--background))
+    radial-gradient(hsl(var(--muted-foreground)) 10%, transparent 1%);
+  background-size: 10px 10px;
 }
 
-.grain {
-  background-image: url("../../public/1k_Dissolve_Noise_Texture.png");
-  height: 100%;
-  width: 100%;
-  top: 0;
-  left: 0;
-  position: absolute;
-  pointer-events: none;
+.marquee {
+  width: fit-content;
+  white-space: nowrap;
+  animation: marquee 5s linear infinite;
 }
 
-.anim-grain {
-  background-image: url("../../public/1k_Dissolve_Noise_Texture.png");
-  height: 300%;
-  width: 300%;
-  position: absolute;
-  pointer-events: none;
-  animation: grain 4s steps(5) infinite;
-}
-
-@keyframes grain {
-  0%,
-  100% {
-    transform: translate(-15%, -20%);
-  }
-  10% {
-    transform: translate(-5%, -10%);
-  }
-  20% {
-    transform: translate(-15%, -20%);
-  }
-  30% {
-    transform: translate(-5%, -10%);
-  }
-  40% {
-    transform: translate(-15%, -20%);
-  }
-  50% {
-    transform: translate(-5%, -10%);
-  }
-  60% {
-    transform: translate(-15%, -20%);
-  }
-  70% {
-    transform: translate(-5%, -10%);
-  }
-  80% {
-    transform: translate(-15%, -20%);
-  }
-  90% {
-    transform: translate(-5%, -10%);
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
   }
   100% {
-    transform: translate(-15%, -20%);
+    transform: translateX(-25%);
   }
 }

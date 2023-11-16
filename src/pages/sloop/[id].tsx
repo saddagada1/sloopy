@@ -1,77 +1,74 @@
-import { TRPCClientError } from "@trpc/client";
-import Avatar from "boring-avatars";
-import { AnimatePresence, motion } from "framer-motion";
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
-import toast from "react-hot-toast";
-import {
-  PiCheck,
-  PiHeart,
-  PiHeartFill,
-  PiLink,
-  PiPencilSimpleLine,
-  PiPlayFill,
-  PiShareNetwork,
-  PiTrash,
-} from "react-icons/pi";
-import { useElementSize } from "usehooks-ts";
-import Chord from "~/components/sloops/Chord";
-import LoadingButton from "~/components/ui/LoadingButton";
-import Modal from "~/components/ui/Modal";
-import Popover from "~/components/ui/Popover";
-import StyledTitle from "~/components/ui/form/StyledTitle";
-import ErrorView from "~/components/utils/ErrorView";
-import Loading from "~/components/utils/Loading";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import ErrorView from "~/components/utils/errorView";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
-import { calcRelativeTime, calcSloopColours } from "~/utils/calc";
 import {
+  calcCompactValue,
+  calcRelativeTime,
+  calcSloopColours,
+} from "~/utils/calc";
+import {
+  colourMod,
+  domain,
+  lgBreakpoint,
   mode,
-  paginationLimit,
   pitchClass,
   pitchClassColours,
+  timeSignature,
 } from "~/utils/constants";
-import { type Chords, type Loop } from "~/utils/types";
-import chordsData from "public/chords.json";
-import SafeImage from "~/components/ui/SafeImage";
-import NoData from "~/components/ui/NoData";
-
-const chords = chordsData as unknown as Chords;
+import { type Tab, type Loop } from "~/utils/types";
+import NoData from "~/components/noData";
+import Marquee from "~/components/marquee";
+import ImageSection from "~/components/imageSection";
+import TrackButton from "~/components/trackButton";
+import SpotifyButton from "~/components/spotifyButton";
+import { Button } from "~/components/ui/button";
+import { Heart } from "lucide-react";
+import { cn } from "~/utils/shadcn/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
+import { CheckIcon } from "@radix-ui/react-icons";
+import TabViewer from "~/components/sloops/tabViewer";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { useElementSize, useWindowSize } from "usehooks-ts";
 
 const Sloop: NextPage = ({}) => {
   const router = useRouter();
   const { data: session } = useSession();
-  const [containerRef, { width }] = useElementSize();
+  const [container, { height }] = useElementSize();
+  const { width: windowWidth } = useWindowSize();
+  const [selectedLoop, setSelectedLoop] = useState(0);
   const t3 = api.useContext();
-  const [previewLoop, setPreviewLoop] = useState(0);
-  const [showShare, setShowShare] = useState(false);
   const {
     data: sloop,
     isLoading: fetchingSloop,
     error: sloopError,
-  } = api.sloops.get.useQuery({
-    id: router.query.id as string,
-    getPrivate: router.query.private === "true" ? true : undefined,
-  });
-  const { mutateAsync: like, isLoading: creatingLike } =
-    api.sloops.like.useMutation();
-  const { mutateAsync: unlike, isLoading: deletingLike } =
-    api.sloops.unlike.useMutation();
-  const [showDelete, setShowDelete] = useState(false);
-  const { mutateAsync: deleteSloop, isLoading: deletingSloop } =
-    api.sloops.delete.useMutation();
-
-  const handleLike = async () => {
-    if (!sloop) return;
-    if (!session?.user) {
-      void router.push("/login");
-      return;
-    }
-    try {
-      const response = await like({ id: sloop.id });
+  } = api.sloops.get.useQuery(
+    {
+      id: router.query.id as string,
+      getPrivate: router.query.private === "true" ? true : undefined,
+    },
+    { enabled: typeof router.query.id === "string" }
+  );
+  const { mutateAsync: like, isLoading: liking } = api.sloops.like.useMutation({
+    onMutate: async () => {
+      if (!session || !sloop) return;
+      await t3.sloops.get.cancel({ id: sloop.id });
+      const cachedSloop = t3.sloops.get.getData({
+        id: sloop.id,
+      });
       t3.sloops.get.setData({ id: sloop.id }, (cachedData) => {
         if (!cachedData) return;
         return {
@@ -82,85 +79,61 @@ const Sloop: NextPage = ({}) => {
                 likes: cachedData.rankedSloop.likes + 1,
               }
             : null,
-          likes: [response],
+          likes: [
+            {
+              userId: session.user.id,
+              sloopId: sloop.id,
+            },
+          ],
         };
       });
-      t3.sloops.getUserSloops.setData(
-        { username: sloop.userUsername, limit: paginationLimit },
-        (cachedData) => {
-          if (!cachedData) return;
-          return {
-            ...cachedData,
-            items: cachedData.items.map((item) => {
-              if (item.id === sloop.id) {
-                if (item.rankedSloop) {
-                  item.rankedSloop.likes = item.rankedSloop.likes + 1;
-                }
-              }
-              return item;
-            }),
-          };
-        }
-      );
-      await t3.users.getLikes.reset();
-    } catch (error) {
-      if (error instanceof TRPCClientError) {
-        toast.error(`Error: ${error.message}`);
-      }
-      return;
-    }
-  };
+      return { cachedSloop };
+    },
+    onError: (err, _args, ctx) => {
+      if (!sloop) return;
+      t3.sloops.get.setData({ id: sloop.id }, () => ctx?.cachedSloop);
+      toast.error(err.message);
+    },
+  });
 
-  const handleUnlike = async () => {
-    if (!sloop) return;
-    if (!session?.user) {
-      void router.push("/login");
-      return;
-    }
-    try {
-      await unlike({ id: sloop.id });
-      t3.sloops.get.setData({ id: sloop.id }, (cachedData) => {
-        if (!cachedData) return;
-        return {
-          ...cachedData,
-          rankedSloop: cachedData.rankedSloop
-            ? {
-                ...cachedData.rankedSloop,
-                likes: cachedData.rankedSloop.likes - 1,
-              }
-            : null,
-          likes: [],
-        };
-      });
-      t3.sloops.getUserSloops.setData(
-        { username: sloop.userUsername, limit: paginationLimit },
-        (cachedData) => {
+  const { mutateAsync: unlike, isLoading: unliking } =
+    api.sloops.unlike.useMutation({
+      onMutate: async () => {
+        if (!session || !sloop) return;
+        await t3.sloops.get.cancel({ id: sloop.id });
+        const cachedSloop = t3.sloops.get.getData({
+          id: sloop.id,
+        });
+        t3.sloops.get.setData({ id: sloop.id }, (cachedData) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            items: cachedData.items.map((item) => {
-              if (item.id === sloop.id) {
-                if (item.rankedSloop) {
-                  item.rankedSloop.likes = item.rankedSloop.likes - 1;
+            rankedSloop: cachedData.rankedSloop
+              ? {
+                  ...cachedData.rankedSloop,
+                  likes: cachedData.rankedSloop.likes - 1,
                 }
-              }
-              return item;
-            }),
+              : null,
+            likes: [],
           };
-        }
-      );
-      await t3.users.getLikes.reset();
-    } catch (error) {
-      if (error instanceof TRPCClientError) {
-        toast.error(`Error: ${error.message}`);
-      }
-      return;
-    }
-  };
+        });
+        return { cachedSloop };
+      },
+      onError: (err, _args, ctx) => {
+        if (!sloop) return;
+        t3.sloops.get.setData({ id: sloop.id }, () => ctx?.cachedSloop);
+        toast.error(err.message);
+      },
+    });
+
+  const liked = useMemo(() => {
+    return sloop?.likes.some((like) => like.userId === session?.user.id);
+  }, [sloop, session?.user.id]);
+  const { mutateAsync: deleteSloop, isLoading: deletingSloop } =
+    api.sloops.delete.useMutation();
 
   const handleDeleteSloop = async (id: string) => {
     await deleteSloop({ id: id });
-    setShowDelete(false);
     void router.replace("/profile");
   };
 
@@ -179,285 +152,222 @@ const Sloop: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {sloop.name}</title>
       </Head>
-      <AnimatePresence>
-        {showDelete && (
-          <Modal setVisible={setShowDelete}>
-            <StyledTitle title="Delete Sloop" />
-            <p className="mb-6 font-sans text-sm font-medium sm:text-base">
-              Are you sure you want to delete this sloop? This can not be
-              undone.
-            </p>
-            <div className="flex h-14 gap-2 font-display text-base font-bold sm:text-lg">
-              <button
-                className="flex-1 rounded-md border border-gray-300 bg-gray-200"
-                onClick={() => setShowDelete(false)}
-              >
-                Cancel
-              </button>
-              <LoadingButton
-                onClick={() => {
-                  void handleDeleteSloop(sloop.id);
-                }}
-                loading={deletingSloop}
-                disabled={deletingSloop}
-                className="flex flex-1 items-center justify-center rounded-md border border-red-500 bg-red-100 text-red-500"
-              >
-                Confirm
-              </LoadingButton>
-            </div>
-          </Modal>
-        )}
-      </AnimatePresence>
-      <div
-        ref={containerRef}
-        className="flex flex-1 flex-col items-center px-4 pb-4 pt-6"
-      >
-        <div
-          style={{ width: width * 0.6 }}
-          className="mb-4 aspect-square overflow-hidden rounded-md"
-        >
-          <Avatar
-            size={width * 0.6}
-            name={sloop.name}
-            variant="marble"
-            square
-            colors={calcSloopColours(sloop)}
-          />
-        </div>
-        <Link
-          href={`/${sloop.userUsername}`}
-          className="w-full truncate font-display text-lg text-gray-400 sm:text-xl"
-        >
-          {sloop.userUsername}
-        </Link>
-        <h1 className="mb-4 w-full text-3xl font-semibold sm:text-4xl">
+      <main className="flex flex-1 flex-col gap-2 overflow-scroll lg:grid lg:grid-cols-5 lg:grid-rows-5 lg:overflow-hidden">
+        <Marquee className="lg:col-span-4" label="Sloop">
           {sloop.name}
-        </h1>
-        <div className="mb-4 flex w-full gap-4 border-b border-gray-300 pb-4 text-3xl sm:text-4xl">
-          <Link
-            className="flex-1"
-            href={`/player/${sloop.id}?private=${
-              session?.user.id === sloop.userId ? sloop.isPrivate : false
-            }`}
-          >
-            <PiPlayFill />
-          </Link>
-          {session?.user.id === sloop.userId && (
-            <Link href={`/editor/${sloop.id}?private=${sloop.isPrivate}`}>
-              <PiPencilSimpleLine />
+        </Marquee>
+        <div className="flex flex-col gap-2 lg:row-span-5">
+          <ImageSection
+            alt={sloop.name}
+            square
+            colours={calcSloopColours(sloop)}
+          />
+          <TrackButton
+            renderImage
+            track={{ ...sloop.track, artists: sloop.artists }}
+          />
+          <SpotifyButton uri={`spotify:track:${sloop.trackId}`} />
+          <div className="section">
+            <h1 className="section-label">Creator</h1>
+            <Link
+              className="p-lg hover:underline"
+              href={`/${sloop.userUsername}`}
+            >
+              {sloop.userUsername}
             </Link>
-          )}
-          {session?.user.id !== sloop.userId &&
-            (sloop.likes.find((like) => like.userId === session?.user.id) ? (
-              <motion.button
-                initial={{ scale: "150%" }}
-                animate={{ scale: "100%" }}
-                disabled={deletingLike}
-                onClick={() => void handleUnlike()}
-                className="text-red-500"
-              >
-                <PiHeartFill />
-              </motion.button>
+          </div>
+          <div className="section flex-1 overflow-y-scroll">
+            <h1 className="section-label">Description</h1>
+            {sloop.description.length > 0 ? (
+              <p className="p-lg text-left">{sloop.description}</p>
             ) : (
-              <button disabled={creatingLike} onClick={() => void handleLike()}>
-                <PiHeart />
-              </button>
-            ))}
-          <button className="relative" onClick={() => setShowShare(true)}>
-            <PiShareNetwork />
-            <AnimatePresence>
-              {showShare && (
-                <Popover
-                  setVisible={setShowShare}
-                  className="flex items-center gap-2 text-2xl text-secondary shadow-2xl sm:text-3xl"
-                  x="left"
+              <NoData />
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 lg:col-span-4 lg:row-span-4">
+          <div className="flex gap-2">
+            <div className="lg:section mono flex flex-1 justify-between gap-2">
+              <Button asChild className="flex-1 lg:flex-none">
+                <Link
+                  href={`/player/${sloop.id}?private=${
+                    session?.user.id === sloop.userId ? sloop.isPrivate : false
+                  }`}
                 >
-                  <PiLink />
-                  <input
-                    type="text"
-                    defaultValue={window.location.toString()}
-                    className="rounded-md border border-gray-300 bg-gray-200 p-2 text-sm font-medium sm:text-base"
-                  />
-                </Popover>
-              )}
-            </AnimatePresence>
-          </button>
-          {session?.user.id === sloop.userId && (
-            <button
-              onClick={() => setShowDelete(true)}
-              className="text-red-500"
-            >
-              <PiTrash />
-            </button>
-          )}
-        </div>
-        <div className="mb-4 flex w-full flex-col items-start gap-2 border-b border-gray-300 pb-4">
-          <p className="font-display text-xs text-gray-400 sm:text-sm">Track</p>
-          <Link className="flex" href={`/track/${sloop.trackId}`}>
-            <SafeImage
-              url={sloop.track.image}
-              alt={sloop.track.name}
-              width={width * 0.1}
-              className="relative mr-4 aspect-square flex-shrink-0 overflow-hidden rounded"
-              square
-            />
-            <div
-              style={{ height: width * 0.1 }}
-              className="flex flex-col justify-between overflow-hidden"
-            >
-              <p className="truncate text-sm font-semibold leading-tight sm:text-base">
-                {sloop.track.name}
-              </p>
-              <p className="truncate text-xs leading-tight text-gray-400 sm:text-sm">
-                {sloop.artists.map((artist, index) =>
-                  index === sloop.artists.length - 1
-                    ? artist.name
-                    : `${artist.name}, `
+                  Play
+                  <span className="hidden sm:inline-block">&nbsp;Sloop</span>
+                </Link>
+              </Button>
+              <div className="flex gap-2">
+                {session?.user.id === sloop.userId && (
+                  <Button variant="outline" asChild>
+                    <Link
+                      href={`/editor/${sloop.id}?private=${sloop.isPrivate}`}
+                    >
+                      Edit
+                    </Link>
+                  </Button>
                 )}
-              </p>
+                <Button
+                  onClick={() => {
+                    void navigator.clipboard.writeText(
+                      `${domain}${router.asPath}`
+                    );
+                    toast.success("Copied!");
+                  }}
+                  variant="outline"
+                  className="mono"
+                >
+                  Share
+                </Button>
+                {session?.user.id === sloop.userId && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="mono">
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <h1 className="section-label mb-0">Confirm</h1>
+                      <p className="mono text-xxs text-muted-foreground lg:text-xs">
+                        This action cannot be undone. This will permanently
+                        delete your sloop and remove the data from our servers.
+                      </p>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="mono h-10 bg-foreground text-background">
+                          Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          disabled={deletingSloop}
+                          onClick={() => void handleDeleteSloop(sloop.id)}
+                          className="mono h-10 bg-destructive"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             </div>
-          </Link>
-        </div>
-        {sloop.description !== "" && (
-          <div className="mb-4 flex w-full flex-col items-start gap-1 border-b border-gray-300 pb-4">
-            <p className="font-display text-xs text-gray-400 sm:text-sm">
-              Description
-            </p>
-            <p className="w-full text-sm font-semibold sm:text-base">
-              {sloop.description}
-            </p>
-          </div>
-        )}
-        <div className="mb-4 flex w-full border-b border-gray-300 pb-4">
-          <div className="flex basis-1/4 flex-col items-start gap-1 border-r border-gray-300">
-            <p className="font-display text-xs text-gray-400 sm:text-sm">
-              Plays
-            </p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {sloop.rankedSloop?.plays.toLocaleString(undefined, {
-                notation: "compact",
-              })}
-            </p>
-          </div>
-          <div className="flex basis-1/4 flex-col items-start gap-1 border-r border-gray-300">
-            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
-              Likes
-            </p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {sloop.rankedSloop?.likes.toLocaleString(undefined, {
-                notation: "compact",
-              })}
-            </p>
-          </div>
-          <div className="flex flex-1 flex-col items-start gap-1">
-            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
-              Updated
-            </p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {calcRelativeTime(sloop.updatedAt)}
-            </p>
-          </div>
-        </div>
-        <div className="mb-4 flex w-full border-b border-gray-300 pb-4">
-          <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
-            <p className="font-display text-xs text-gray-400 sm:text-sm">Key</p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${pitchClass[sloop.key]} ${mode[sloop.mode]}`}
-            </p>
-          </div>
-          <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
-            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
-              Tempo
-            </p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${Math.round(sloop.tempo)} BPM`}
-            </p>
-          </div>
-          <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
-            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
-              Time
-            </p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {`${sloop.timeSignature} / 4`}
-            </p>
-          </div>
-          <div className="flex flex-1 flex-col items-start gap-1">
-            <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
-              Complete
-            </p>
-            <p className="w-full text-center text-sm font-semibold sm:text-base">
-              {loops.length > 0
-                ? `${Math.round(
-                    (loops[loops.length - 1]!.end / sloop.duration) * 100
-                  )}%`
-                : "0%"}
-            </p>
-          </div>
-        </div>
-        {loops.length > 0 ? (
-          <>
-            <div
-              style={{ height: (width / 2) * 1.3 }}
-              className="mb-4 flex w-full gap-4 border-b border-gray-300 pb-4"
+            <Button
+              onClick={() => {
+                if (liking || unliking) return;
+                try {
+                  if (liked) {
+                    void unlike({ id: sloop.id });
+                  } else {
+                    void like({ id: sloop.id });
+                  }
+                } catch (error) {
+                  return;
+                }
+              }}
+              className="p-2 lg:h-auto lg:px-4 lg:py-2"
+              variant="outline"
             >
-              <div className="flex flex-1 flex-col gap-4 overflow-hidden">
-                <div className="flex flex-col items-start gap-1 border-b border-gray-300 pb-4">
-                  <p className="font-display text-xs text-gray-400 sm:text-sm">
-                    Chord
-                  </p>
-                  <p className="w-full text-center text-sm font-semibold sm:text-base">
-                    {loops[previewLoop]?.chord}
-                  </p>
+              <Heart
+                strokeWidth={1}
+                className={cn(liked ? "animate-like" : "animate-unlike")}
+              />
+            </Button>
+          </div>
+          <div className="p-lg flex flex-col gap-2">
+            <div className="flex gap-2">
+              <div className="section basis-1/4">
+                <h1 className="section-label">Plays</h1>
+                <p>{calcCompactValue(sloop.rankedSloop?.plays ?? 0)}</p>
+              </div>
+              <div className="section basis-1/4">
+                <h1 className="section-label">Likes</h1>
+                <p>{calcCompactValue(sloop.rankedSloop?.likes ?? 0)}</p>
+              </div>
+              <div className="section flex-1">
+                <h1 className="section-label">Updated</h1>
+                <p>{calcRelativeTime(sloop.updatedAt)}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="section flex-1">
+                <h1 className="section-label">Key</h1>
+                <p>{`${pitchClass[sloop.key]} ${mode[sloop.mode]}`}</p>
+              </div>
+              <div className="section flex-1">
+                <h1 className="section-label">Tempo</h1>
+                <p>{`${Math.round(sloop.tempo)} BPM`}</p>
+              </div>
+              <div className="section flex-1">
+                <h1 className="section-label">Time</h1>
+                <p>{timeSignature[sloop.timeSignature]}</p>
+              </div>
+              <div className="section flex-1">
+                <h1 className="section-label">Complete</h1>
+                <p>
+                  {loops.length > 0
+                    ? `${Math.round(
+                        (loops[loops.length - 1]!.end / sloop.duration) * 100
+                      )}%`
+                    : "0%"}
+                </p>
+              </div>
+            </div>
+          </div>
+          {loops.length > 0 ? (
+            <div
+              ref={container}
+              className="p-lg flex flex-1 flex-col gap-2 overflow-hidden lg:flex-row"
+            >
+              <div
+                style={{ maxHeight: windowWidth > lgBreakpoint ? height : 350 }}
+                className="flex flex-1 flex-col gap-2"
+              >
+                <div className="section">
+                  <h1 className="section-label">Chord</h1>
+                  <p>{loops[selectedLoop]?.chord}</p>
                 </div>
-                <div className="flex flex-1 flex-col items-start gap-2 overflow-hidden">
-                  <p className="font-display text-xs text-gray-400 sm:text-sm">
-                    Loops
-                  </p>
-                  <div className="no-scrollbar flex h-full w-full flex-col gap-1.5 overflow-scroll">
+                <div className="section flex flex-1 flex-col overflow-hidden">
+                  <h1 className="section-label flex-none">Loops</h1>
+                  <ScrollArea className="section flex-1">
                     {loops.map((loop, index) => (
-                      <button
+                      <Button
                         key={loop.id}
                         style={{
-                          backgroundColor: pitchClassColours[loop.key] + "80",
+                          backgroundColor:
+                            pitchClassColours[loop.key] + colourMod,
                         }}
-                        className="flex items-center justify-between rounded p-1.5 text-left text-sm font-semibold sm:text-base"
-                        onClick={() => setPreviewLoop(index)}
+                        variant="outline"
+                        size="base"
+                        className={cn("h-10", index !== 0 && "mt-2")}
+                        onClick={() => setSelectedLoop(index)}
                       >
-                        {`${pitchClass[loop.key]} ${mode[loop.mode]}`}
-                        {index === previewLoop && <PiCheck />}
-                      </button>
+                        <span className="flex-1 text-left">{`${
+                          pitchClass[loop.key]
+                        } ${mode[loop.mode]}`}</span>
+                        {selectedLoop === index && <CheckIcon />}
+                      </Button>
                     ))}
-                  </div>
+                  </ScrollArea>
                 </div>
               </div>
-              <div className="flex flex-1 flex-col items-start gap-1 border-l border-gray-300">
-                <p className="pl-2 font-display text-xs text-gray-400 sm:text-sm">
-                  Voicing
-                </p>
-                <div className="w-full flex-1 -translate-y-5 translate-x-2">
-                  <Chord
-                    chord={
-                      chords[loops[previewLoop]!.chord]![
-                        loops[previewLoop]!.voicing
-                      ]
-                    }
-                  />
-                </div>
+              <div
+                style={{ maxHeight: windowWidth > lgBreakpoint ? height : 350 }}
+                className="section flex flex-1 flex-col overflow-hidden"
+              >
+                <h1 className="section-label flex-none">Composition</h1>
+                <TabViewer
+                  tabs={
+                    loops[selectedLoop]
+                      ? (JSON.parse(loops[selectedLoop]!.composition) as Tab[])
+                      : []
+                  }
+                />
               </div>
             </div>
-            <div className="flex w-full flex-col items-start gap-2">
-              <p className="font-display text-xs text-gray-400 sm:text-sm">
-                Composition / Notes
-              </p>
-              <div className="no-scrollbar aspect-video w-full overflow-y-scroll rounded border border-gray-300 p-3 text-sm font-semibold sm:text-base">
-                {loops[previewLoop]?.notes}
-              </div>
-            </div>
-          </>
-        ) : (
-          <NoData>No loops have been created :(</NoData>
-        )}
-      </div>
+          ) : (
+            <NoData className="section">No loops have been made :(</NoData>
+          )}
+        </div>
+      </main>
     </>
   );
 };

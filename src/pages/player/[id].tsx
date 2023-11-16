@@ -1,48 +1,59 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { PiPauseFill, PiPlayFill, PiRepeat } from "react-icons/pi";
-import Loading from "~/components/utils/Loading";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import {
+  lgBreakpoint,
   mode,
   pitchClass,
-  pitchClassColours,
-  secondaryColour,
+  timeSignature,
+  tuning,
 } from "~/utils/constants";
-import { useSpotifyContext } from "~/contexts/Spotify";
-import Player from "~/components/sloops/Player";
-import { useRef, useEffect } from "react";
-import Chord from "~/components/sloops/Chord";
-import LoopTimeline from "~/components/sloops/LoopTimeline";
-import { usePlayerContext } from "~/contexts/Player";
-import { WaveSpinner } from "react-spinners-kit";
-import clsx from "clsx";
-import { type Chords, type Loop } from "~/utils/types";
-import { useEffectOnce, useElementSize } from "usehooks-ts";
-import WithAuth from "~/components/utils/WithAuth";
-import LoopButton from "~/components/sloops/LoopButton";
-import ErrorView from "~/components/utils/ErrorView";
-import chordsData from "public/chords.json";
-import { useSession } from "next-auth/react";
+import { useSpotifyContext } from "~/contexts/spotify";
+import { useEffect, useState } from "react";
+import LoopTimeline from "~/components/sloops/loopTimeline";
+import { usePlayerContext } from "~/contexts/player";
+import { useElementSize, useWindowSize } from "usehooks-ts";
+import LoopButton from "~/components/sloops/loopButton";
+import ErrorView from "~/components/utils/errorView";
+import ImageSection from "~/components/imageSection";
+import { Accordion } from "@radix-ui/react-accordion";
+import { ScrollArea } from "@radix-ui/react-scroll-area";
+import NoData from "~/components/noData";
+import AudioTimeline from "~/components/sloops/audioTimeline";
+import SpotifyButton from "~/components/spotifyButton";
+import TrackButton from "~/components/trackButton";
+import { calcSloopColours } from "~/utils/calc";
+import TabViewer from "~/components/sloops/tabViewer";
+import { type Tab } from "~/utils/types";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import Link from "next/link";
 
-const chords = chordsData as unknown as Chords;
-
-const SloopPlayer: NextPage = ({}) => {
+const Player: NextPage = ({}) => {
   const router = useRouter();
   const spotify = useSpotifyContext();
-  const { data: session } = useSession();
-  const playerCtx = usePlayerContext();
-  const { data, isLoading, error } = api.sloops.get.useQuery({
-    id: router.query.id as string,
-    getPrivate: router.query.private === "true" ? true : undefined,
-  });
+  const player = usePlayerContext();
+  const { data, isLoading, error } = api.sloops.get.useQuery(
+    {
+      id: router.query.id as string,
+      getPrivate: router.query.private === "true" ? true : undefined,
+    },
+    {
+      enabled: typeof router.query.id === "string",
+      onSuccess: (d) => {
+        if (!d) return;
+        void handleUpdatePlays(d.id);
+      },
+    }
+  );
   const { mutateAsync: updatePlays } =
     api.sloops.createOrUpdatePlay.useMutation();
   const t3 = api.useContext();
-  const [containerRef, { width: containerWidth }] = useElementSize();
-  const voicingRef = useRef<HTMLDivElement>(null!);
+  const [root, { width }] = useElementSize();
+  const [container, { height }] = useElementSize();
+  const { width: windowWidth } = useWindowSize();
+  const [tab, setTab] = useState("loops");
 
   const handleUpdatePlays = async (id: string) => {
     try {
@@ -66,23 +77,11 @@ const SloopPlayer: NextPage = ({}) => {
     }
   };
 
-  useEffectOnce(() => {
-    void handleUpdatePlays(router.query.id as string);
-  });
-
   useEffect(() => {
     if (!data) return;
-    playerCtx.initialize(data);
+    player.initialize(data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
-
-  useEffect(() => {
-    if (!voicingRef.current || !playerCtx.playingLoop || !containerWidth)
-      return;
-    voicingRef.current.scrollTo({
-      left: (containerWidth / 2) * 0.9 * playerCtx.playingLoop?.voicing,
-    });
-  }, [playerCtx.playingLoop, containerWidth]);
 
   if (isLoading || !spotify.auth) return <Loading />;
 
@@ -93,216 +92,184 @@ const SloopPlayer: NextPage = ({}) => {
       <Head>
         <title>Sloopy - Player</title>
       </Head>
-      <div ref={containerRef} className="flex flex-1 flex-col overflow-hidden">
-        <Link
-          href="/"
-          className="border-b border-gray-300 p-2 font-display text-3xl font-extrabold sm:text-4xl"
-        >
-          sloopy
-        </Link>
-        <div className="flex border-b border-gray-300">
-          <div className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
-            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
-              Key
-            </p>
-            <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${
-              pitchClass[data.key]
-            } ${mode[data.mode]}`}</p>
-          </div>
-          <div className="flex flex-1 flex-col items-start border-r border-gray-300 p-1">
-            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
-              Tempo
-            </p>
-            <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${Math.round(
-              data.tempo
-            )} BPM`}</p>
-          </div>
-          <div className="flex flex-1 flex-col items-start p-1">
-            <p className="px-1 font-display text-xs text-gray-400 sm:text-sm">
-              Time
-            </p>
-            <p className="w-full pb-1 text-center text-sm font-semibold sm:text-base">{`${data.timeSignature}/4`}</p>
-          </div>
-        </div>
-        <div
-          style={{ height: (containerWidth / 2) * 1.3 }}
-          className="flex border-b border-gray-300"
-        >
-          <div className="grid flex-1 grid-rows-[repeat(10,_minmax(0,_1fr))]">
-            <div className="row-span-3 flex flex-col items-start border-b px-2 pb-2 pt-1">
-              <p className="font-display text-base text-gray-400 sm:text-lg">
-                Chord
-              </p>
-              {playerCtx.playingLoop && (
-                <p className="w-full truncate text-center text-2xl font-semibold sm:text-3xl">
-                  {playerCtx.playingLoop.chord}
-                </p>
-              )}
-            </div>
-            <div className="row-[span_7_/_span_7] flex flex-col px-2 pb-2 pt-1">
-              <p className="font-display text-base text-gray-400 sm:text-lg">
-                Loops
-              </p>
-              {(data.loops as Loop[]).length > 0 ? (
-                <div className="no-scrollbar flex flex-col gap-1.5 overflow-scroll py-1">
-                  {(data.loops as Loop[]).map((loop) => (
-                    <LoopButton
-                      key={loop.id}
-                      style={{
-                        backgroundColor: pitchClassColours[loop.key] + "80",
-                      }}
-                      label={`${pitchClass[loop.key]} ${mode[loop.mode]}`}
-                      height={30}
-                      open={loop.id === playerCtx.playingLoop?.id}
-                    >
-                      <div className="flex h-full justify-between px-1.5 pb-1.5 text-xl sm:text-2xl">
-                        <div className="flex gap-4">
-                          <button
-                            onClick={() => {
-                              if (playerCtx.repeatPlayingLoop) return;
-                              void playerCtx.player?.seek(loop.start * 1000);
-                              playerCtx.setPlaybackPosition(loop.start);
-                              if (!playerCtx.isPlaying) {
-                                playerCtx.setPlayingLoop(loop);
-                              }
-                            }}
-                          >
-                            {playerCtx.isPlaying &&
-                            (loop.id === playerCtx.repeatPlayingLoop?.id ||
-                              (!playerCtx.repeatPlayingLoop &&
-                                loop.id === playerCtx.playingLoop?.id)) ? (
-                              <PiPauseFill />
-                            ) : (
-                              <PiPlayFill />
-                            )}
-                          </button>
-                          <button
-                            className={clsx(
-                              "rounded px-1 focus:outline-none",
-                              playerCtx.repeatPlayingLoop &&
-                                loop.id === playerCtx.repeatPlayingLoop?.id &&
-                                "bg-secondary text-primary"
-                            )}
-                            onClick={() => {
-                              if (loop.id === playerCtx.repeatPlayingLoop?.id) {
-                                playerCtx.setRepeatPlayingLoop(null);
-                              } else {
-                                playerCtx.setRepeatPlayingLoop(loop);
-                                if (
-                                  playerCtx.playbackPosition >= loop.start &&
-                                  loop.end >= playerCtx.playbackPosition
-                                ) {
-                                  return;
-                                }
-                                void playerCtx.player?.seek(loop.start * 1000);
-                                playerCtx.setPlaybackPosition(loop.start);
-                                if (!playerCtx.isPlaying) {
-                                  playerCtx.setPlayingLoop(loop);
-                                }
-                              }
-                            }}
-                          >
-                            <PiRepeat />
-                          </button>
-                        </div>
-                        {playerCtx.isPlaying &&
-                        (loop.id === playerCtx.repeatPlayingLoop?.id ||
-                          (!playerCtx.repeatPlayingLoop &&
-                            loop.id === playerCtx.playingLoop?.id)) ? (
-                          <WaveSpinner
-                            size={24}
-                            color={secondaryColour}
-                            loading={true}
-                          />
-                        ) : null}
-                      </div>
-                    </LoopButton>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex w-full flex-1 items-center justify-center">
-                  <p className="w-2/3 px-1 text-center font-display text-base text-gray-200 sm:text-lg">
-                    {"No Loops :("}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-          <div
-            key={playerCtx.playingLoop?.id}
-            className="relative flex flex-1 flex-col items-start justify-start border-l border-gray-300 px-2 pb-2 pt-1 "
+      <main
+        ref={root}
+        className="p-lg flex flex-1 flex-col gap-2 overflow-hidden lg:flex-row"
+      >
+        <nav className="hidden w-[200px] shrink-0 flex-col justify-end gap-2 lg:flex 2xl:w-[300px]">
+          <Link
+            href="/"
+            className="section t3 text-center font-extrabold uppercase"
           >
-            <div className="flex w-full items-center justify-between font-display text-gray-400">
-              <p className="text-base sm:text-lg">Voicings</p>
-              {playerCtx.playingLoop && (
-                <p className="-translate-y-1 text-xs sm:text-sm">
-                  {`${playerCtx.playingLoop.voicing + 1}/${
-                    chords[playerCtx.playingLoop.chord]?.length
-                  }`}
-                </p>
-              )}
-            </div>
-            {playerCtx.playingLoop && (
-              <div
-                ref={voicingRef}
-                onScroll={() =>
-                  playerCtx.setLoops((loops) =>
-                    loops.map((loop) => {
-                      if (loop.id === playerCtx.playingLoop?.id) {
-                        loop.voicing = Math.round(
-                          voicingRef?.current?.scrollLeft /
-                            ((containerWidth / 2) * 0.9)
-                        );
-                        return loop;
-                      }
-                      return loop;
-                    })
-                  )
-                }
-                className="no-scrollbar absolute flex h-full w-[90%] snap-x snap-mandatory overflow-x-scroll"
-              >
-                {chords[playerCtx.playingLoop.chord]!.map((chord, index) => (
-                  <div
-                    key={index}
-                    className="h-full w-full flex-shrink-0 snap-start snap-always"
-                  >
-                    <Chord chord={chord} />
-                  </div>
-                ))}
-              </div>
+            Sloopy
+          </Link>
+          <ImageSection
+            alt={data.name}
+            colours={calcSloopColours({
+              ...data,
+              ...data,
+              loops: player.loops,
+            })}
+          />
+          <TrackButton
+            renderImage
+            track={{ ...data.track, artists: data.artists }}
+          />
+          <SpotifyButton uri={`spotify:track:${data.trackId}`} />
+          <div className="section">
+            <h1 className="section-label">Name</h1>
+            <p>{data.name}</p>
+          </div>
+          <div className="section flex-1">
+            <h1 className="section-label">Description</h1>
+            {data.description.length > 0 ? (
+              <p>{data.description}</p>
+            ) : (
+              <NoData />
             )}
           </div>
-        </div>
-        <div className="flex flex-1 flex-col border-b border-gray-300 px-2 pb-2 pt-1">
-          <p className="pb-1 font-display text-base text-gray-400 sm:text-lg">
-            Composition / Notes
-          </p>
-          <div className="no-scrollbar aspect-video w-full flex-1 overflow-scroll rounded-md border border-gray-300 p-3 text-sm sm:text-base">
-            {playerCtx.playingLoop?.notes}
-          </div>
-        </div>
-        <LoopTimeline
-          duration={data.duration}
-          width={containerWidth}
-          context={playerCtx}
-          disabled
-        />
-        {session?.user.canPlaySpotify ? (
-          <Player
-            trackId={data.trackId}
-            duration={data.duration}
-            context={playerCtx}
+        </nav>
+        <Link
+          href="/"
+          className="section t3 text-center font-extrabold uppercase lg:hidden"
+        >
+          Sloopy
+        </Link>
+        <nav className="section flex w-full shrink-0 gap-2 lg:hidden">
+          <ImageSection
+            key={player.loops.length}
+            className="aspect-square h-full w-fit"
+            alt={data.name}
+            colours={calcSloopColours({
+              ...data,
+              loops: player.loops,
+            })}
           />
-        ) : (
-          <div className="flex h-[68px] items-center justify-center p-2">
-            <p className="h-fit rounded border border-red-500 bg-red-200 p-1 text-xs text-red-500 sm:text-sm">
-              Spotify Premium Required
-            </p>
+          <TrackButton
+            renderImage
+            track={{ ...data.track, artists: data.artists }}
+            className="w-fit"
+            imageSize={65}
+            imageOnly
+          />
+          <div className="section flex flex-1 flex-col">
+            <h1 className="section-label">Name</h1>
+            <p className="line-clamp-2">{data.name}</p>
           </div>
-        )}
-      </div>
+        </nav>
+        <div className="flex flex-1 flex-col gap-2 overflow-hidden">
+          <header className="flex gap-2">
+            <div className="section flex-1">
+              <h1 className="section-label">Key</h1>
+              <p>{`${pitchClass[data.key]} ${mode[data.mode]}`}</p>
+            </div>
+            <div className="section flex-1">
+              <h1 className="section-label">Tempo</h1>
+              <p>{`${Math.round(data.tempo)} BPM`}</p>
+            </div>
+            <div className="section flex-1">
+              <h1 className="section-label">Time</h1>
+              <p>{timeSignature[data.timeSignature]}</p>
+            </div>
+            <div className="section flex-1">
+              <h1 className="section-label">Tuning</h1>
+              <p>{tuning[data.tuning]?.name}</p>
+            </div>
+          </header>
+          <div className="flex flex-1 flex-col gap-2">
+            <Tabs
+              className="w-full lg:hidden"
+              onValueChange={(value) => setTab(value)}
+              defaultValue="loops"
+            >
+              <TabsList className="gap-2">
+                <TabsTrigger value="loops">Loops</TabsTrigger>
+                <TabsTrigger value="tabs">Tabs</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div
+              ref={container}
+              className="flex flex-1 flex-col-reverse gap-2 lg:flex-row"
+            >
+              {((windowWidth < lgBreakpoint && tab === "tabs") ||
+                windowWidth > lgBreakpoint) && (
+                <div
+                  style={{ maxHeight: height }}
+                  className="section flex flex-1 flex-col overflow-hidden lg:flex-none lg:basis-3/4"
+                >
+                  <h1 className="section-label flex-none">Composition</h1>
+                  <TabViewer
+                    tabs={
+                      player.playingLoop
+                        ? (JSON.parse(player.playingLoop.composition) as Tab[])
+                        : []
+                    }
+                  />
+                </div>
+              )}
+              {((windowWidth < lgBreakpoint && tab === "loops") ||
+                windowWidth > lgBreakpoint) && (
+                <div
+                  style={{ maxHeight: height }}
+                  className="flex flex-1 flex-col gap-2 lg:flex-none lg:basis-1/4"
+                >
+                  <div className="section">
+                    <h1 className="section-label">Chord</h1>
+                    {player.playingLoop ? (
+                      <p>
+                        {`${player.playingLoop.chord} ${
+                          mode[player.playingLoop.mode]
+                        }`}
+                      </p>
+                    ) : (
+                      <NoData>No loop.</NoData>
+                    )}
+                  </div>
+                  <div className="section flex flex-1 flex-col overflow-hidden">
+                    <h1 className="section-label flex-none">Loops</h1>
+                    <ScrollArea className="section flex-1">
+                      {player.loops.length > 0 ? (
+                        <Accordion
+                          type="multiple"
+                          className="flex flex-col gap-2"
+                        >
+                          {player.loops.map((loop) => (
+                            <LoopButton
+                              key={loop.id}
+                              loop={loop}
+                              context={player}
+                              disabled
+                            />
+                          ))}
+                        </Accordion>
+                      ) : (
+                        <NoData>No loops :(</NoData>
+                      )}
+                    </ScrollArea>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="section">
+              <LoopTimeline
+                duration={data.duration}
+                width={width}
+                context={player}
+              />
+            </div>
+            <div className="section flex flex-col gap-2">
+              <AudioTimeline
+                width={width}
+                trackId={data.trackId}
+                duration={data.duration}
+                context={player}
+              />
+            </div>
+          </div>
+        </div>
+      </main>
     </>
   );
 };
 
-export default WithAuth(SloopPlayer, { premium: true });
+export default Player;

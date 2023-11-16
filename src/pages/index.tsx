@@ -1,22 +1,19 @@
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
-import Link from "next/link";
-import { PiArrowRight, PiAsterisk } from "react-icons/pi";
 import { useElementSize } from "usehooks-ts";
-import ArtistCard from "~/components/ui/ArtistCard";
-import Carousel from "~/components/ui/Carousel";
-import NoData from "~/components/ui/NoData";
-import SearchInput from "~/components/ui/SearchInput";
-import SloopCard from "~/components/ui/SloopCard";
-import SloopList from "~/components/ui/SloopList";
-import TrackCard from "~/components/ui/TrackCard";
-import ErrorView from "~/components/utils/ErrorView";
-import Loading from "~/components/utils/Loading";
+import ArtistCard from "~/components/artistCard";
+import Carousel from "~/components/carousel";
+import NoData from "~/components/noData";
+import SloopCard from "~/components/sloopCard";
+import ErrorView from "~/components/utils/errorView";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { calcTimeOfDay } from "~/utils/calc";
 import { alwaysRefetch, paginationLimit } from "~/utils/constants";
-import { postLoved } from "~/utils/helpers";
+import TrackCard from "~/components/trackCard";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import Marquee from "~/components/marquee";
 
 const useHome = () => {
   const {
@@ -100,7 +97,7 @@ const useHome = () => {
     return {
       data: undefined,
       isLoading: false,
-      error: "Error: Could Not Fetch Library Data",
+      error: "Error: Could Not Fetch Discover Data",
     };
   }
 
@@ -116,7 +113,7 @@ const useHome = () => {
     return {
       data: undefined,
       isLoading: false,
-      error: "Error: Could Not Fetch Library Data",
+      error: "Error: Could Not Fetch Discover Data",
     };
   }
 
@@ -165,7 +162,7 @@ const useUserHome = (enabled: boolean) => {
     return {
       data: undefined,
       isLoading: false,
-      error: "Error: Could Not Fetch Library Data",
+      error: "Error: Could Not Fetch User Data",
     };
   }
 
@@ -173,7 +170,7 @@ const useUserHome = (enabled: boolean) => {
     return {
       data: undefined,
       isLoading: false,
-      error: "Error: Could Not Fetch Library Data",
+      error: "Error: Could Not Fetch User Data",
     };
   }
 
@@ -189,7 +186,7 @@ const useUserHome = (enabled: boolean) => {
 
 const Home: NextPage = () => {
   const { data: session, status: sessionStatus } = useSession();
-  const [containerRef, { width }] = useElementSize();
+  const [container, { width }] = useElementSize();
   const { data: home, isLoading: fetchingHome, error: homeError } = useHome();
   const {
     data: userHome,
@@ -220,192 +217,127 @@ const Home: NextPage = () => {
       <Head>
         <title>Sloopy - Home</title>
       </Head>
-      <div className="flex flex-1 flex-col px-4 py-6">
-        <h2
-          onClick={() => void postLoved()}
-          className="font-display text-xl text-gray-400 sm:text-2xl"
-        >
-          {calcTimeOfDay()}
-        </h2>
-        <Link
-          href={session ? "/profile" : "/"}
-          className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl"
-        >
-          {session ? session.user.name ?? session.user.username : "Welcome"}
-        </Link>
-        <SearchInput />
-        <div ref={containerRef} className="mt-2 flex flex-1 flex-col gap-6">
-          {sessionStatus !== "authenticated" ? (
-            <section className="relative flex aspect-video w-full items-end overflow-hidden rounded-md p-4 text-primary will-change-transform">
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="absolute bottom-0 left-0 h-full w-full object-cover"
-              >
-                <source src="/sloopy-hero.mp4" />
-              </video>
-              <h1 className="z-10 -mb-1.5 w-3/4 font-display text-2xl font-semibold">
-                Embrace your own unique sound.
-              </h1>
-              <PiAsterisk className="absolute right-3 top-3 animate-[spin_10s_linear_infinite] text-4xl" />
-            </section>
-          ) : (
+      <ScrollArea ref={container}>
+        <main style={{ width }} className="flex flex-col gap-2">
+          <Marquee label={calcTimeOfDay()}>
+            {sessionStatus === "authenticated"
+              ? session.user.name ?? session.user.username
+              : "Welcome"}
+          </Marquee>
+          {!!userHome && (
             <>
-              <section>
-                <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-                  Recently Played
-                  <Link href="/sloops/recently-played">
-                    <PiArrowRight className="text-gray-400" />
-                  </Link>
-                </h3>
-                {userHome!.recentlyPlayed.items.length > 0 ? (
+              <section className="section">
+                <h1 className="section-label">Recently Played</h1>
+                {userHome.recentlyPlayed.items.length > 0 ? (
                   <Carousel>
-                    {userHome!.recentlyPlayed.items.map(({ sloop }, index) => (
-                      <SloopCard key={index} sloop={sloop} width={width} />
+                    {userHome.recentlyPlayed.items.map(({ sloop }, index) => (
+                      <SloopCard key={index} sloop={sloop} />
                     ))}
                   </Carousel>
                 ) : (
-                  <NoData>No Recently Played Sloops</NoData>
+                  <NoData />
                 )}
               </section>
-              <section>
-                <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-                  Favourites
-                  <Link href="/sloops/favourite">
-                    <PiArrowRight className="text-gray-400" />
-                  </Link>
-                </h3>
-                {userHome!.favourites.items.length > 0 ? (
+              <section className="section">
+                <h1 className="section-label">Favourites</h1>
+                {userHome.favourites.items.length > 0 ? (
                   <Carousel>
-                    {userHome!.favourites.items.map(({ sloop }, index) => (
-                      <SloopCard key={index} sloop={sloop} width={width} />
+                    {userHome.favourites.items.map(({ sloop }, index) => (
+                      <SloopCard key={index} sloop={sloop} />
                     ))}
                   </Carousel>
                 ) : (
-                  <NoData>No Favourite Sloops</NoData>
+                  <NoData />
                 )}
               </section>
             </>
           )}
-          <section>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Trending Artists
-              <Link href="/trending/artists">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
+          <section className="section">
+            <h1 className="section-label">Trending Artists</h1>
             {home.trendingArtists.items.length > 0 ? (
               <Carousel>
                 {home.trendingArtists.items.map(({ artist }, index) => (
-                  <ArtistCard key={index} width={width} artist={artist} />
+                  <ArtistCard key={index} artist={artist} />
                 ))}
               </Carousel>
             ) : (
-              <NoData>No Trending Artists</NoData>
+              <NoData />
             )}
           </section>
-          <section>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Trending Tracks
-              <Link href="/trending/tracks">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
+          <section className="section">
+            <h1 className="section-label">Trending Tracks</h1>
             {home.trendingTracks.items.length > 0 ? (
               <Carousel>
                 {home.trendingTracks.items.map(({ track }, index) => (
-                  <TrackCard key={index} track={track} width={width} />
+                  <TrackCard key={index} track={track} />
                 ))}
               </Carousel>
             ) : (
-              <NoData>No Trending Tracks</NoData>
+              <NoData />
             )}
           </section>
-          <section>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Trending Sloops
-              <Link href="/trending/sloops">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
+          <section className="section">
+            <h1 className="section-label">Trending Sloops</h1>
             {home.trendingSloops.items.length > 0 ? (
               <Carousel>
                 {home.trendingSloops.items.map(({ sloop }, index) => (
-                  <SloopCard key={index} sloop={sloop} width={width} />
+                  <SloopCard key={index} sloop={sloop} />
                 ))}
               </Carousel>
             ) : (
-              <NoData>No Trending Sloops</NoData>
+              <NoData />
             )}
           </section>
-          <section>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Most Loved Artists
-              <Link href="/loved/artists">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
+          <section className="section">
+            <h1 className="section-label">Favourite Artists</h1>
             {home.lovedArtists.items.length > 0 ? (
               <Carousel>
                 {home.lovedArtists.items.map(({ artist }, index) => (
-                  <ArtistCard key={index} width={width} artist={artist} />
+                  <ArtistCard key={index} artist={artist} />
                 ))}
               </Carousel>
             ) : (
-              <NoData>No Most Loved Artists</NoData>
+              <NoData />
             )}
           </section>
-          <section>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Most Loved Tracks
-              <Link href="/loved/tracks">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
+          <section className="section">
+            <h1 className="section-label">Favourite Tracks</h1>
             {home.lovedTracks.items.length > 0 ? (
               <Carousel>
                 {home.lovedTracks.items.map(({ track }, index) => (
-                  <TrackCard key={index} track={track} width={width} />
+                  <TrackCard key={index} track={track} />
                 ))}
               </Carousel>
             ) : (
-              <NoData>No Most Loved Tracks</NoData>
+              <NoData />
             )}
           </section>
-          <section>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Most Loved Sloops
-              <Link href="/loved/sloops">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
+          <section className="section">
+            <h1 className="section-label">Favourite Sloops</h1>
             {home.lovedSloops.items.length > 0 ? (
               <Carousel>
                 {home.lovedSloops.items.map(({ sloop }, index) => (
-                  <SloopCard key={index} sloop={sloop} width={width} />
+                  <SloopCard key={index} sloop={sloop} />
                 ))}
               </Carousel>
             ) : (
-              <NoData>No Most Loved Sloops</NoData>
+              <NoData />
             )}
           </section>
-          <section>
-            <h3 className="mb-4 flex items-end justify-between font-display text-xl font-semibold sm:text-2xl">
-              Most Recent
-              <Link href="/sloops/most-recent">
-                <PiArrowRight className="text-gray-400" />
-              </Link>
-            </h3>
+          <section className="section">
+            <h1 className="section-label">Most Recent</h1>
             {home.mostRecent.items.length > 0 ? (
-              <SloopList sloops={home.mostRecent.items} />
+              <Carousel>
+                {home.mostRecent.items.map((sloop, index) => (
+                  <SloopCard key={index} sloop={sloop} />
+                ))}
+              </Carousel>
             ) : (
-              <NoData>No Recent Sloops</NoData>
+              <NoData />
             )}
           </section>
-        </div>
-      </div>
+        </main>
+      </ScrollArea>
     </>
   );
 };

@@ -12,7 +12,7 @@ import {
   Head,
   Img,
 } from "@react-email/components";
-import { domain, primaryColour, secondaryColour } from "~/utils/constants";
+import { domain } from "~/utils/constants";
 
 export const forgotPasswordPlainText = (name: string, token: string) => {
   return `
@@ -41,10 +41,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ name, token }) => {
       <Html>
         <Head />
         <Preview>{`Sloopy - ${name}'s Password Reset Link`}</Preview>
-        <Body
-          style={{ backgroundColor: primaryColour }}
-          className="m-auto py-10"
-        >
+        <Body className="m-auto bg-white py-10">
           <Container className="w-11/12 rounded-md border border-solid border-gray-300 px-4 pt-6">
             <Section>
               <Row className="mb-4 border-b border-solid border-gray-300 pb-4">
@@ -58,41 +55,31 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ name, token }) => {
               </Row>
             </Section>
             <Section className="mb-6 h-full text-base sm:text-lg">
-              <Text
-                style={{ color: secondaryColour }}
-                className="text-xl font-semibold sm:text-2xl"
-              >
+              <Text className="text-xl font-semibold text-black sm:text-2xl">
                 {`Hello ${name}!`}
               </Text>
-              <Text style={{ color: secondaryColour }} className="mb-6">
+              <Text className="mb-6 text-black">
                 {`Someone recently requested a password change for your Sloopy account. If this was you, 
                 you can set a new password below.`}
               </Text>
               <Row>
                 <Column align="center">
                   <Button
-                    style={{
-                      backgroundColor: secondaryColour,
-                      color: primaryColour,
-                    }}
-                    className="rounded-md p-4 font-semibold"
+                    className="rounded-md bg-black p-4 font-semibold text-white"
                     href={`${domain}/reset-password/${token}`}
                   >
                     Reset Password
                   </Button>
                 </Column>
               </Row>
-              <Text style={{ color: secondaryColour }} className="mb-6">
+              <Text className="mb-6 text-black">
                 {`If you don't want to change your password or didn't request this, 
                 just ignore and delete this message.`}
               </Text>
             </Section>
             <Row>
               <Column align="right">
-                <Text
-                  style={{ color: secondaryColour }}
-                  className="text-xs text-gray-400 sm:text-sm"
-                >
+                <Text className="text-xs text-gray-400 sm:text-sm">
                   Sloopy &copy; 2023
                 </Text>
               </Column>

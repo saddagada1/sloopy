@@ -11,7 +11,7 @@ import { sendAccountVerificationEmail } from "~/utils/resend";
 import { calcUsername } from "~/utils/calc";
 
 export const credentialsRouter = createTRPCRouter({
-  register: publicProcedure
+  signUp: publicProcedure
     .input(z.object({ email: z.string().email(), password: z.string().min(8) }))
     .mutation(async ({ input, ctx }) => {
       const hashedPassword = await argon2.hash(input.password);
@@ -29,12 +29,10 @@ export const credentialsRouter = createTRPCRouter({
         if (error instanceof PrismaClientKnownRequestError) {
           if (error.code === "P2002") {
             return {
-              errors: [
-                {
-                  field: "email",
-                  message: `Email in Use`,
-                },
-              ],
+              error: {
+                field: "email",
+                message: `Email in Use`,
+              },
             };
           }
         }

@@ -1,20 +1,19 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
-import NoData from "~/components/ui/NoData";
-import Pagination from "~/components/ui/Pagination";
-import SloopList from "~/components/ui/SloopList";
-import ErrorView from "~/components/utils/ErrorView";
-import IsSessionUser from "~/components/utils/IsSessionUser";
-import Loading from "~/components/utils/Loading";
+import { useMemo, useRef } from "react";
+import CardGrid from "~/components/cardGrid";
+import InfinitePagination from "~/components/infinitePagination";
+import Marquee from "~/components/marquee";
+import SloopCard from "~/components/sloopCard";
+import ErrorView from "~/components/utils/errorView";
+import Loading from "~/components/utils/loading";
 import { api } from "~/utils/api";
 import { paginationLimit } from "~/utils/constants";
 
 const Likes: NextPage = ({}) => {
   const router = useRouter();
-  const [page, setPage] = useState(0);
+  const lastItem = useRef<HTMLButtonElement>(null!);
   const {
     data: likes,
     isLoading: fetchingLikes,
@@ -27,26 +26,15 @@ const Likes: NextPage = ({}) => {
     },
     {
       getNextPageParam: (page) => page.next,
+      enabled: typeof router.query.username === "string",
     }
   );
-  const data = likes?.pages[page];
 
-  const handleNext = async () => {
-    if (!likes?.pages[page + 1]) {
-      await fetchNextPage();
-    }
-    setPage((prev) => prev + 1);
-  };
+  const data = useMemo(() => {
+    return likes?.pages.flatMap((page) => page.items);
+  }, [likes]);
 
-  const handlePrevious = () => {
-    setPage((prev) => prev - 1);
-  };
-
-  if (fetchingLikes) {
-    return <Loading />;
-  }
-
-  if (!likes || likesError) {
+  if (likesError) {
     return <ErrorView />;
   }
 
@@ -55,33 +43,29 @@ const Likes: NextPage = ({}) => {
       <Head>
         <title>{`Sloopy - ${router.query.username as string}'s Likes`}</title>
       </Head>
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
-        <h2 className="font-display text-xl text-gray-400 sm:text-2xl">
-          Likes
-        </h2>
-        <Link
-          href={`/${router.query.username as string}`}
-          className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl"
+      <main className="flex flex-1 flex-col gap-2 overflow-hidden">
+        <Marquee label="Likes">{router.query.username}</Marquee>
+        <InfinitePagination
+          lastItem={lastItem}
+          onLastItem={() => void fetchNextPage()}
         >
-          {router.query.username as string}
-        </Link>
-        {data && data.items.length > 0 ? (
-          <Pagination
-            page={page}
-            hasNext={!!likes.pages[page]?.next}
-            hasPrevious={!!likes.pages[page - 1]}
-            onClickNext={() => void handleNext()}
-            onClickPrevious={() => handlePrevious()}
-            className="mt-4"
-          >
-            <SloopList sloops={data.items.map(({ sloop }) => sloop)} />
-          </Pagination>
-        ) : (
-          <NoData>No Likes</NoData>
-        )}
-      </div>
+          {fetchingLikes ? (
+            <Loading />
+          ) : (
+            <CardGrid>
+              {data?.map(({ sloop }, index) => (
+                <SloopCard
+                  ref={index === (data?.length ?? 0) - 1 ? lastItem : undefined}
+                  key={index}
+                  sloop={sloop}
+                />
+              ))}
+            </CardGrid>
+          )}
+        </InfinitePagination>
+      </main>
     </>
   );
 };
 
-export default IsSessionUser(Likes);
+export default Likes;

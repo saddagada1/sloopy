@@ -2,42 +2,36 @@ import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
-import { PiHeart } from "react-icons/pi";
-import { useElementSize } from "usehooks-ts";
 import { api } from "~/utils/api";
-import Loading from "~/components/utils/Loading";
-import SafeImage from "~/components/ui/SafeImage";
-import { paginationLimit, pitchClassColours } from "~/utils/constants";
+import Loading from "~/components/utils/loading";
+import { paginationLimit } from "~/utils/constants";
 import { useRouter } from "next/router";
-import toast from "react-hot-toast";
-import { TRPCClientError } from "@trpc/client";
-import LoadingButton from "~/components/ui/LoadingButton";
-import ErrorView from "~/components/utils/ErrorView";
-import SloopList from "~/components/ui/SloopList";
-import IsSessionUser from "~/components/utils/IsSessionUser";
-import { useMemo } from "react";
-import ScrollPagination from "~/components/ui/ScrollPagination";
-import NoData from "~/components/ui/NoData";
+import ErrorView from "~/components/utils/errorView";
+import { useMemo, useRef } from "react";
+import NoData from "~/components/noData";
+import Marquee from "~/components/marquee";
+import ImageSection from "~/components/imageSection";
+import { calcCompactValue } from "~/utils/calc";
+import { Button } from "~/components/ui/button";
+import InfinitePagination from "~/components/infinitePagination";
+import CardGrid from "~/components/cardGrid";
+import SloopCard from "~/components/sloopCard";
+import { toast } from "sonner";
+import { env } from "~/env.mjs";
 
 const User: NextPage = ({}) => {
   const router = useRouter();
+  const lastItem = useRef<HTMLButtonElement>(null!);
   const { data: session } = useSession();
-  const [imageContainerRef, { height }] = useElementSize();
   const t3 = api.useContext();
-  const {
-    data: user,
-    isLoading: fetchingUser,
-    error: userError,
-  } = api.users.getUserByUsername.useQuery({
-    username: router.query.username as string,
-  });
+  const { data: user, isLoading: fetchingUser } =
+    api.users.getUserByUsername.useQuery({
+      username: router.query.username as string,
+    });
   const {
     data: sloops,
     isLoading: fetchingSloops,
-    isFetching: fetchingNext,
-    error: sloopsError,
     fetchNextPage,
-    hasNextPage,
   } = api.sloops.getUserSloops.useInfiniteQuery(
     {
       username: router.query.username as string,
@@ -45,120 +39,115 @@ const User: NextPage = ({}) => {
     },
     {
       getNextPageParam: (page) => page.next,
+      enabled: typeof router.query.username === "string",
     }
   );
   const data = useMemo(() => {
     return sloops?.pages.flatMap((page) => page.items);
   }, [sloops]);
 
-  const { mutateAsync: follow, isLoading: creatingFollow } =
-    api.users.follow.useMutation();
-  const { mutateAsync: unfollow, isLoading: deletingFollow } =
-    api.users.unfollow.useMutation();
-
-  const handleFollow = async () => {
-    if (!user) return;
-    if (!session?.user) {
-      void router.push("/login");
-      return;
-    }
-    try {
-      const response = await follow({ id: user.id });
-      t3.users.getUserByUsername.setData(
-        { username: user.username },
-        (cachedData) => {
+  const { mutateAsync: follow, isLoading: following } =
+    api.users.follow.useMutation({
+      onMutate: async () => {
+        if (!session || !user) return;
+        await t3.users.getUserByUsername.cancel({ username: user.username });
+        const cachedUser = t3.users.getUserByUsername.getData({
+          username: user.username,
+        });
+        t3.users.getUserByUsername.setData(
+          { username: user.username },
+          (cachedData) => {
+            if (!cachedData) return;
+            return {
+              ...cachedData,
+              followersCount: cachedData.followersCount + 1,
+              followers: [
+                {
+                  followerId: session.user.id,
+                  followedId: user.id,
+                },
+              ],
+            };
+          }
+        );
+        const cachedSessionUser = t3.users.getSessionUser.getData();
+        t3.users.getSessionUser.setData(undefined, (cachedData) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            followersCount: cachedData.followersCount + 1,
-            followers: [response],
+            followingCount: cachedData.followingCount + 1,
           };
-        }
-      );
-      const userFollowers = t3.users.getUserFollowers.getInfiniteData({
-        username: user.username,
-        limit: paginationLimit,
-      });
-      if (userFollowers) {
-        userFollowers.pages.map(
-          (page) =>
-            void t3.users.getUserFollowers.reset({
-              username: user.username,
-              limit: paginationLimit,
-              cursor: page.next,
-            })
+        });
+        return { cachedUser, cachedSessionUser };
+      },
+      onError: (err, _args, ctx) => {
+        if (!user) return;
+        t3.users.getUserByUsername.setData(
+          { username: user?.username },
+          () => ctx?.cachedUser
         );
-      }
-      t3.users.getSessionUser.setData(undefined, (cachedData) => {
-        if (!cachedData) return;
-        return {
-          ...cachedData,
-          followingCount: cachedData.followingCount + 1,
-        };
-      });
-      await t3.users.getFollowing.reset();
-    } catch (error) {
-      if (error instanceof TRPCClientError) {
-        toast.error(`Error: ${error.message}`);
-      }
-      return;
-    }
-  };
+        t3.users.getSessionUser.setData(
+          undefined,
+          () => ctx?.cachedSessionUser
+        );
+        toast.error(err.message);
+      },
+    });
 
-  const handleUnfollow = async () => {
-    if (!user) return;
-    if (!session?.user) {
-      void router.push("/login");
-      return;
-    }
-    try {
-      await unfollow({ id: user.id });
-      t3.users.getUserByUsername.setData(
-        { username: user.username },
-        (cachedData) => {
+  const { mutateAsync: unfollow, isLoading: unfollowing } =
+    api.users.unfollow.useMutation({
+      onMutate: async () => {
+        if (!session || !user) return;
+        await t3.users.getUserByUsername.cancel({ username: user.username });
+        const cachedUser = t3.users.getUserByUsername.getData({
+          username: user.username,
+        });
+        t3.users.getUserByUsername.setData(
+          { username: user.username },
+          (cachedData) => {
+            if (!cachedData) return;
+            return {
+              ...cachedData,
+              followersCount: cachedData.followersCount - 1,
+              followers: [],
+            };
+          }
+        );
+        const cachedSessionUser = t3.users.getSessionUser.getData();
+        t3.users.getSessionUser.setData(undefined, (cachedData) => {
           if (!cachedData) return;
           return {
             ...cachedData,
-            followersCount: cachedData.followersCount - 1,
-            followers: [],
+            followingCount: cachedData.followingCount - 1,
           };
-        }
-      );
-      const userFollowers = t3.users.getUserFollowers.getInfiniteData({
-        username: user.username,
-        limit: paginationLimit,
-      });
-      if (userFollowers) {
-        userFollowers.pages.map(
-          (page) =>
-            void t3.users.getUserFollowers.reset({
-              username: user.username,
-              limit: paginationLimit,
-              cursor: page.next,
-            })
+        });
+        return { cachedUser, cachedSessionUser };
+      },
+      onError: (err, _args, ctx) => {
+        if (!user) return;
+        t3.users.getUserByUsername.setData(
+          { username: user?.username },
+          () => ctx?.cachedUser
         );
-      }
-      t3.users.getSessionUser.setData(undefined, (cachedData) => {
-        if (!cachedData) return;
-        return {
-          ...cachedData,
-          followingCount: cachedData.followingCount - 1,
-        };
-      });
-      await t3.users.getFollowing.reset();
-    } catch (error) {
-      if (error instanceof TRPCClientError) {
-        toast.error(`Error: ${error.message}`);
-      }
-      return;
-    }
-  };
+        t3.users.getSessionUser.setData(
+          undefined,
+          () => ctx?.cachedSessionUser
+        );
+        toast.error(err.message);
+      },
+    });
 
-  if (fetchingUser || fetchingSloops) {
+  const followed = useMemo(() => {
+    return user?.followers.some(
+      (follow) => follow.followerId === session?.user.id
+    );
+  }, [user, session?.user.id]);
+
+  if (fetchingUser) {
     return <Loading />;
   }
 
-  if ((!user || userError) ?? (!sloops || sloopsError)) {
+  if (!user) {
     return <ErrorView />;
   }
 
@@ -167,123 +156,112 @@ const User: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {`${user.username}'s Profile`}</title>
       </Head>
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
-        <h2 className="font-display text-xl text-gray-400 sm:text-2xl">User</h2>
-        <h1 className="mb-4 truncate border-b border-gray-300 pb-4 text-4xl font-semibold sm:text-5xl">
+      <main className="flex flex-1 flex-col gap-2 overflow-scroll lg:grid lg:grid-cols-5 lg:grid-rows-5 lg:overflow-hidden">
+        <Marquee className="lg:col-span-4" label="Profile">
           {user.username}
-        </h1>
-        <div ref={imageContainerRef} className="flex gap-4">
-          <SafeImage
-            url={user.image}
-            alt={user.username}
-            width={height}
-            className="relative aspect-square overflow-hidden rounded-full"
-            colours={Object.keys(pitchClassColours).map(
-              (key) => pitchClassColours[parseInt(key)]!
-            )}
-          />
-          <div className="flex flex-1 flex-col justify-between gap-4">
-            <div className="flex border-b border-gray-300 pb-4">
-              <div className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300">
-                <p className="px-2 font-display text-xs text-gray-400 sm:text-sm">
-                  Sloops
-                </p>
-                <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user.sloopsCount.toLocaleString(undefined, {
-                    notation: "compact",
-                  })}
-                </p>
+        </Marquee>
+        <div className="p-lg flex flex-col gap-2 lg:row-span-5">
+          <div className="section flex gap-2 bg-muted">
+            <Button
+              onClick={() => {
+                if (following || unfollowing) return;
+                try {
+                  if (followed) {
+                    void unfollow({ id: user.id });
+                  } else {
+                    void follow({ id: user.id });
+                  }
+                } catch (error) {
+                  return;
+                }
+              }}
+              variant={followed ? "outline" : "default"}
+              className="mono flex-1"
+            >
+              {followed ? <>Following</> : <>Follow</>}
+            </Button>
+            <Button className="mono flex-1" variant="outline" asChild>
+              <Link href={`${user.username}/likes`}>Likes</Link>
+            </Button>
+          </div>
+          <div className="flex gap-2 lg:flex-col">
+            <ImageSection
+              className="w-1/2 max-w-[200px] lg:w-full lg:max-w-none"
+              url={
+                user.image
+                  ? env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN + user.image
+                  : undefined
+              }
+              alt={user.name ?? user.username}
+            />
+            <div className="flex flex-1 flex-col gap-2">
+              <div className="section flex flex-1 flex-col">
+                <h1 className="section-label">Sloops</h1>
+                <p>{calcCompactValue(user.sloopsCount)}</p>
               </div>
-              <Link
-                href={`/${user.username}/followers`}
-                className="flex flex-1 flex-col items-start gap-1 border-r border-gray-300"
+              <Button
+                variant="outline"
+                size="base"
+                className="lg:block"
+                asChild
               >
-                <p className="px-2 font-display text-xs text-gray-400 sm:text-sm">
-                  Followers
-                </p>
-                <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user.followersCount.toLocaleString(undefined, {
-                    notation: "compact",
-                  })}
-                </p>
-              </Link>
-              <Link
-                href={`/${user.username}/following`}
-                className="flex flex-1 flex-col items-start gap-1"
+                <Link href={`${user.username}/followers`}>
+                  <h1 className="section-label">Followers</h1>
+                  <p>{calcCompactValue(user.followersCount)}</p>
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="base"
+                className="lg:block"
+                asChild
               >
-                <p className="px-2 font-display text-xs text-gray-400 sm:text-sm">
-                  Following
-                </p>
-                <p className="w-full text-center text-sm font-semibold sm:text-base">
-                  {user.followingCount.toLocaleString(undefined, {
-                    notation: "compact",
-                  })}
-                </p>
-              </Link>
+                <Link href={`${user.username}/following`}>
+                  <h1 className="section-label">Following</h1>
+                  <p>{calcCompactValue(user.followingCount)}</p>
+                </Link>
+              </Button>
             </div>
-            <div className="flex flex-1 gap-2 text-center font-display text-base font-semibold sm:text-lg">
-              {user.followers.find(
-                (follower) => follower.followerId === session?.user.id
-              ) ? (
-                <LoadingButton
-                  loading={deletingFollow}
-                  disabled={deletingFollow}
-                  onClick={() => void handleUnfollow()}
-                  className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200 px-2 py-2.5"
-                >
-                  Following
-                </LoadingButton>
-              ) : (
-                <LoadingButton
-                  loading={creatingFollow}
-                  disabled={creatingFollow}
-                  onClick={() => void handleFollow()}
-                  className="flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-gray-200 px-2 py-2.5"
-                >
-                  Follow
-                </LoadingButton>
-              )}
-              <Link
-                href={`/${user.username}/likes`}
-                className="flex aspect-square h-full items-center justify-center rounded-md border border-gray-300 bg-gray-200 text-2xl sm:text-3xl"
-              >
-                <PiHeart />
-              </Link>
-            </div>
+          </div>
+          <div className="section">
+            <h1 className="section-label">Name</h1>
+            <p className="p-lg text-left">{user.name ?? user.username}</p>
+          </div>
+          <div className="section flex-1 overflow-y-scroll">
+            <h1 className="section-label">Bio</h1>
+            {user.bio && user.bio.length > 0 ? (
+              <p className="p-lg text-left">{user.bio}</p>
+            ) : (
+              <NoData />
+            )}
           </div>
         </div>
-        {user.name && (
-          <div className="mt-4 flex w-full flex-col items-start gap-1 border-t border-gray-300 pt-4">
-            <p className="font-display text-xs text-gray-400 sm:text-sm">
-              Name
-            </p>
-            <p className="w-full text-sm font-semibold sm:text-base">
-              {user.name}
-            </p>
-          </div>
-        )}
-        {user.bio && (
-          <div className="mt-4 flex w-full flex-col items-start gap-1 border-t border-gray-300 pt-4">
-            <p className="font-display text-xs text-gray-400 sm:text-sm">Bio</p>
-            <p className="w-full text-sm font-semibold sm:text-base">
-              {user.bio}
-            </p>
-          </div>
-        )}
-        {data && data.length > 0 ? (
-          <ScrollPagination
-            onClickNext={() => void fetchNextPage()}
-            hasNext={!!hasNextPage}
-            fetchingNext={fetchingNext}
-          >
-            <SloopList sloops={data} />
-          </ScrollPagination>
-        ) : (
-          <NoData>No sloops have been created :(</NoData>
-        )}
-      </div>
+        <InfinitePagination
+          lastItem={lastItem}
+          onLastItem={() => void fetchNextPage()}
+          className="min-h-[500px] lg:col-span-4 lg:row-span-4"
+        >
+          {fetchingSloops ? (
+            <Loading />
+          ) : data && data.length > 0 ? (
+            <CardGrid className="lg:grid-cols-7">
+              {data?.map((sloop, index) => (
+                <SloopCard
+                  ref={index === (data?.length ?? 0) - 1 ? lastItem : undefined}
+                  key={index}
+                  sloop={sloop}
+                />
+              ))}
+            </CardGrid>
+          ) : (
+            <NoData className="m-0 flex h-full items-center justify-center">
+              No sloops have been made :(
+            </NoData>
+          )}
+        </InfinitePagination>
+      </main>
     </>
   );
 };
 
-export default IsSessionUser(User);
+export default User;

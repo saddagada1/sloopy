@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Router from "next/router";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 export const useSpotifyWebSDK = (token?: string) => {
   const { data: session } = useSession();
@@ -10,7 +11,11 @@ export const useSpotifyWebSDK = (token?: string) => {
   const [deviceId, setDeviceId] = useState("");
 
   useEffect(() => {
-    if (!token || !session?.user.canPlaySpotify) return;
+    if (!token) return;
+
+    if (session && !session.user.streamingEnabled) {
+      toast.error("Spotify Premium Required");
+    }
 
     if (!window.Spotify) return;
 

@@ -1,24 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { NextPage } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import toast from "react-hot-toast";
-import { PiSpotifyLogo } from "react-icons/pi";
 import { type Track } from "spotify-types";
 import { useElementSize } from "usehooks-ts";
-import NoData from "~/components/ui/NoData";
-import Pagination from "~/components/ui/Pagination";
-import SafeImage from "~/components/ui/SafeImage";
-import TrackList from "~/components/ui/TrackList";
-import ErrorView from "~/components/utils/ErrorView";
-import Loading from "~/components/utils/Loading";
-import { useSpotifyContext } from "~/contexts/Spotify";
+import NoData from "~/components/noData";
+import ErrorView from "~/components/utils/errorView";
+import Loading from "~/components/utils/loading";
+import { useSpotifyContext } from "~/contexts/spotify";
+import { useMemo, useRef } from "react";
+import ImageSection from "~/components/imageSection";
+import SpotifyButton from "~/components/spotifyButton";
+import InfinitePagination from "~/components/infinitePagination";
+import TrackButton from "~/components/trackButton";
+import Marquee from "~/components/marquee";
 
 const Playlist: NextPage = ({}) => {
+  const [container, { width }] = useElementSize();
   const router = useRouter();
   const spotify = useSpotifyContext();
-  const [imageContainerRef, { width }] = useElementSize();
   const {
     data: playlist,
     isLoading: fetchingPlaylist,
@@ -32,7 +32,6 @@ const Playlist: NextPage = ({}) => {
       }
       const playlist = await spotify.fetchPlaylist(id);
       if (!playlist?.ok) {
-        toast.error("Error: Could Not Fetch Spotify Data");
         throw new Error(
           playlist.message ?? "Error: Could Not Fetch Spotify Data"
         );
@@ -47,23 +46,16 @@ const Playlist: NextPage = ({}) => {
     data: playlistTracks,
     isLoading: fetchingPlaylistTracks,
     error: playlistTracksError,
-  } = useQuery(
-    ["playlistTracks", router.query.id, router.query.offset ?? "0"],
-    async () => {
+    fetchNextPage,
+  } = useInfiniteQuery(
+    ["playlistTracks", router.query.id],
+    async ({ pageParam = 0 }) => {
       const id = router.query.id;
       if (typeof id !== "string") {
         throw new Error("404");
       }
-      const offset = router.query.offset;
-      if (offset && typeof offset !== "string") {
-        throw new Error("404");
-      }
-      const tracks = await spotify.fetchPlaylistTracks(
-        id,
-        offset ? parseInt(offset) : 0
-      );
+      const tracks = await spotify.fetchPlaylistTracks(id, pageParam as number);
       if (!tracks.ok) {
-        toast.error("Error: Could Not Fetch Spotify Data");
         throw new Error(
           tracks.message ?? "Error: Could Not Fetch Spotify Data"
         );
@@ -72,37 +64,21 @@ const Playlist: NextPage = ({}) => {
     },
     {
       enabled: !!spotify.auth,
+      getNextPageParam: (page) =>
+        page.next ? page.offset + page.limit : undefined,
     }
   );
+  const lastItem = useRef<HTMLButtonElement>(null!);
 
-  const handleNext = () => {
-    if (!playlistTracks?.next || typeof router.query.id !== "string") return;
-    void router.push(
-      `/playlist/${router.query.id}?offset=${
-        playlistTracks.offset + playlistTracks.limit
-      }`,
-      undefined,
-      { shallow: true }
-    );
-  };
+  const tracks = useMemo(() => {
+    return playlistTracks?.pages.flatMap((page) => page.items);
+  }, [playlistTracks]);
 
-  const handlePrevious = () => {
-    if (!playlistTracks?.previous || typeof router.query.id !== "string")
-      return;
-    void router.push(
-      `/playlist/${router.query.id}?offset=${
-        playlistTracks.offset - playlistTracks.limit
-      }`,
-      undefined,
-      { shallow: true }
-    );
-  };
-
-  if (fetchingPlaylist || fetchingPlaylistTracks) {
+  if (fetchingPlaylist) {
     return <Loading />;
   }
 
-  if (!playlist || playlistError || !playlistTracks || playlistTracksError) {
+  if (!playlist || playlistError || playlistTracksError) {
     return <ErrorView />;
   }
 
@@ -111,52 +87,53 @@ const Playlist: NextPage = ({}) => {
       <Head>
         <title>Sloopy - {playlist.name}</title>
       </Head>
-      <div
-        ref={imageContainerRef}
-        className="flex flex-1 flex-col items-center px-4 pb-4 pt-6"
-      >
-        <SafeImage
-          url={playlist.images[0]?.url}
-          alt={playlist.name}
-          width={width * 0.6}
-          className="relative mb-4 aspect-square overflow-hidden rounded-md"
-          square
-        />
-        <h2 className="w-full font-display text-lg text-gray-400 sm:text-xl">
-          {playlist.owner.display_name}
-        </h2>
-        <h1 className="mb-4 w-full truncate text-3xl font-semibold sm:text-4xl">
+      <main className="flex flex-1 flex-col gap-2 overflow-scroll lg:grid lg:grid-cols-5 lg:grid-rows-5 lg:overflow-hidden">
+        <Marquee className="lg:col-span-4" label="Playlist">
           {playlist.name}
-        </h1>
-        <div className="mb-4 flex w-full items-end justify-between gap-4 border-b border-gray-300 pb-4">
-          <Link href={playlist.uri}>
-            <PiSpotifyLogo className="text-3xl sm:text-4xl" />
-          </Link>
-          <p className="text-sm text-gray-400 sm:text-base">
-            {`${playlistTracks.offset + playlistTracks.items.length} / ${
-              playlistTracks.total
-            }`}
-          </p>
+        </Marquee>
+        <div className="flex flex-col gap-2 lg:row-span-5">
+          <ImageSection
+            url={playlist.images[0]?.url}
+            alt={playlist.name}
+            square
+          />
+          <SpotifyButton uri={playlist.uri} />
+          <div className="section">
+            <h1 className="section-label">Owner</h1>
+            <p className="p-lg">{playlist.owner.display_name}</p>
+          </div>
+          <div className="section">
+            <h1 className="section-label">Tracks</h1>
+            <p className="p-lg">{playlist.tracks.total}</p>
+          </div>
+          <div className="section filler hidden flex-1 lg:block" />
         </div>
-        {playlistTracks.total > 0 ? (
-          <Pagination
-            page={Math.round(
-              (playlistTracks.total / playlistTracks.limit) *
-                (playlistTracks.offset / playlistTracks.total)
-            )}
-            onClickNext={() => handleNext()}
-            onClickPrevious={() => handlePrevious()}
-            hasNext={!!playlistTracks.next}
-            hasPrevious={!!playlistTracks.previous}
-          >
-            <TrackList
-              tracks={playlistTracks.items.map((item) => item.track as Track)}
-            />
-          </Pagination>
-        ) : (
-          <NoData>Empty Playlist</NoData>
-        )}
-      </div>
+        <InfinitePagination
+          lastItem={lastItem}
+          onLastItem={() => void fetchNextPage()}
+          className="min-h-[500px] lg:col-span-4 lg:row-span-4"
+        >
+          {fetchingPlaylistTracks ? (
+            <Loading />
+          ) : tracks && tracks.length > 0 ? (
+            <div ref={container} className="space-y-2">
+              {tracks?.map((item, index) => (
+                <TrackButton
+                  style={{ maxWidth: width }}
+                  ref={
+                    index === (tracks?.length ?? 0) - 1 ? lastItem : undefined
+                  }
+                  key={index}
+                  track={item.track as Track}
+                  renderImage
+                />
+              ))}
+            </div>
+          ) : (
+            <NoData />
+          )}
+        </InfinitePagination>
+      </main>
     </>
   );
 };

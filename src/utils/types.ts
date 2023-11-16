@@ -36,8 +36,7 @@ export interface Loop {
   key: number;
   mode: number;
   chord: string;
-  voicing: number;
-  notes: string;
+  composition: string;
 }
 
 export interface SloopGeneralInfo {
@@ -45,6 +44,7 @@ export interface SloopGeneralInfo {
   mode: number;
   tempo: number;
   timeSignature: number;
+  tuning: number;
   name: string;
   description: string;
 }
@@ -120,4 +120,19 @@ export interface Following extends Follow {
 
 export interface PageUser extends User {
   sloops: ListSloop[];
+}
+
+export interface SelectItem {
+  value: string;
+  label: string;
+}
+
+export interface Tuning {
+  name: string;
+  notes: string[];
+}
+
+export interface Tab {
+  head: string[];
+  frets: string[][];
 }
