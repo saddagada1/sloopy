@@ -5,6 +5,8 @@ import { cn } from "~/utils/shadcn/utils";
 import { useEditorContext } from "~/contexts/editor";
 import { ScrollArea } from "../ui/scroll-area";
 import SloopForm from "./sloopForm";
+import { tuning } from "~/utils/constants";
+import { toast } from "sonner";
 
 const EditLoopModal: React.FC<HTMLAttributes<HTMLButtonElement>> = ({
   ...props
@@ -31,6 +33,14 @@ const EditLoopModal: React.FC<HTMLAttributes<HTMLButtonElement>> = ({
             <SloopForm
               key={open ? 1 : 0}
               onFormSubmit={(values) => {
+                if (editor.generalInfo.tuning !== values.tuning) {
+                  const update = tuning[values.tuning];
+                  if (!update) {
+                    toast.error("Tuning not found.");
+                    return;
+                  }
+                  editor.updateTuning(update.notes);
+                }
                 editor.setGeneralInfo(values);
                 setOpen(false);
               }}

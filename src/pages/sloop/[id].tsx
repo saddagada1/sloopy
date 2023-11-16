@@ -31,18 +31,11 @@ import SpotifyButton from "~/components/spotifyButton";
 import { Button } from "~/components/ui/button";
 import { Heart } from "lucide-react";
 import { cn } from "~/utils/shadcn/utils";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogTrigger,
-} from "~/components/ui/alert-dialog";
 import { CheckIcon } from "@radix-ui/react-icons";
 import TabViewer from "~/components/sloops/tabViewer";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { useElementSize, useWindowSize } from "usehooks-ts";
+import ConfirmModal from "~/components/sloops/confirmModal";
 
 const Sloop: NextPage = ({}) => {
   const router = useRouter();
@@ -129,8 +122,7 @@ const Sloop: NextPage = ({}) => {
   const liked = useMemo(() => {
     return sloop?.likes.some((like) => like.userId === session?.user.id);
   }, [sloop, session?.user.id]);
-  const { mutateAsync: deleteSloop, isLoading: deletingSloop } =
-    api.sloops.delete.useMutation();
+  const { mutateAsync: deleteSloop } = api.sloops.delete.useMutation();
 
   const handleDeleteSloop = async (id: string) => {
     await deleteSloop({ id: id });
@@ -221,32 +213,19 @@ const Sloop: NextPage = ({}) => {
                   Share
                 </Button>
                 {session?.user.id === sloop.userId && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                  <ConfirmModal
+                    message="This action cannot be undone. This will permanently
+                  delete your sloop and remove the data from our servers."
+                    withTrigger
+                    trigger={
                       <Button variant="destructive" className="mono">
                         Delete
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <h1 className="section-label mb-0">Confirm</h1>
-                      <p className="mono text-xxs text-muted-foreground lg:text-xs">
-                        This action cannot be undone. This will permanently
-                        delete your sloop and remove the data from our servers.
-                      </p>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="mono h-10 bg-foreground text-background">
-                          Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          disabled={deletingSloop}
-                          onClick={() => void handleDeleteSloop(sloop.id)}
-                          className="mono h-10 bg-destructive"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    }
+                    confirmLabel="Delete"
+                    onConfirm={() => void handleDeleteSloop(sloop.id)}
+                    confirmDestructive
+                  />
                 )}
               </div>
             </div>

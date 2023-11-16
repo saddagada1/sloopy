@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Router from "next/router";
+import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
@@ -68,6 +68,7 @@ export const useSpotifyWebSDK = (token?: string) => {
 };
 
 export const useSaveBeforeRouteChange = () => {
+  const router = useRouter();
   const [route, setRoute] = useState<string | null>(null);
   const [disabled, setDisabled] = useState(false);
 
@@ -79,12 +80,12 @@ export const useSaveBeforeRouteChange = () => {
     };
 
     if (disabled) return;
-    Router.events.on("routeChangeStart", routeChangeStart);
+    router.events.on("routeChangeStart", routeChangeStart);
 
     return () => {
-      Router.events.off("routeChangeStart", routeChangeStart);
+      router.events.off("routeChangeStart", routeChangeStart);
     };
-  }, [route, disabled]);
+  }, [route, disabled, router.events]);
 
   return { route, setRoute, disabled, setDisabled };
 };

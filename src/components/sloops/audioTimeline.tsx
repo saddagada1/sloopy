@@ -113,6 +113,9 @@ const AudioTimeline: React.FC<AudioTimelineProps> = ({
     if (!context.player) return;
 
     if (context.error) {
+      toast.error(
+        "Could not connect to Spotify. Please refresh the page and try again."
+      );
       setIsLoading(false);
       return;
     }

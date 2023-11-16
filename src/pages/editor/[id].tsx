@@ -15,7 +15,6 @@ import AudioTimeline from "~/components/sloops/audioTimeline";
 import { useState, useEffect } from "react";
 import CreateLoopModal from "~/components/sloops/createLoopModal";
 import { useEditorContext } from "~/contexts/editor";
-import { type UpdateSloopInput } from "~/utils/types";
 import { useElementSize, useWindowSize } from "usehooks-ts";
 import { useSaveBeforeRouteChange } from "~/utils/hooks";
 import { toast } from "sonner";
@@ -31,10 +30,11 @@ import { Accordion } from "~/components/ui/accordion";
 import LoopButton from "~/components/sloops/loopButton";
 import TabEditor from "~/components/sloops/tabEditor";
 import EditSloopModal from "~/components/sloops/editSloopModal";
-import UnsavedChangesModal from "~/components/sloops/unsavedChangesModal";
+import ConfirmModal from "~/components/sloops/confirmModal";
 import SaveSloopModal from "~/components/sloops/saveSloopModal";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import Link from "next/link";
+import { type UpdateSloopInput } from "~/utils/types";
 
 const Editor: NextPage = ({}) => {
   const router = useRouter();
@@ -46,6 +46,9 @@ const Editor: NextPage = ({}) => {
       getPrivate: router.query.private === "true" ? true : undefined,
     },
     { enabled: typeof router.query.id === "string" }
+  );
+  const [localStorageVariant, setLocalStorageVariant] = useState<string | null>(
+    null
   );
   const [root, { width }] = useElementSize();
   const [container, { height }] = useElementSize();
@@ -82,14 +85,14 @@ const Editor: NextPage = ({}) => {
         (cachedData) => {
           if (!cachedData) return;
           return {
-            ...response,
             ...cachedData,
+            ...response,
           };
         }
       );
       await t3.sloops.getSloops.reset();
       toast.dismiss(updateProgress);
-      localStorage.removeItem(`sloop`);
+      localStorage.removeItem(data.id);
       toast.success("Sloop Saved!", { duration: 4000 });
       void router.push(url);
     } catch (error) {
@@ -107,21 +110,12 @@ const Editor: NextPage = ({}) => {
   useEffect(() => {
     if (!data) return;
     if (editor.generalInfo !== null) return;
-    if (router.query.unsaved) {
-      const unsavedData = localStorage.getItem("sloop");
-      if (unsavedData) {
-        const unsavedSloop = JSON.parse(unsavedData) as UpdateSloopInput;
-        if (unsavedSloop.id === data.id) {
-          const sloop = {
-            ...data,
-            ...unsavedSloop,
-          };
-          editor.initialize(sloop);
-          return;
-        }
-      }
+    const unsavedData = localStorage.getItem(data.id);
+    if (!!unsavedData && unsavedData !== JSON.stringify(data)) {
+      setLocalStorageVariant(unsavedData);
+    } else {
+      editor.initialize(data);
     }
-    editor.initialize(data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, router.query.unsaved]);
 
@@ -130,6 +124,27 @@ const Editor: NextPage = ({}) => {
     setUnsavedChanges(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
+
+  if (data && !!localStorageVariant) {
+    return (
+      <ConfirmModal
+        title="Unsaved Changes"
+        message="There is a variant of this sloop that does not match the one on our servers. Would you like to edit that instead?"
+        onCancel={() => {
+          localStorage.removeItem(data.id);
+          setLocalStorageVariant(null);
+        }}
+        onConfirm={() => {
+          const variant = JSON.parse(localStorageVariant) as UpdateSloopInput;
+          editor.initialize({ ...data, ...variant });
+          setLocalStorageVariant(null);
+        }}
+        cancelLabel="Discard"
+        confirmLabel="Edit"
+        cancelDestructive
+      />
+    );
+  }
 
   if (isLoading || !spotify.auth || !editor.generalInfo) return <Loading />;
 
@@ -141,17 +156,23 @@ const Editor: NextPage = ({}) => {
         <title>Sloopy - Editor</title>
       </Head>
       {unsavedChanges && route && (
-        <UnsavedChangesModal
-          onExit={() => {
-            localStorage.removeItem(`sloop`);
+        <ConfirmModal
+          title="Unsaved Changes"
+          message="There may be unsaved changes. Would you like to save these changes
+        before leaving?"
+          onCancel={() => {
+            localStorage.removeItem(data.id);
             void router.push(route);
           }}
-          onSave={() => {
+          onConfirm={() => {
             setDisabled(true);
             void handleSaveSloop({
               url: route,
             });
           }}
+          cancelLabel="Exit"
+          confirmLabel="Save"
+          cancelDestructive
         />
       )}
       <main
@@ -301,7 +322,9 @@ const Editor: NextPage = ({}) => {
                   className="section flex flex-1 flex-col overflow-hidden lg:flex-none lg:basis-3/4"
                 >
                   <h1 className="section-label flex-none">Composition</h1>
-                  <TabEditor key={editor.playingLoop?.id} />
+                  <TabEditor
+                    key={`${editor.playingLoop?.id}${editor.playingLoop?.composition}`}
+                  />
                 </div>
               )}
               {((windowWidth < lgBreakpoint && tab === "loops") ||
