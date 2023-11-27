@@ -57,9 +57,7 @@ export const pitchClassColours: Record<number, string> = {
   11: "#f43f5e",
 };
 
-export const spotifyScopes = `user-read-email user-read-private user-library-read user-library-modify 
-user-read-recently-played user-top-read playlist-read-private playlist-read-collaborative 
-playlist-modify-private playlist-modify-public user-follow-read user-follow-modify user-read-playback-state 
+export const spotifyScopes = `user-read-email user-read-private user-library-read user-read-recently-played user-top-read playlist-read-private playlist-read-collaborative user-read-playback-state 
 user-modify-playback-state user-read-currently-playing streaming`;
 
 export const genericSpotifyError = {

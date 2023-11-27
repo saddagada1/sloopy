@@ -33,7 +33,6 @@ const TabEditor: React.FC = ({}) => {
       : []
   );
   const [selectedTab, setSelectedTab] = useState<number | null>(null);
-  const [clipboard, setClipboard] = useState<string[][]>([]);
   const empty = ["-", "-", "-", "-", "-", "-"];
   const mods = [
     "-",
@@ -172,11 +171,11 @@ const TabEditor: React.FC = ({}) => {
         </DropdownMenu>
       </div>
       <ScrollArea className="section mono relative flex-1 p-0">
-        {clipboard.length > 0 && (
+        {editor.clipboard.length > 0 && (
           <div className="section absolute right-2 top-2 z-10 bg-background">
             <h1 className="section-label mb-2">Clipboard</h1>
             <div className="mb-3 flex justify-center gap-2">
-              {clipboard.map((fret, index) => (
+              {editor.clipboard.map((fret, index) => (
                 <div className="text-center" key={index}>
                   {fret.map((note, i) => (
                     <p key={i}>{note}</p>
@@ -188,7 +187,7 @@ const TabEditor: React.FC = ({}) => {
               <Button
                 variant="destructive"
                 className="mono"
-                onClick={() => setClipboard([])}
+                onClick={() => editor.setClipboard([])}
               >
                 Clear
               </Button>
@@ -201,7 +200,10 @@ const TabEditor: React.FC = ({}) => {
                   setTabs((curr) =>
                     curr.map((tab, index) => {
                       if (index === selectedTab) {
-                        return { ...tab, frets: [...tab.frets, ...clipboard] };
+                        return {
+                          ...tab,
+                          frets: [...tab.frets, ...editor.clipboard],
+                        };
                       }
                       return tab;
                     })
@@ -305,8 +307,8 @@ const TabEditor: React.FC = ({}) => {
                     <PopoverClose asChild>
                       <Button
                         onClick={() => {
-                          if (clipboard.length < 10) {
-                            setClipboard((curr) => [...curr, fret]);
+                          if (editor.clipboard.length < 10) {
+                            editor.setClipboard((curr) => [...curr, fret]);
                           } else {
                             toast.error("Your clipboard is full.");
                           }

@@ -110,6 +110,36 @@ const AudioTimeline: React.FC<AudioTimelineProps> = ({
   }, [duration, isScrubbing, timelineWidth]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!context.player) return;
+      if (e.key === "ArrowLeft") {
+        const playbackPosition = Math.max(context.playbackPosition - 5, 0);
+        context.setPlaybackPosition(playbackPosition);
+        void context.player.seek(playbackPosition * 1000);
+        context.handlePlayingLoop(playbackPosition);
+      }
+      if (e.key === "ArrowRight") {
+        const playbackPosition = Math.min(
+          context.playbackPosition + 5,
+          duration
+        );
+        context.setPlaybackPosition(playbackPosition);
+        void context.player.seek(playbackPosition * 1000);
+        context.handlePlayingLoop(playbackPosition);
+      }
+      if (e.key === "Space") {
+        void context.player.togglePlay();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [context, duration]);
+
+  useEffect(() => {
     if (!context.player) return;
 
     if (context.error) {
@@ -179,18 +209,24 @@ const AudioTimeline: React.FC<AudioTimelineProps> = ({
         onClick={(e) => handleClickToSeek(e)}
         onMouseDown={() => setIsScrubbing(true)}
         onTouchStart={() => setIsScrubbing(true)}
-        className="h-1.5 cursor-pointer overflow-hidden rounded border bg-accent"
+        className="relative flex h-1.5 cursor-pointer items-center rounded border bg-accent"
       >
+        <div className="h-full w-full overflow-hidden">
+          <div
+            style={{
+              transform: `translateX(-${
+                100 - (context.playbackPosition / duration) * 100
+              }%)`,
+            }}
+            className="h-full bg-foreground"
+          />
+        </div>
         <div
           style={{
-            transform: `translateX(-${
-              100 - (context.playbackPosition / duration) * 100
-            }%)`,
+            right: `${100 - (context.playbackPosition / duration) * 100}%`,
           }}
-          className="relative flex h-full items-center bg-foreground"
-        >
-          {/* <div className="absolute -right-2 aspect-square h-4 rounded-full bg-foreground" /> */}
-        </div>
+          className="absolute aspect-square h-4 translate-x-1/2 rounded-full bg-foreground"
+        />
       </div>
       <div className="flex">
         <div className="flex flex-1 items-center gap-2">
@@ -200,6 +236,7 @@ const AudioTimeline: React.FC<AudioTimelineProps> = ({
             }}
             variant="outline"
             className="mono"
+            autoFocus
           >
             {context.isPlaying ? "Pause" : "Play"}
           </Button>

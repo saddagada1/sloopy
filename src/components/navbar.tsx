@@ -9,8 +9,8 @@ import { cn } from "~/utils/shadcn/utils";
 import ImageSection from "./imageSection";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { LogOut, Moon, Sun } from "lucide-react";
-import { useIsClient } from "usehooks-ts";
+import { LogOut, Moon, Sun, SunMoon } from "lucide-react";
+import Gradient from "./gradient";
 
 interface NavButtonProps {
   href: string;
@@ -40,12 +40,19 @@ const NavButton: React.FC<NavButtonProps> = ({ href, label, description }) => {
 
 const SideNavbar: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  const isWindow = useIsClient();
 
-  if (!isWindow) return null;
   return (
     <nav className="mono hidden w-[200px] shrink-0 flex-col justify-end gap-2 lg:flex 2xl:w-[300px]">
-      <ImageSection colours={["#8b5cf6", "#eab308"]} alt="Sloop" />
+      {/* <div className="section aspect-square">
+        <div className="h-full w-full overflow-hidden rounded-full">
+          <Gradient />
+        </div>
+      </div> */}
+      <ImageSection
+        colours={["#8b5cf6", "#eab308"]}
+        className="aspect-square"
+        alt="Sloop"
+      />
       <div className="section flex flex-1 flex-col">
         <Link href="/" className="t3 mb-6 font-extrabold uppercase">
           sloopy
@@ -79,11 +86,7 @@ const SideNavbar: React.FC = () => {
             variant="outline"
             size="icon"
           >
-            {theme === "light" ? (
-              <Moon strokeWidth={1} />
-            ) : (
-              <Sun strokeWidth={1} />
-            )}
+            <SunMoon strokeWidth={1} />
           </Button>
         </div>
       </div>
