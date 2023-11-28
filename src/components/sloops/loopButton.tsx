@@ -49,7 +49,6 @@ const LoopButton: React.FC<LoopButtonProps> = ({
           <div className="flex flex-1 gap-2">
             <Button
               onClick={() => {
-                if (context.repeatPlayingLoop) return;
                 void context.player?.seek(loop.start * 1000);
                 context.setPlaybackPosition(loop.start);
                 if (!context.isPlaying) {

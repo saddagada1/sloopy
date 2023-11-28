@@ -132,6 +132,7 @@ const Editor: NextPage = ({}) => {
         message="There is a variant of this sloop that does not match the one on our servers. Would you like to edit that instead?"
         onCancel={() => {
           localStorage.removeItem(data.id);
+          editor.initialize(data);
           setLocalStorageVariant(null);
         }}
         onConfirm={() => {

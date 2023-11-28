@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Button } from "./ui/button";
-import Avatar from "boring-avatars";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import SearchInput from "./searchInput";
@@ -9,8 +8,7 @@ import { cn } from "~/utils/shadcn/utils";
 import ImageSection from "./imageSection";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { LogOut, Moon, Sun } from "lucide-react";
-import { useIsClient } from "usehooks-ts";
+import { LogOut, Moon, Sun, SunMoon } from "lucide-react";
 
 interface NavButtonProps {
   href: string;
@@ -27,12 +25,9 @@ const NavButton: React.FC<NavButtonProps> = ({ href, label, description }) => {
       asChild
       className={cn("uppercase", router.pathname === href && "bg-accent")}
     >
-      <Link href={href} className="flex gap-2">
-        <Avatar size={40} name={label} colors={["#8b5cf6", "#eab308"]} />
-        <div>
-          <p className="p-lg text-left">{label}</p>
-          <p className="p-sm truncate font-normal">{description}</p>
-        </div>
+      <Link href={href} className="flex flex-col space-y-2 text-left">
+        <p className="p-lg w-full">{label}</p>
+        <p className="p-sm w-full truncate font-normal">{description}</p>
       </Link>
     </Button>
   );
@@ -40,12 +35,10 @@ const NavButton: React.FC<NavButtonProps> = ({ href, label, description }) => {
 
 const SideNavbar: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  const isWindow = useIsClient();
 
-  if (!isWindow) return null;
   return (
     <nav className="mono hidden w-[200px] shrink-0 flex-col justify-end gap-2 lg:flex 2xl:w-[300px]">
-      <ImageSection colours={["#8b5cf6", "#eab308"]} alt="Sloop" />
+      <ImageSection className="aspect-square" animated />
       <div className="section flex flex-1 flex-col">
         <Link href="/" className="t3 mb-6 font-extrabold uppercase">
           sloopy
@@ -79,11 +72,7 @@ const SideNavbar: React.FC = () => {
             variant="outline"
             size="icon"
           >
-            {theme === "light" ? (
-              <Moon strokeWidth={1} />
-            ) : (
-              <Sun strokeWidth={1} />
-            )}
+            <SunMoon strokeWidth={1} />
           </Button>
         </div>
       </div>
@@ -102,8 +91,7 @@ const Navbar: React.FC = () => {
       <ImageSection
         onClick={() => void router.push("/")}
         className="aspect-square h-full w-fit"
-        colours={["#8b5cf6", "#eab308"]}
-        alt="Sloop"
+        animated
       />
       <div className="flex flex-1 flex-col gap-2">
         <div className="mono flex gap-2">

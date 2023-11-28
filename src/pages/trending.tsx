@@ -126,6 +126,7 @@ const Trending: NextPage = ({}) => {
                       }
                       key={index}
                       sloop={sloop}
+                      ignoreWidth
                     />
                   ))
                 : tab === "artists"

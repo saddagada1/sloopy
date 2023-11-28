@@ -173,14 +173,18 @@ const LoopTimeline: React.FC<LoopTimelineProps> = ({
                     return lp;
                   });
                   context.setLoops(loops);
-                  context.handlePlayingLoop(context.playbackPosition);
+                  context.handlePlayingLoop(context.playbackPosition, true);
                 }}
               >
                 <div
                   style={{
                     backgroundColor: pitchClassColours[loop.key] + colourMod,
                   }}
-                  className="h-full w-full rounded-md"
+                  onClick={() => {
+                    if (!context.player) return;
+                    void context.player.seek(loop.start * 1000);
+                  }}
+                  className="h-full w-full cursor-pointer rounded-md"
                 />
               </Resizable>
             ))}

@@ -29,6 +29,8 @@ export interface EditorValues {
   setPlayingLoop: Dispatch<SetStateAction<Loop | null>>;
   repeatPlayingLoop: Loop | null;
   setRepeatPlayingLoop: Dispatch<SetStateAction<Loop | null>>;
+  clipboard: string[][];
+  setClipboard: Dispatch<SetStateAction<string[][]>>;
   initialize: (sloop: Sloop) => void;
   createLoop: ({
     key,
@@ -39,7 +41,7 @@ export interface EditorValues {
     mode: number;
     chord: string;
   }) => void;
-  handlePlayingLoop: (position: number) => void;
+  handlePlayingLoop: (position: number, refresh?: boolean) => void;
   updateLoop: (updatedLoop: Loop) => void;
   deleteLoop: (deletedLoop: Loop) => void;
   updateTuning: (tuning: string[]) => void;
@@ -66,6 +68,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playingLoop, setPlayingLoop] = useState<Loop | null>(null);
   const [repeatPlayingLoop, setRepeatPlayingLoop] = useState<Loop | null>(null);
+  const [clipboard, setClipboard] = useState<string[][]>([]);
 
   const initialize = (sloop: Sloop) => {
     setSloop(sloop);
@@ -119,10 +122,11 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setLoops((currentLoops) => [...currentLoops, loop]);
   };
 
-  const handlePlayingLoop = (position: number) => {
+  const handlePlayingLoop = (position: number, refresh?: boolean) => {
     if (!player) return;
 
     if (
+      !refresh &&
       playingLoop &&
       playingLoop.start <= position &&
       position <= playingLoop.end
@@ -131,6 +135,7 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
 
     if (
+      !refresh &&
       repeatPlayingLoop &&
       (repeatPlayingLoop.start > position || position > repeatPlayingLoop.end)
     ) {
@@ -145,6 +150,12 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     );
     if (next) {
       setPlayingLoop(next);
+    }
+
+    if (refresh && repeatPlayingLoop) {
+      const update = loops.find((loop) => loop.id === repeatPlayingLoop.id);
+      if (!update) return;
+      setRepeatPlayingLoop(update);
     }
   };
 
@@ -289,6 +300,8 @@ const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         setPlayingLoop,
         repeatPlayingLoop,
         setRepeatPlayingLoop,
+        clipboard,
+        setClipboard,
         initialize,
         createLoop,
         handlePlayingLoop,

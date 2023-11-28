@@ -10,9 +10,9 @@ const Marquee: React.FC<MarqueeProps> = ({ label, ...props }) => {
   const { className, children, ...rest } = props;
   const [text, { width: length }] = useElementSize();
   return (
-    <section {...rest} className={cn("section p-0", className)}>
-      <h2 className="section-label mb-0 p-2">{label}</h2>
-      <div className="overflow-hidden">
+    <section {...rest} className={cn("section flex flex-col p-0", className)}>
+      <h2 className="section-label mb-0 flex-none p-2">{label}</h2>
+      <div className="flex flex-1 items-center overflow-hidden">
         <h1
           style={{ animationDuration: `${length * 0.001}s` }}
           ref={text}
