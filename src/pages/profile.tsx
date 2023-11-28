@@ -72,6 +72,7 @@ const Profile: NextPage = ({}) => {
                   : undefined
               }
               alt={user.name ?? user.username}
+              animated
             />
             <div className="flex flex-1 flex-col gap-2">
               <div className="section flex flex-1 flex-col">
@@ -125,6 +126,7 @@ const Profile: NextPage = ({}) => {
                   ref={index === (data?.length ?? 0) - 1 ? lastItem : undefined}
                   key={index}
                   sloop={sloop}
+                  ignoreWidth
                 />
               ))}
             </CardGrid>

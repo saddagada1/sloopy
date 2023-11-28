@@ -1,4 +1,3 @@
-import Avatar from "boring-avatars";
 import Link from "next/link";
 import { calcSloopColours } from "~/utils/calc";
 import { type ListSloop } from "~/utils/types";
@@ -8,13 +7,15 @@ import React, { type HTMLAttributes } from "react";
 import { cn } from "~/utils/shadcn/utils";
 import { useWindowSize } from "usehooks-ts";
 import { lgBreakpoint, lgCardSize, smCardSize } from "~/utils/constants";
+import Gradient from "./gradient";
 
 interface SloopCardProps extends HTMLAttributes<HTMLButtonElement> {
   sloop: ListSloop;
+  ignoreWidth?: boolean;
 }
 
 const SloopCard = React.forwardRef<HTMLButtonElement, SloopCardProps>(
-  ({ className, sloop, ...props }, ref) => {
+  ({ className, sloop, ignoreWidth, ...props }, ref) => {
     const { width: windowWidth } = useWindowSize();
     const width = windowWidth > lgBreakpoint ? lgCardSize : smCardSize;
     return (
@@ -28,11 +29,10 @@ const SloopCard = React.forwardRef<HTMLButtonElement, SloopCardProps>(
       >
         <Link href={`/sloop/${sloop.id}?private=${sloop.isPrivate}`}>
           <div className="relative mb-2 aspect-square overflow-hidden rounded-md">
-            <Avatar
-              size={width}
-              name={sloop.name}
-              square
-              colors={calcSloopColours(sloop)}
+            <Gradient
+              style={{ width: !ignoreWidth ? width : undefined }}
+              className="w-full"
+              colours={calcSloopColours(sloop)}
             />
             <p className="absolute right-2 top-2 flex items-center gap-2 rounded bg-background/50 p-1 px-2 text-xs backdrop-blur-md">
               {sloop.rankedSloop?.likes.toLocaleString(undefined, {

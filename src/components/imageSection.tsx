@@ -8,6 +8,7 @@ interface ImageSectionProps extends HTMLAttributes<HTMLDivElement> {
   alt?: string;
   square?: boolean;
   colours?: string[];
+  animated?: boolean;
 }
 
 const ImageSection: React.FC<ImageSectionProps> = ({
@@ -15,6 +16,7 @@ const ImageSection: React.FC<ImageSectionProps> = ({
   alt,
   square,
   colours,
+  animated,
   ...props
 }) => {
   const [container, { width }] = useElementSize();
@@ -35,6 +37,7 @@ const ImageSection: React.FC<ImageSectionProps> = ({
           square={square}
           className="aspect-square"
           colours={colours}
+          animated={animated}
         />
       </div>
     </div>

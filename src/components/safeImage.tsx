@@ -1,9 +1,9 @@
-import Avatar from "boring-avatars";
 import { pitchClassColours } from "~/utils/constants";
 import Image from "next/image";
-import { type HTMLAttributes, useState, Suspense } from "react";
+import { type HTMLAttributes, useState } from "react";
 import { cn } from "~/utils/shadcn/utils";
 import { randomBytes } from "crypto";
+import Gradient from "./gradient";
 
 const fallbackAlt = randomBytes(32).toString();
 
@@ -13,6 +13,7 @@ interface SafeImageProps extends HTMLAttributes<HTMLDivElement> {
   width: number;
   square?: boolean;
   colours?: string[];
+  animated?: boolean;
 }
 
 const SafeImage: React.FC<SafeImageProps> = ({
@@ -21,6 +22,7 @@ const SafeImage: React.FC<SafeImageProps> = ({
   width,
   square,
   colours,
+  animated,
   ...props
 }) => {
   const { className, style, ...rest } = props;
@@ -30,35 +32,29 @@ const SafeImage: React.FC<SafeImageProps> = ({
     <div
       style={{ width, ...style }}
       {...rest}
-      className={cn("relative", className)}
+      className={cn(
+        "relative",
+        square ? "rounded-md" : "rounded-full",
+        className
+      )}
     >
       {url && !error ? (
-        <Suspense
-          fallback={
-            <div className="absolute h-full w-full animate-pulse bg-muted-foreground" />
-          }
-        >
-          <Image
-            unoptimized
-            src={url}
-            alt={alt ?? fallbackAlt}
-            sizes={`${width}px`}
-            fill
-            className="object-cover"
-            onError={() => setError(true)}
-          />
-        </Suspense>
+        <Image
+          unoptimized
+          src={url}
+          alt={alt ?? fallbackAlt}
+          sizes={`${width}px`}
+          fill
+          className="object-cover"
+          onError={() => setError(true)}
+        />
       ) : (
-        <Avatar
-          size={width}
-          name={alt}
-          square={square}
-          colors={
+        <Gradient
+          colours={
             colours ??
-            Object.keys(pitchClassColours).map(
-              (key) => pitchClassColours[parseInt(key)]!
-            )
+            Object.values(pitchClassColours).filter((_, i) => i % 2 === 0)
           }
+          animated={animated}
         />
       )}
     </div>

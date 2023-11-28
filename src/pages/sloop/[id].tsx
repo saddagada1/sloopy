@@ -153,6 +153,7 @@ const Sloop: NextPage = ({}) => {
             alt={sloop.name}
             square
             colours={calcSloopColours(sloop)}
+            animated
           />
           <TrackButton
             renderImage
