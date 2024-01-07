@@ -18,7 +18,7 @@ module.exports = {
     extend: {
       screens: {
         lg: {
-          raw: "((min-width: 1024px) and (min-aspect-ratio: 16/10))",
+          raw: "(min-width: 1024px) and (min-aspect-ratio: 5/3)",
         },
       },
       fontSize: {
