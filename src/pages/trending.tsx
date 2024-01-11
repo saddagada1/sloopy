@@ -139,6 +139,7 @@ const Trending: NextPage = ({}) => {
                       }
                       key={index}
                       artist={artist}
+                      ignoreWidth
                     />
                   ))
                 : data.tracks?.map(({ track }, index) => (

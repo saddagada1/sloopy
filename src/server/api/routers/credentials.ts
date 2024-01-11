@@ -62,20 +62,20 @@ export const credentialsRouter = createTRPCRouter({
         });
       }
 
-      const token = v4();
-      await redis.set(VERIFY_EMAIL_PREFIX + token, user.id, {
-        ex: 1000 * 60 * 60 * 24,
-      });
+      // const token = v4();
+      // await redis.set(VERIFY_EMAIL_PREFIX + token, user.id, {
+      //   ex: 1000 * 60 * 60 * 24,
+      // });
 
-      try {
-        await sendAccountVerificationEmail(
-          user.name ?? user.username,
-          user.email,
-          token
-        );
-      } catch (error) {
-        await redis.del(VERIFY_EMAIL_PREFIX + token);
-      }
+      // try {
+      //   await sendAccountVerificationEmail(
+      //     user.name ?? user.username,
+      //     user.email,
+      //     token
+      //   );
+      // } catch (error) {
+      //   await redis.del(VERIFY_EMAIL_PREFIX + token);
+      // }
 
       user.password = "";
 

@@ -434,8 +434,11 @@ const PictureForm: React.FC<{ image: string | null }> = ({ image }) => {
       <h1 className="section-label mb-8">Image</h1>
       <div className="flex flex-col items-center gap-8">
         <div
-          style={{ width: width > lgBreakpoint ? 200 : 125 }}
-          className="relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-full border border-dashed text-muted-foreground"
+          style={{
+            width: width > lgBreakpoint ? 200 : 125,
+            height: width > lgBreakpoint ? 200 : 125,
+          }}
+          className="relative flex flex-col items-center justify-center overflow-hidden rounded-full border border-dashed text-muted-foreground"
         >
           <input
             className="absolute h-full w-full cursor-pointer opacity-0"

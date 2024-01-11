@@ -107,7 +107,6 @@ const Player: NextPage = ({}) => {
             alt={data.name}
             colours={calcSloopColours({
               ...data,
-              ...data,
               loops: player.loops,
             })}
           />
@@ -135,10 +134,10 @@ const Player: NextPage = ({}) => {
         >
           Sloopy
         </Link>
-        <nav className="section flex w-full shrink-0 gap-2 lg:hidden">
+        <nav className="flex h-24 w-full shrink-0 gap-2 overflow-hidden lg:hidden">
           <ImageSection
             key={player.loops.length}
-            className="aspect-square h-full w-fit"
+            className="h-full w-24"
             alt={data.name}
             colours={calcSloopColours({
               ...data,
@@ -149,7 +148,7 @@ const Player: NextPage = ({}) => {
             renderImage
             track={{ ...data.track, artists: data.artists }}
             className="w-fit"
-            imageSize={65}
+            imageSize={79}
             imageOnly
           />
           <div className="section flex flex-1 flex-col">

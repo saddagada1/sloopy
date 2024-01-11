@@ -28,7 +28,7 @@ const UserCard = React.forwardRef<HTMLButtonElement, UserCardProps>(
       >
         <Link className="space-y-2" href={`/${user.username}`}>
           <SafeImage
-            className="aspect-square overflow-hidden rounded-full"
+            className="overflow-hidden rounded-full pt-[100%]"
             url={user.image}
             alt={user.username}
             width={width}
