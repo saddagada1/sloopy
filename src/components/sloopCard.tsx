@@ -28,10 +28,12 @@ const SloopCard = React.forwardRef<HTMLButtonElement, SloopCardProps>(
         asChild
       >
         <Link href={`/sloop/${sloop.id}?private=${sloop.isPrivate}`}>
-          <div className="relative mb-2 aspect-square overflow-hidden rounded-md">
+          <div className="relative mb-2 overflow-hidden rounded-md">
             <Gradient
-              style={{ width: !ignoreWidth ? width : undefined }}
-              className="w-full"
+              style={{
+                width: ignoreWidth ? undefined : width,
+                height: width,
+              }}
               colours={calcSloopColours(sloop)}
             />
             <p className="absolute right-2 top-2 flex items-center gap-2 rounded bg-background/50 p-1 px-2 text-xs backdrop-blur-md">

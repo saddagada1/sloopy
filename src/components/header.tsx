@@ -32,7 +32,7 @@ const UserMenu: React.FC<{ user: Partial<User> }> = ({ user }) => {
             }
             alt={user.name ?? user.username}
             width={40}
-            className="aspect-square shrink-0 overflow-hidden rounded-full"
+            className="shrink-0 overflow-hidden rounded-full pt-[100%]"
           />
         </Button>
       </DropdownMenuTrigger>

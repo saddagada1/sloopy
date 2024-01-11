@@ -38,7 +38,7 @@ const SideNavbar: React.FC = () => {
 
   return (
     <nav className="mono hidden w-[200px] shrink-0 flex-col justify-end gap-2 lg:flex 2xl:w-[300px]">
-      <ImageSection className="aspect-square" animated />
+      <ImageSection animated />
       <div className="section flex flex-1 flex-col">
         <Link href="/" className="t3 mb-6 font-extrabold uppercase">
           sloopy

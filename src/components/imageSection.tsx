@@ -35,7 +35,7 @@ const ImageSection: React.FC<ImageSectionProps> = ({
           alt={alt}
           width={width}
           square={square}
-          className="aspect-square"
+          className="pt-[100%]"
           colours={colours}
           animated={animated}
         />

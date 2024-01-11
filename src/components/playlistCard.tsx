@@ -27,7 +27,7 @@ const PlaylistCard = React.forwardRef<HTMLButtonElement, PlaylistCardProps>(
       >
         <Link className="space-y-2" href={`/playlist/${playlist.id}`}>
           <SafeImage
-            className="aspect-square overflow-hidden rounded-md"
+            className="overflow-hidden rounded-md pt-[100%]"
             url={playlist.images[0]?.url}
             alt={playlist.name}
             square

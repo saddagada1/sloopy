@@ -54,6 +54,7 @@ const SafeImage: React.FC<SafeImageProps> = ({
             colours ??
             Object.values(pitchClassColours).filter((_, i) => i % 2 === 0)
           }
+          className="absolute left-0 top-0"
           animated={animated}
         />
       )}

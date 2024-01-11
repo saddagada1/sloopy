@@ -27,7 +27,7 @@ const TrackCard = React.forwardRef<HTMLButtonElement, TrackCardProps>(
       >
         <Link className="space-y-2" href={`/track/${track.id}`}>
           <SafeImage
-            className="aspect-square overflow-hidden rounded-md"
+            className="overflow-hidden rounded-md pt-[100%]"
             url={"album" in track ? track.album.images[0]?.url : track.image}
             alt={track.name}
             square

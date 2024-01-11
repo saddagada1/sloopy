@@ -225,7 +225,7 @@ const AudioTimeline: React.FC<AudioTimelineProps> = ({
           style={{
             right: `${100 - (context.playbackPosition / duration) * 100}%`,
           }}
-          className="absolute aspect-square h-4 translate-x-1/2 rounded-full bg-foreground"
+          className="absolute h-4 w-4 translate-x-1/2 rounded-full bg-foreground"
         />
       </div>
       <div className="flex">

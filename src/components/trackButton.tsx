@@ -17,10 +17,14 @@ const TrackButton = React.forwardRef<HTMLButtonElement, TrackButtonProps>(
   ({ track, renderImage, imageSize, imageOnly, ...props }, ref) => {
     return (
       <Button {...props} ref={ref} variant="outline" size="base" asChild>
-        <Link className="flex items-center gap-2" href={`/track/${track.id}`}>
+        <Link
+          className="relative flex items-center gap-2"
+          href={`/track/${track.id}`}
+        >
           {renderImage && (
             <SafeImage
-              className="aspect-square overflow-hidden rounded"
+              className="shrink-0 overflow-hidden rounded"
+              style={{ height: imageSize ?? 50 }}
               url={
                 "album" in track
                   ? track.album.images[0]?.url

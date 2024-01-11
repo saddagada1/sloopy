@@ -27,7 +27,7 @@ const AlbumCard = React.forwardRef<HTMLButtonElement, AlbumCardProps>(
       >
         <Link className="space-y-2" href={`/album/${album.id}`}>
           <SafeImage
-            className="relative aspect-square overflow-hidden rounded-md"
+            className="relative overflow-hidden rounded-md pt-[100%]"
             url={album.images[0]?.url}
             alt={album.name}
             square

@@ -5,9 +5,11 @@ import Script from "next/script";
 import EditorProvider from "~/contexts/editor";
 import PlayerProvider from "~/contexts/player";
 import Header from "./header";
+import { useWindowSize } from "usehooks-ts";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
+  const { width, height } = useWindowSize();
 
   return (
     <>
@@ -15,7 +17,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <meta name="description" content="Sloooooooooooooopy" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <div className="flex h-screen w-screen flex-col gap-2 p-2 font-sans lg:flex-row">
+      <div
+        style={{ width, height }}
+        className="flex flex-col gap-2 p-2 font-sans lg:flex-row"
+      >
         {router.pathname.includes("editor") ? (
           <EditorProvider>{children}</EditorProvider>
         ) : router.pathname.includes("player") ? (
